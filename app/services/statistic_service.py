@@ -21,21 +21,21 @@ class StatisticService:
         stats = await self.statictics.get_global()
         if not stats:
             raise ValueError("Statistic not initialized")
-
-        orders = stats["orders"]
-        gold = stats["gold"]
-
+        orders = stats.get("orders") or {}
+        gold = stats.get("gold") or {}
+        if not orders or not gold:
+            raise ValueError("Statistic data incomplete")
         return {
             "order": {
-                "total": orders["total_customer_order"],
+                "total": orders.get("total_customer_order", 0),
                 "active": active,
                 "completed": completed,
-                "finished": orders["total_finished_order"],
-                "cancelled": orders["total_cancelled_order"],
+                "finished": orders.get("total_finished_order", 0),
+                "cancelled": orders.get("total_cancelled_order", 0),
             },
             "gold": {
-                "worker_income": gold["total_worker_income"],
-                "customer_spent": gold["total_customer_spent"],
+                "worker_income": gold.get("total_worker_income", 0),
+                "customer_spent": gold.get("total_customer_spent", 0),
             },
             "leaderboard": {
                 "workers": await self.leaderboards.top_workers(limit=5),

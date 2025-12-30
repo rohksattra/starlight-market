@@ -69,6 +69,19 @@ class OrderManagement(commands.Cog):
             await ctx.send("⏱️ Confirmation timed out.", delete_after=5)
             return False
         return msg.content.lower() in {"yes", "y"}
+    
+    async def _sync_category(self, *, channel: discord.TextChannel, order: dict) -> None:
+        guild = channel.guild
+        if guild is None:
+            return
+        if order["order_status"] not in {OrderStatus.NEW, OrderStatus.CLAIMED}:
+            return
+        claims = order["order_claims"]
+        total = order["item_quantity"]
+        target_category_id = (settings.NEW_ORDERS_CATEGORY_ID if claims["order_claimable"] == total else settings.CLAIMED_ORDERS_CATEGORY_ID)
+        category = guild.get_channel(target_category_id)
+        if isinstance(category, discord.CategoryChannel):
+            await channel.edit(category=category)
 
     @app_commands.command(name="order-item-price-update", description="(Staff) Update order item price")
     async def update_price(self, interaction: discord.Interaction, new_price: int) -> None:
@@ -166,6 +179,7 @@ class OrderManagement(commands.Cog):
         except ValueError as exc:
             await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
             return
+        await self._sync_category(channel=interaction.channel, order=updated)
         await update_order_embed(channel=interaction.channel, order=updated, worker_role_id=settings.WORKER_ROLE_ID)
         guild = interaction.guild
         if guild:

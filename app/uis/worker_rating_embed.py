@@ -32,7 +32,7 @@ def worker_rating_embed(
             f"***{order_channel.mention}***\n\n"
             f"***{customer.mention}*** please take a moment to rate their performance."
         ),
-        color=discord.Color.gold(),
+        color=0xFFD700,
     )
     embed.set_footer(text="🌟 Starlight Market")
     return embed

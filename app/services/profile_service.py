@@ -22,11 +22,13 @@ class ProfileService:
                 worker_orders.append(f"- <#{o['channel_id']}> x***{qty:,}***")
         worker = await self.workers.get_worker(user_id)
         total_income = worker["total_worker_income"] if worker else 0
-        worker_rank = await self.workers.get_rank_worker(user_id)
+        if total_income > 0:
+            worker_rank = await self.workers.get_rank_worker(user_id)
+        else:
+            worker_rank = None
         rating_count = worker["count_worker_rating"] if worker else 0
         rating_total = worker["total_worker_star"] if worker else 0
         rating_avg = (rating_total / rating_count) if rating_count else 0.0
-
         customer_orders: List[str] = []
         active_customer = await self.orders.get_active_by_customer(user_id)
         for o in active_customer:
@@ -34,7 +36,10 @@ class ProfileService:
                 customer_orders.append(f"- <#{o['channel_id']}>")
         customer = await self.customers.get_customer(user_id)
         total_spent = customer["total_customer_spent"] if customer else 0
-        customer_rank = await self.customers.get_rank_customer(user_id)
+        if total_spent > 0:
+            customer_rank = await self.customers.get_rank_customer(user_id)
+        else:
+            customer_rank = None
         return {
             "worker_orders": worker_orders,
             "customer_orders": customer_orders,

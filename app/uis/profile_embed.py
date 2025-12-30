@@ -20,7 +20,7 @@ def profile_embed(
     worker_rating_avg: float = 0.0,
     worker_rating_count: int = 0,
 ) -> discord.Embed:
-    color = (member.color if member.color.value != 0 else discord.Color.gold())
+    color = 0xFFD700
     rating_text = worker_rating_summary(average=worker_rating_avg, count=worker_rating_count)
     worker_rank_text = (
         f"#{worker_rank:,}"
