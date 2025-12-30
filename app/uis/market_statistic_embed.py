@@ -1,0 +1,49 @@
+# app/uis/market_statistic_embed.py
+from __future__ import annotations
+
+from typing import Any, Dict, List, Sequence
+
+import discord
+
+
+def market_statistic_embed(
+    *, order: Dict[str, int], gold: Dict[str, int], leaderboard: Dict[str, Sequence[Dict[str, Any]]], total_workers: int, total_customers: int,
+) -> discord.Embed:
+    if not order or not gold:
+        embed = discord.Embed(title="📊 Starlight Market Statistics", description="⚠️ **No data available.**", color=0xFFD700)
+        embed.set_footer(text="🌟 Starlight Market")
+        return embed
+    completed = order.get("completed", 0)
+    embed = discord.Embed(title="📊 Starlight Market Statistics", color=0xFFD700)
+    embed.description = (
+        "### 🛒 Order Overview\n"
+        f"- Total Orders: 🛒 ***{order['total']:,}***\n"
+        f"- Active Orders: 🔄 ***{order['active']:,}***\n"
+        f"- Completed Orders: ✅ ***{completed:,}***\n"
+        f"- Finished Orders: 📦 ***{order['finished']:,}***\n"
+        f"- Canceled Orders: ❌ ***{order['cancelled']:,}***\n\n"
+        "### 👥 Market Overview\n"
+        f"- Total Workers: 👷 ***{total_workers:,}***\n"
+        f"- Total Customers: 🛍️ ***{total_customers:,}***\n\n"
+        "### 🪙 Gold Overview\n"
+        f"- Workers Income: 🪙 ***{gold['worker_income']:,}***\n"
+        f"- Customers Spent: 🪙 ***{gold['customer_spent']:,}***\n\n"
+        "### 🥇 Leaderboard\n"
+        "**Top 3 Workers**\n"
+        f"{_fmt_users(leaderboard.get('workers', []))}\n\n"
+        "**Top 3 Customers**\n"
+        f"{_fmt_users(leaderboard.get('customers', []))}"
+    )
+    embed.set_footer(text="🌟 Starlight Market")
+    return embed
+
+
+def _fmt_users(rows: Sequence[Dict[str, Any]]) -> str:
+    if not rows:
+        return "- No data"
+    lines: List[str] = []
+    for i, row in enumerate(rows, start=1):
+        user_id = row.get("id")
+        value = int(row.get("value", 0))
+        lines.append(f"{i}. <@{user_id}> — 🪙 ***{value:,}***")
+    return "\n".join(lines)
