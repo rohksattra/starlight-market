@@ -40,6 +40,17 @@ class ItemService:
         items = await self.items.get_by_category(category)
         log.info("List items | category=%s count=%s", category, len(items))
         return items
+    
+    async def list_item_price_by_category(self, category: str, *, limit: int = 50) -> List[Dict[str, Any]]:
+        if not category.strip():
+            log.warning("List item price failed | empty category")
+            return []
+        items = await self.items.get_by_category(category)
+        items.sort(key=lambda x: x["item_name"].lower())
+        if limit > 0:
+            items = items[:limit]
+        log.debug("List item price | category=%s count=%s limit=%s", category, len(items), limit)
+        return items
 
     async def add_category(self, category_name: str) -> None:
         self._validate_non_empty(category_name)

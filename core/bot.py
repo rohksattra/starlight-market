@@ -13,6 +13,8 @@ from db.bootstrap import bootstrap_database
 from db.mongo import close_mongo
 
 from core.web import start_web_background
+from app.services.item_service import ItemService
+from app.uis.price_button import PriceRefreshView
 from app.uis.leaderboard_button import LeaderboardRefreshView
 from app.uis.worker_rating_button import RatingWorkerButton
 
@@ -26,6 +28,10 @@ class StarlightBot(commands.Bot):
     async def setup_hook(self) -> None:
         await bootstrap_database()
         await load_cogs(self)
+        item_serv = ItemService()
+        categories = await item_serv.list_categories()
+        for category in categories:
+            self.add_view(PriceRefreshView(category=category))
         self.add_view(LeaderboardRefreshView(lb_type="worker", title="🏆 Top 50 Workers"))
         self.add_view(LeaderboardRefreshView(lb_type="customer", title="🏅 Top 50 Customers"))
         self.add_view(LeaderboardRefreshView(lb_type="item", title="🛒 Top 50 Items"))
@@ -43,6 +49,7 @@ async def load_cogs(bot: commands.Bot) -> None:
         "app.cogs.order_action",
         "app.cogs.order_management",
         "app.cogs.custom_order",
+        "app.cogs.price",
         "app.cogs.market_statistic",
         "app.cogs.leaderboard",
         "app.cogs.profile",
