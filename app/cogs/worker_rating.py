@@ -23,7 +23,7 @@ class WorkerRating(commands.Cog):
             return
         transaction_id = str(interaction.message.id)
         try:
-            await self.worker_rating_serv.submit_rating(transaction_id=transaction_id, rating=rating)
+            await self.worker_rating_serv.submit_rating(transaction_id=transaction_id, customer_id=str(interaction.user.id), rating=rating)
         except ValueError as exc:
             await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
             await self._disable_buttons(interaction)

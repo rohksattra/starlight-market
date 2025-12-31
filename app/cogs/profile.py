@@ -1,6 +1,7 @@
 # app/cogs/profile.py
 from __future__ import annotations
 
+import asyncio
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -48,10 +49,18 @@ class Profile(commands.Cog):
     async def _send_profile(self, ctx_or_interaction: commands.Context | discord.Interaction, member: discord.Member) -> None:
         data = await self.profile_serv.get_profile_data(user_id=str(member.id))
         embed = profile_embed(member=member, **data)
+        msg: discord.Message | None = None
         if isinstance(ctx_or_interaction, commands.Context):
-            await ctx_or_interaction.send(embed=embed)
-        else:
-            await safe_respond(ctx_or_interaction, embed=embed, ephemeral=False)
+            await ctx_or_interaction.send(embed=embed, delete_after=180)
+            return
+        msg = await ctx_or_interaction.followup.send(embed=embed)
+        if msg is None:
+            return
+        await asyncio.sleep(180)
+        try:
+            await msg.delete()
+        except discord.Forbidden:
+            pass
 
 
 async def setup(bot: commands.Bot) -> None:

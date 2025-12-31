@@ -27,25 +27,29 @@ class WorkerRatingService:
             "customer_id": customer_id,
             "created_at": now,
             "expired_at": now + timedelta(days=expire_days),
+            "rated": False,
         }
         await self.worker_ratings.create_rating(rating)
         log.info("Worker rating requested | transaction=%s worker=%s customer=%s", transaction_id, worker_id, customer_id)
         return rating
 
-    async def submit_rating(self, *, transaction_id: str, rating: int) -> None:
+    async def submit_rating(self, *, transaction_id: str, customer_id: str, rating: int) -> None:
         if rating < 1 or rating > 5:
             raise ValueError("Rating must be between 1 and 5")
         record = await self.worker_ratings.get_by_transaction(transaction_id)
         if not record:
             raise ValueError("Rating request not found")
+        if record["customer_id"] != customer_id:
+            log.warning("Rating denied | not owner | transaction=%s user=%s", transaction_id, customer_id)
+            raise ValueError("You are not allowed to rate this worker")
         now = datetime.now(timezone.utc)
         expired_at = record["expired_at"]
         if expired_at.tzinfo is None:
-              expired_at = expired_at.replace(tzinfo=timezone.utc)
+            expired_at = expired_at.replace(tzinfo=timezone.utc)
         if expired_at < now:
             log.info("Worker rating expired | transaction=%s", transaction_id)
             raise ValueError("Rating request expired")
-        if record["rated"]:
+        if record.get("rated"):
             raise ValueError("Rating already submitted")
         ok = await self.worker_ratings.rating_submit(transaction_id=transaction_id, rating=rating, rated_at=now)
         if not ok:
