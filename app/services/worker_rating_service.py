@@ -41,7 +41,7 @@ class WorkerRatingService:
             raise ValueError("Rating request not found")
         if record["customer_id"] != customer_id:
             log.warning("Rating denied | not owner | transaction=%s user=%s", transaction_id, customer_id)
-            raise ValueError("You are not allowed to rate this worker")
+            raise PermissionError("You are not allowed to rate this worker")
         now = datetime.now(timezone.utc)
         expired_at = record["expired_at"]
         if expired_at.tzinfo is None:
