@@ -18,7 +18,7 @@ class WorkerRatingService:
         self.worker_ratings = WorkerRatingRepository()
         self.workers = WorkerRepository()
 
-    async def request_rating(self, *, transaction_id: str, worker_id: str, customer_id: str, expire_days: int = 2) -> Dict[str, Any]:
+    async def request_rating(self, *, transaction_id: str, worker_id: str, customer_id: str, expire_days: int = 3) -> Dict[str, Any]:
         now = datetime.now(timezone.utc)
         rating = {
             "worker_rating_id": str(uuid4()),

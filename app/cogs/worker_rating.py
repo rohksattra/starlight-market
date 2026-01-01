@@ -24,16 +24,19 @@ class WorkerRating(commands.Cog):
         transaction_id = str(interaction.message.id)
         try:
             await self.worker_rating_serv.submit_rating(transaction_id=transaction_id, customer_id=str(interaction.user.id), rating=rating)
+        except PermissionError as exc:
+            await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
+            return
         except ValueError as exc:
             await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
             await self._disable_buttons(interaction)
             return
         except RuntimeError:
             await safe_respond(interaction, content="❌ Failed to submit rating.", ephemeral=True)
-            await self._disable_buttons(interaction)
             return
         await self._disable_buttons(interaction)
         await safe_respond(interaction, content=f"✅ Thank you! You rated the worker **{rating}⭐**.", ephemeral=True)
+
 
     async def _disable_buttons(self, interaction: discord.Interaction) -> None:
         message = interaction.message

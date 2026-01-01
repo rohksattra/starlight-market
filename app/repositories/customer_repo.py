@@ -25,7 +25,7 @@ class CustomerRepository:
                     "customer_id": customer_id,
                     "total_customer_order": 0,
                     "total_customer_spent": 0,
-                    "updated_at": datetime.utcnow(),
+                    "$set": {"updated_at": datetime.utcnow()},
                 }
             },
             upsert=True,

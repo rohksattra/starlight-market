@@ -29,10 +29,12 @@ def market_statistic_embed(
         f"- Workers Income: 🪙 ***{gold['worker_income']:,}***\n"
         f"- Customers Spent: 🪙 ***{gold['customer_spent']:,}***\n\n"
         "### 🥇 Leaderboard\n"
-        "**Top 3 Workers**\n"
+        "**Top 5 Workers**\n"
         f"{_fmt_users(leaderboard.get('workers', []))}\n\n"
-        "**Top 3 Customers**\n"
-        f"{_fmt_users(leaderboard.get('customers', []))}"
+        "**Top 5 Customers**\n"
+        f"{_fmt_users(leaderboard.get('customers', []))}\n\n"
+        "**Top 5 Items**\n"
+        f"{_fmt_items(leaderboard.get('items', []))}"
     )
     embed.set_footer(text="🌟 Starlight Market")
     return embed
@@ -45,5 +47,15 @@ def _fmt_users(rows: Sequence[Dict[str, Any]]) -> str:
     for i, row in enumerate(rows, start=1):
         user_id = row.get("id")
         value = int(row.get("value", 0))
-        lines.append(f"{i}. <@{user_id}> — 🪙 ***{value:,}***")
+        lines.append(f"{i}. ***<@{user_id}>*** — 🪙 ***{value:,}***")
+    return "\n".join(lines)
+
+def _fmt_items(rows: Sequence[Dict[str, Any]]) -> str:
+    if not rows:
+        return "- No data"
+    lines: List[str] = []
+    for i, row in enumerate(rows, start=1):
+        name = row.get("name", "Unknown")
+        value = int(row.get("value", 0))
+        lines.append(f"{i}. 🏷 ***{name}*** — ***{value:,} sold***")
     return "\n".join(lines)
