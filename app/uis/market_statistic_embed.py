@@ -57,5 +57,5 @@ def _fmt_items(rows: Sequence[Dict[str, Any]]) -> str:
     for i, row in enumerate(rows, start=1):
         name = row.get("name", "Unknown")
         value = int(row.get("value", 0))
-        lines.append(f"{i}. 🏷 ***{name}*** — ***{value:,}x***")
+        lines.append(f"{i}. ***{name}*** — 🏷 ***{value:,}x***")
     return "\n".join(lines)
