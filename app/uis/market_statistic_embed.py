@@ -7,7 +7,7 @@ import discord
 
 
 def market_statistic_embed(
-    *, order: Dict[str, int], gold: Dict[str, int], leaderboard: Dict[str, Sequence[Dict[str, Any]]], total_workers: int, total_customers: int,
+    *, guild: discord.Guild, order: Dict[str, int], gold: Dict[str, int], leaderboard: Dict[str, Sequence[Dict[str, Any]]], total_workers: int, total_customers: int,
 ) -> discord.Embed:
     if not order or not gold:
         embed = discord.Embed(title="📊 Starlight Market Statistics", description="⚠️ **No data available.**", color=0xFFD700)
@@ -30,9 +30,9 @@ def market_statistic_embed(
         f"- Customers Spent: 🪙 ***{gold['customer_spent']:,}***\n\n"
         "### 🥇 Leaderboard\n"
         "**Top 5 Workers**\n"
-        f"{_fmt_users(leaderboard.get('workers', []))}\n\n"
+        f"{_fmt_users(guild, leaderboard.get('workers', []))}\n\n"
         "**Top 5 Customers**\n"
-        f"{_fmt_users(leaderboard.get('customers', []))}\n\n"
+        f"{_fmt_users(guild, leaderboard.get('customers', []))}\n\n"
         "**Top 5 Items**\n"
         f"{_fmt_items(leaderboard.get('items', []))}"
     )
@@ -40,15 +40,21 @@ def market_statistic_embed(
     return embed
 
 
-def _fmt_users(rows: Sequence[Dict[str, Any]]) -> str:
+def _fmt_users(guild: discord.Guild, rows: Sequence[Dict[str, Any]]) -> str:
     if not rows:
         return "- No data"
     lines: List[str] = []
     for i, row in enumerate(rows, start=1):
         user_id = row.get("id")
         value = int(row.get("value", 0))
-        lines.append(f"{i}. ***<@{user_id}>*** — 🪙 ***{value:,}***")
+        if not user_id:
+            name = "Unknown User"
+        else:
+            member = guild.get_member(int(user_id))
+            name = member.display_name if member else "Unknown User"
+        lines.append(f"{i}. ***{name}*** — 🪙 ***{value:,}***")
     return "\n".join(lines)
+
 
 def _fmt_items(rows: Sequence[Dict[str, Any]]) -> str:
     if not rows:

@@ -36,7 +36,7 @@ class MarketStatistic(commands.Cog):
         total_workers = sum(1 for m in members if worker_role and worker_role in m.roles)
         total_customers = sum(1 for m in members if customer_role and customer_role in m.roles)
         embed = market_statistic_embed(
-            order=data.get("order", {}),
+            guild=guild, order=data.get("order", {}),
             gold=data.get("gold", {}),
             leaderboard=data.get("leaderboard", {}),
             total_workers=total_workers,
