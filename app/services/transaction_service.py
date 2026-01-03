@@ -66,7 +66,7 @@ class TransactionService:
             await self.workers.inc_worker_income(worker_id=user_id, finished_item_inc=quantity, income_inc=worker_income)
             await self.statistics.inc_worker_income(amount=worker_income)
             claims = updated["order_claims"]
-            finished = (claims["order_completed"] >= updated["item_quantity"])
+            finished = (claims["order_completed"] + claims["order_delivered"] >= updated["item_quantity"])
             if finished and updated["order_status"] != OrderStatus.COMPLETED:
                 updated = await self.orders.update_fields(order["order_id"], {"order_status": OrderStatus.COMPLETED})
             log.info(
