@@ -18,9 +18,8 @@ def leaderboard_embed(*, title: str, entries: List[Dict[str, Any]], lb_type: LBT
             name = str(entry.get("name", "Unknown Item"))
             lines.append(f"***{idx}. {name}*** — 🏷 ***{value:,}x***")
         else:
-            user_id = entry.get("id")
-            mention = (f"<@{user_id}>" if user_id is not None else "`Unknown User`")
-            lines.append(f"***{idx}. {mention}*** — 🪙 ***{value:,}***")
+            name = entry.get("name", "Unknown User")
+            lines.append(f"***{idx}. {name}*** — 🪙 ***{value:,}***")
     embed = discord.Embed(
         title=title,
         description="\n".join(lines) if lines else "⚠️ No data available.",

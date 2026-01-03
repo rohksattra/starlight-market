@@ -19,7 +19,7 @@ from utils.interaction_safe import safe_defer, safe_respond
 from utils.cooldown import check_cooldown
 
 
-ClaimAction = Literal["claim", "unclaim", "force_unclaim"]
+ClaimAction = Literal["claim", "unclaim", "force_claim", "force_unclaim"]
 MAX_ACTIVE_CLAIM = 6
 
 

@@ -49,10 +49,22 @@ class Leaderboard(commands.Cog):
         return channel if isinstance(channel, discord.TextChannel) else None
 
     async def _fetch_worker(self) -> List[Dict[str, Any]]:
-        return cast(List[Dict[str, Any]], await self.leaderboard_serv.top_workers())
+        rows = await self.leaderboard_serv.top_workers()
+        guild = self.bot.get_guild(settings.GUILD_ID)
+        result = []
+        for r in rows:
+            member = guild.get_member(int(r["id"])) if guild else None
+            result.append({"name": member.display_name if member else "Unknown", "value": r["value"]})
+        return result
 
     async def _fetch_customer(self) -> List[Dict[str, Any]]:
-        return cast(List[Dict[str, Any]], await self.leaderboard_serv.top_customers())
+        rows = await self.leaderboard_serv.top_customers()
+        guild = self.bot.get_guild(settings.GUILD_ID)
+        result = []
+        for r in rows:
+            member = guild.get_member(int(r["id"])) if guild else None
+            result.append({"name": member.display_name if member else "Unknown", "value": r["value"]})
+        return result
 
     async def _fetch_item(self) -> List[Dict[str, Any]]:
         return cast(List[Dict[str, Any]], await self.leaderboard_serv.top_items())

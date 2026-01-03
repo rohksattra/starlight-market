@@ -47,6 +47,15 @@ class OrderClaimService:
         order = await self._post_unclaim(order=order, worker_id=worker_id)
         log.info("Unclaim success | order_id=%s worker=%s qty=%s", order_id, worker_id, qty)
         return order
+    
+    async def force_claim(self, *, order_id: str, worker_id: str, qty: int) -> Dict[str, Any]:
+        self._validate_qty(qty, action="Force claim")
+        order = await self.orders.inc_claim(order_id=order_id, worker_id=worker_id, qty=qty)
+        if not order:
+            log.warning("Force claim failed | insufficient qty or invalid state | order_id=%s worker=%s qty=%s", order_id, worker_id, qty)
+            raise ValueError("Not enough claimable quantity")
+        log.warning("Force claim success | order_id=%s worker=%s qty=%s", order_id, worker_id, qty)
+        return order
 
     async def force_unclaim(self, *, order_id: str, worker_id: str, qty: int) -> Dict[str, Any]:
         self._validate_qty(qty, action="Force unclaim")

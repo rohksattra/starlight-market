@@ -5,7 +5,7 @@ import discord
 from typing import Literal
 
 
-ClaimAction = Literal["claim", "unclaim", "force_unclaim"]
+ClaimAction = Literal["claim", "unclaim", "force_claim", "force_unclaim"]
 
 
 def claim_log_embed(
@@ -23,10 +23,17 @@ def claim_log_embed(
             f"🏷 ***{quantity:,}x*** of ***{item_name}*** "
             f"in ***{channel.mention}***"
         )
+    elif action == "force_claim":
+        staff_mention = staff.mention if staff else "**Staff**"
+        description = (
+            f"***{staff_mention}*** forced ***{worker.mention}*** to claim "
+            f"🏷 ***{quantity:,}x*** of ***{item_name}*** "
+            f"in ***{channel.mention}***"
+        )
     elif action == "force_unclaim":
         staff_mention = staff.mention if staff else "**Staff**"
         description = (
-            f"{staff_mention} forced {worker.mention} to unclaim "
+            f"***{staff_mention}*** forced ***{worker.mention}*** to unclaim "
             f"🏷 ***{quantity:,}x*** of ***{item_name}*** "
             f"in ***{channel.mention}***"
         )
