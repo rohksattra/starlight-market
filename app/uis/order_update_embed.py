@@ -13,7 +13,8 @@ def _fmt(value: int) -> str:
 OrderUpdateField = Literal["price", "quantity"]
 
 
-def order_update_embed(*, field: OrderUpdateField, old_value: int, new_value: int, worker_role: discord.Role | None) -> discord.Embed:
+def order_update_embed(
+    *, field: OrderUpdateField, old_value: int, new_value: int, worker_role: discord.Role | None) -> tuple[str, discord.Embed]:
     if field == "quantity":
         label = "Quantity"
         icon = "🏷"
@@ -26,11 +27,10 @@ def order_update_embed(*, field: OrderUpdateField, old_value: int, new_value: in
     embed = discord.Embed(
         title="📌 Order Update",
         description=(
-            f"{role_mention}\n"
             f"{icon} **{label} updated:** "
             f"***{_fmt(old_value)}*** ➡️ ***{_fmt(new_value)}***"
         ),
         color=0xFFD700,
     )
     embed.set_footer(text="🌟 Starlight Market")
-    return embed
+    return f"🔔 {role_mention}", embed

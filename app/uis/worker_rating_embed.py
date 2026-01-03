@@ -23,19 +23,19 @@ def format_rating_stars(average: float, *, max_stars: int = 5) -> str:
 
 def worker_rating_embed(
     *, worker: discord.Member, customer: discord.Member, item_name: str, item_quantity: int, order_channel: discord.TextChannel,
-) -> discord.Embed:
+) -> tuple[str, discord.Embed]:
     embed = discord.Embed(
         title="⭐ Rate Worker Performance",
         description=(
             f"***{worker.mention}*** has successfully completed "
             f"***{item_quantity:,}x {item_name}*** for your order in "
             f"***{order_channel.mention}***\n\n"
-            f"***{customer.mention}*** please take a moment to rate their performance."
+            f"Please take a moment to rate their performance."
         ),
         color=0xFFD700,
     )
     embed.set_footer(text="🌟 Starlight Market")
-    return embed
+    return f"🔔 {customer.mention}", embed
 
 
 def worker_rating_summary(*, average: float, count: int) -> str:

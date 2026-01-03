@@ -135,9 +135,8 @@ class OrderManagement(commands.Cog):
             return
         await update_order_embed(channel=interaction.channel, order=updated, worker_role_id=settings.WORKER_ROLE_ID)
         worker_role = interaction.guild.get_role(settings.WORKER_ROLE_ID) if interaction.guild else None
-        await interaction.channel.send(
-            embed=order_update_embed( field="price", old_value=old_price, new_value=new_price, worker_role=worker_role)
-        )
+        content, embed = order_update_embed(field="price", old_value=old_price, new_value=new_price, worker_role=worker_role)
+        await interaction.channel.send(content=content, embed=embed)
         await safe_respond(interaction, content="✅ Order item price updated.", ephemeral=True)
 
     @app_commands.command(name="order-item-quantity-update", description="(Staff) Update order item quantity")
@@ -172,9 +171,8 @@ class OrderManagement(commands.Cog):
         if interaction.channel.name != new_name:
             await interaction.channel.edit(name=new_name)
         worker_role = interaction.guild.get_role(settings.WORKER_ROLE_ID) if interaction.guild else None
-        await interaction.channel.send(
-            embed=order_update_embed(field="quantity", old_value=old_qty, new_value=new_quantity, worker_role=worker_role)
-        )
+        content, embed = order_update_embed(field="quantity", old_value=old_qty, new_value=new_quantity, worker_role=worker_role)
+        await interaction.channel.send(content=content, embed=embed)
         await safe_respond(interaction, content="✅ Order item quantity updated.", ephemeral=True)
 
     @app_commands.command(name="force-claim", description="(Staff) Force claim to a worker")

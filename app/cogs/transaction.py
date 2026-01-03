@@ -97,12 +97,10 @@ class Income(commands.Cog):
             if isinstance(rating_channel, discord.TextChannel):
                 customer = guild.get_member(int(order["customer_id"]))
                 if customer:
-                    msg = await rating_channel.send(
-                        embed=worker_rating_embed(
-                            worker=member, customer=customer, item_name=order["item_name"], item_quantity=quantity, order_channel=order_channel,
-                        ),
-                        view=RatingWorkerButton(),
+                    content, embed = worker_rating_embed(
+                        worker=member, customer=customer, item_name=order["item_name"], item_quantity=quantity, order_channel=order_channel,
                     )
+                    msg = await rating_channel.send(content=content, embed=embed, view=RatingWorkerButton())
                     await self.worker_ratings_serv.request_rating(transaction_id=str(msg.id), worker_id=str(user), customer_id=str(customer.id))
         if target == "worker" and result.get("finished"):
             category = guild.get_channel(settings.COMPLETED_ORDERS_CATEGORY_ID)
@@ -110,15 +108,14 @@ class Income(commands.Cog):
                 await order_channel.edit(category=category)
             customer = guild.get_member(int(order["customer_id"]))
             if customer:
-                await order_channel.send(
-                    embed=pickup_embed(
-                        customer_mention=customer.mention,
-                        bank_manager_role_id=settings.BANK_MANAGER_ROLE_ID,
-                        item_name=order["item_name"],
-                        quantity=order["order_claims"]["order_completed"],
-                        total_price=(order["order_claims"]["order_completed"] * order["item_price"]),
+                content, embed = pickup_embed(
+                    customer_mention=customer.mention,
+                    bank_manager_role_id=settings.BANK_MANAGER_ROLE_ID,
+                    item_name=order["item_name"],
+                    quantity=order["order_claims"]["order_completed"],
+                    total_price=(order["order_claims"]["order_completed"] * order["item_price"]),
                     )
-                )
+                await order_channel.send(content=content, embed=embed)
         if target == "customer" and result.get("delivered"):
             await order_channel.send(
                 embed=close_embed(bank_manager_role_id=settings.BANK_MANAGER_ROLE_ID),
