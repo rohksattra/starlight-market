@@ -154,7 +154,7 @@ class SubmitButton(discord.ui.Button):
 class PrevPageButton(discord.ui.Button):
     def __init__(self, view: "CalcWorkerPaymentView"):
         self.view_ref = view
-        super().__init__(label="⬅️", style=discord.ButtonStyle.secondary)
+        super().__init__(label="◀", style=discord.ButtonStyle.secondary)
 
     async def callback(self, interaction: discord.Interaction) -> None:
         if self.disabled:
@@ -169,7 +169,7 @@ class PrevPageButton(discord.ui.Button):
 class NextPageButton(discord.ui.Button):
     def __init__(self, view: "CalcWorkerPaymentView"):
         self.view_ref = view
-        super().__init__(label="➡️", style=discord.ButtonStyle.secondary)
+        super().__init__(label="▶", style=discord.ButtonStyle.secondary)
 
     async def callback(self, interaction: discord.Interaction) -> None:
         if self.disabled:

@@ -10,7 +10,7 @@ from core.config import settings
 from core.role_map import has_any_role
 from app.domains.enums.role_enum import ORDER_MANAGEMENT_ROLES
 from app.services.leaderboard_service import LeaderboardService
-from app.uis.leaderboard_button import LeaderboardRefreshView
+from app.uis.leaderboard_button import LeaderboardPaginationView
 from app.uis.leaderboard_embed import leaderboard_embed
 from utils.command_prefix_feedback import failed, success
 from utils.cooldown import check_cooldown
@@ -79,9 +79,10 @@ class Leaderboard(commands.Cog):
             await ctx.send("❌ Worker leaderboard channel not found.", delete_after=5)
             await failed(ctx)
             return
+        entries = await self._fetch_worker()
         await channel.send(
-            embed=leaderboard_embed(title="🏆 Top 50 Workers", entries=await self._fetch_worker(), lb_type="worker"),
-            view=LeaderboardRefreshView(lb_type="worker", title="🏆 Top 50 Workers"),
+            embed=leaderboard_embed(title="🏆 Top 100 Workers", entries=entries, lb_type="worker", page=0, page_size=25),
+            view=LeaderboardPaginationView(lb_type="worker", title="🏆 Top 100 Workers"),
         )
         await success(ctx)
 
@@ -95,9 +96,10 @@ class Leaderboard(commands.Cog):
             await ctx.send("❌ Customer leaderboard channel not found.", delete_after=5)
             await failed(ctx)
             return
+        entries = await self._fetch_customer()
         await channel.send(
-            embed=leaderboard_embed(title="🏅 Top 50 Customers", entries=await self._fetch_customer(), lb_type="customer"),
-            view=LeaderboardRefreshView(lb_type="customer", title="🏅 Top 50 Customers"),
+            embed=leaderboard_embed(title="🏅 Top 100 Customers", entries=entries, lb_type="customer", page=0, page_size=25),
+            view=LeaderboardPaginationView(lb_type="customer", title="🏅 Top 100 Customers"),
         )
         await success(ctx)
 
@@ -111,9 +113,10 @@ class Leaderboard(commands.Cog):
             await ctx.send("❌ Item leaderboard channel not found.", delete_after=5)
             await failed(ctx)
             return
+        entries = await self._fetch_item()
         await channel.send(
-            embed=leaderboard_embed(title="🛒 Top 50 Items", entries=await self._fetch_item(), lb_type="item"),
-            view=LeaderboardRefreshView(lb_type="item", title="🛒 Top 50 Items"),
+            embed=leaderboard_embed(title="🛒 Top 100 Items", entries=entries, lb_type="item", page=0, page_size=25),
+            view=LeaderboardPaginationView(lb_type="item", title="🛒 Top 100 Items"),
         )
         await success(ctx)
 

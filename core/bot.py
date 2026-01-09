@@ -15,7 +15,7 @@ from db.mongo import close_mongo
 from core.web import start_web_background
 from app.services.item_service import ItemService
 from app.uis.price_button import PriceRefreshView
-from app.uis.leaderboard_button import LeaderboardRefreshView
+from app.uis.leaderboard_button import LeaderboardPaginationView
 from app.uis.worker_rating_button import RatingWorkerButton
 
 
@@ -32,9 +32,9 @@ class StarlightBot(commands.Bot):
         categories = await item_serv.list_categories()
         for category in categories:
             self.add_view(PriceRefreshView(category=category))
-        self.add_view(LeaderboardRefreshView(lb_type="worker", title="🏆 Top 50 Workers"))
-        self.add_view(LeaderboardRefreshView(lb_type="customer", title="🏅 Top 50 Customers"))
-        self.add_view(LeaderboardRefreshView(lb_type="item", title="🛒 Top 50 Items"))
+        self.add_view(LeaderboardPaginationView(lb_type="worker", title="🏆 Top 100 Workers"))
+        self.add_view(LeaderboardPaginationView(lb_type="customer", title="🏅 Top 100 Customers"))
+        self.add_view(LeaderboardPaginationView(lb_type="item", title="🛒 Top 100 Items"))
         self.add_view(RatingWorkerButton())
         guild = discord.Object(id=settings.GUILD_ID)
         self.tree.copy_global_to(guild=guild)
@@ -83,6 +83,7 @@ def run_bot() -> None:
     intents.messages = True
     intents.message_content = True
     bot = StarlightBot(command_prefix="!", intents=intents)
+
     @bot.event
     async def on_ready() -> None:
         if getattr(bot, "_ready_ran", False):
@@ -91,6 +92,7 @@ def run_bot() -> None:
         if bot.user:
             log.info("Connected as %s (%s)", bot.user, bot.user.id)
         log.info("Bot is fully ready.")
+
     async def runner() -> None:
         loop = asyncio.get_running_loop()
         for sig in (signal.SIGINT, signal.SIGTERM):
