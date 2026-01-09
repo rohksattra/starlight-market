@@ -32,7 +32,6 @@ class LeaderboardPaginationView(discord.ui.View):
         self.title = title
         self.page = page
         self._cooldowns: Dict[int, float] = {}
-        self._sync_buttons(total_items=0)
 
     def _max_page(self, *, total_items: int) -> int:
         return max(0, (total_items - 1) // PAGE_SIZE)

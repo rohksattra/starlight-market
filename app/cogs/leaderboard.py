@@ -80,10 +80,10 @@ class Leaderboard(commands.Cog):
             await failed(ctx)
             return
         entries = await self._fetch_worker()
-        await channel.send(
-            embed=leaderboard_embed(title="🏆 Top 100 Workers", entries=entries, lb_type="worker", page=0, page_size=25),
-            view=LeaderboardPaginationView(lb_type="worker", title="🏆 Top 100 Workers"),
-        )
+        view = LeaderboardPaginationView(lb_type="worker", title="🏆 Top 100 Workers")
+        view.prev.disabled = True
+        view.next.disabled = len(entries) <= 25
+        await channel.send( embed=leaderboard_embed(title="🏆 Top 100 Workers", entries=entries, lb_type="worker", page=0, page_size=25), view=view)
         await success(ctx)
 
     @commands.command(name="lbc")
@@ -97,10 +97,10 @@ class Leaderboard(commands.Cog):
             await failed(ctx)
             return
         entries = await self._fetch_customer()
-        await channel.send(
-            embed=leaderboard_embed(title="🏅 Top 100 Customers", entries=entries, lb_type="customer", page=0, page_size=25),
-            view=LeaderboardPaginationView(lb_type="customer", title="🏅 Top 100 Customers"),
-        )
+        view = LeaderboardPaginationView(lb_type="customer", title="🏅 Top 100 Customers")
+        view.prev.disabled = True
+        view.next.disabled = len(entries) <= 25
+        await channel.send(embed=leaderboard_embed(title="🏅 Top 100 Customers", entries=entries, lb_type="customer", page=0, page_size=25), view=view)
         await success(ctx)
 
     @commands.command(name="lbi")
@@ -114,10 +114,10 @@ class Leaderboard(commands.Cog):
             await failed(ctx)
             return
         entries = await self._fetch_item()
-        await channel.send(
-            embed=leaderboard_embed(title="🛒 Top 100 Items", entries=entries, lb_type="item", page=0, page_size=25),
-            view=LeaderboardPaginationView(lb_type="item", title="🛒 Top 100 Items"),
-        )
+        view = LeaderboardPaginationView(lb_type="item", title="🛒 Top 100 Items")
+        view.prev.disabled = True
+        view.next.disabled = len(entries) <= 25
+        await channel.send(embed=leaderboard_embed(title="🛒 Top 100 Items", entries=entries, lb_type="item", page=0, page_size=25), view=view)
         await success(ctx)
 
 
