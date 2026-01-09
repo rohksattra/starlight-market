@@ -16,7 +16,7 @@ class LeaderboardRepository:
         self.customers = db.customers
         self.items = db.items
 
-    async def top_workers(self, *, limit: int = 50) -> List[LeaderboardRow]:
+    async def top_workers(self, *, limit: int = 100) -> List[LeaderboardRow]:
         cursor = (
             self.workers.find(
                 {"total_worker_income": {"$gt": 0}},
@@ -30,7 +30,7 @@ class LeaderboardRepository:
             async for d in cursor
         ]
 
-    async def top_customers(self, *, limit: int = 50) -> List[LeaderboardRow]:
+    async def top_customers(self, *, limit: int = 100) -> List[LeaderboardRow]:
         cursor = (
             self.customers.find(
                 {"total_customer_spent": {"$gt": 0}},
@@ -44,7 +44,7 @@ class LeaderboardRepository:
             async for d in cursor
         ]
 
-    async def top_items(self, *, limit: int = 50) -> List[LeaderboardRow]:
+    async def top_items(self, *, limit: int = 100) -> List[LeaderboardRow]:
         cursor = (
             self.items.find(
                 {"item_sold": {"$gt": 0}},
