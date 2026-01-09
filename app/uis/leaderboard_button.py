@@ -57,7 +57,7 @@ class LeaderboardPaginationView(discord.ui.View):
             return (await leaderboard._fetch_customer())[:MAX_ITEMS]
         return (await leaderboard._fetch_item())[:MAX_ITEMS]
 
-    @discord.ui.button(label="◀", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="◀", style=discord.ButtonStyle.secondary, custom_id="leaderboard:prev")
     async def prev(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
         if self.page > 0:
             self.page -= 1
@@ -65,7 +65,7 @@ class LeaderboardPaginationView(discord.ui.View):
         self._sync_buttons(total_items=len(entries))
         await self._update(interaction, entries=entries)
 
-    @discord.ui.button(label="🔄", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="🔄", style=discord.ButtonStyle.success, custom_id="leaderboard:refresh")
     async def refresh(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
         await safe_defer(interaction, ephemeral=True)
         user_id = interaction.user.id
@@ -96,7 +96,7 @@ class LeaderboardPaginationView(discord.ui.View):
             self._cooldowns.pop(user_id, None)
             await safe_respond(interaction, content="❌ Failed to refresh leaderboard.", ephemeral=True)
 
-    @discord.ui.button(label="▶", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="▶", style=discord.ButtonStyle.secondary, custom_id="leaderboard:next")
     async def next(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
         entries = await self._fetch_entries(interaction)
         max_page = self._max_page(total_items=len(entries))
