@@ -81,9 +81,8 @@ class Leaderboard(commands.Cog):
             return
         entries = await self._fetch_worker()
         view = LeaderboardPaginationView(lb_type="worker", title="🏆 Top 100 Workers")
-        view.prev.disabled = True
-        view.next.disabled = len(entries) <= 25
-        await channel.send( embed=leaderboard_embed(title="🏆 Top 100 Workers", entries=entries, lb_type="worker", page=0, page_size=25), view=view)
+        view.set_initial_state(total_items=len(entries))
+        await channel.send(embed=leaderboard_embed(title="🏆 Top 100 Workers", entries=entries, lb_type="worker", page=0, page_size=25), view=view)
         await success(ctx)
 
     @commands.command(name="lbc")
@@ -98,8 +97,7 @@ class Leaderboard(commands.Cog):
             return
         entries = await self._fetch_customer()
         view = LeaderboardPaginationView(lb_type="customer", title="🏅 Top 100 Customers")
-        view.prev.disabled = True
-        view.next.disabled = len(entries) <= 25
+        view.set_initial_state(total_items=len(entries))
         await channel.send(embed=leaderboard_embed(title="🏅 Top 100 Customers", entries=entries, lb_type="customer", page=0, page_size=25), view=view)
         await success(ctx)
 
@@ -115,8 +113,7 @@ class Leaderboard(commands.Cog):
             return
         entries = await self._fetch_item()
         view = LeaderboardPaginationView(lb_type="item", title="🛒 Top 100 Items")
-        view.prev.disabled = True
-        view.next.disabled = len(entries) <= 25
+        view.set_initial_state(total_items=len(entries))
         await channel.send(embed=leaderboard_embed(title="🛒 Top 100 Items", entries=entries, lb_type="item", page=0, page_size=25), view=view)
         await success(ctx)
 
