@@ -32,19 +32,41 @@ class LeaderboardPaginationView(discord.ui.View):
         self.title = title
         self.page = page
         self._cooldowns: Dict[int, float] = {}
+        prefix = f"leaderboard:{self.lb_type}"
+        self.prev_btn = discord.ui.Button(label="◀", style=discord.ButtonStyle.secondary, custom_id=f"{prefix}:prev")
+        self.refresh_btn = discord.ui.Button(label="🔄", style=discord.ButtonStyle.success, custom_id=f"{prefix}:refresh")
+        self.next_btn = discord.ui.Button(label="▶", style=discord.ButtonStyle.secondary, custom_id=f"{prefix}:next")
+        self.prev_btn.callback = self.prev
+        self.refresh_btn.callback = self.refresh
+        self.next_btn.callback = self.next
+        self.add_item(self.prev_btn)
+        self.add_item(self.refresh_btn)
+        self.add_item(self.next_btn)
 
     def _max_page(self, *, total_items: int) -> int:
         return max(0, (total_items - 1) // PAGE_SIZE)
 
     def _sync_buttons(self, *, total_items: int) -> None:
         max_page = self._max_page(total_items=total_items)
-        self.prev.disabled = self.page <= 0
-        self.next.disabled = self.page >= max_page
+        self.prev_btn.disabled = self.page <= 0
+        self.next_btn.disabled = self.page >= max_page
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         return interaction.guild is not None
 
+    def _sync_lb_type_from_interaction(self, interaction: discord.Interaction) -> None:
+        data = interaction.data or {}
+        custom_id = data.get("custom_id")
+        if not isinstance(custom_id, str):
+            return
+        parts = custom_id.split(":")
+        if len(parts) >= 3:
+            lb_type = parts[1]
+            if lb_type in ("worker", "customer", "item"):
+                self.lb_type = cast(LBType, lb_type)
+
     async def _fetch_entries(self, interaction: discord.Interaction) -> list[dict]:
+        self._sync_lb_type_from_interaction(interaction)
         bot = cast(commands.Bot, interaction.client)
         cog = bot.get_cog("Leaderboard")
         if cog is None:
@@ -56,16 +78,14 @@ class LeaderboardPaginationView(discord.ui.View):
             return (await leaderboard._fetch_customer())[:MAX_ITEMS]
         return (await leaderboard._fetch_item())[:MAX_ITEMS]
 
-    @discord.ui.button(label="◀", style=discord.ButtonStyle.secondary, custom_id="leaderboard:prev")
-    async def prev(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
+    async def prev(self, interaction: discord.Interaction) -> None:
         if self.page > 0:
             self.page -= 1
         entries = await self._fetch_entries(interaction)
         self._sync_buttons(total_items=len(entries))
         await self._update(interaction, entries=entries)
 
-    @discord.ui.button(label="🔄", style=discord.ButtonStyle.success, custom_id="leaderboard:refresh")
-    async def refresh(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
+    async def refresh(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
         user_id = interaction.user.id
         now = time.time()
@@ -82,21 +102,14 @@ class LeaderboardPaginationView(discord.ui.View):
             self._sync_buttons(total_items=len(entries))
             await safe_edit_message(
                 interaction,
-                embed=leaderboard_embed(
-                    title=self.title,
-                    entries=entries,
-                    lb_type=cast(LBType, self.lb_type),
-                    page=self.page,
-                    page_size=PAGE_SIZE,
-                ),
+                embed=leaderboard_embed(title=self.title, entries=entries, lb_type=cast(LBType, self.lb_type), page=self.page, page_size=PAGE_SIZE),
                 view=self,
             )
         except Exception:
             self._cooldowns.pop(user_id, None)
             await safe_respond(interaction, content="❌ Failed to refresh leaderboard.", ephemeral=True)
 
-    @discord.ui.button(label="▶", style=discord.ButtonStyle.secondary, custom_id="leaderboard:next")
-    async def next(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
+    async def next(self, interaction: discord.Interaction) -> None:
         entries = await self._fetch_entries(interaction)
         max_page = self._max_page(total_items=len(entries))
         if self.page < max_page:
@@ -106,12 +119,6 @@ class LeaderboardPaginationView(discord.ui.View):
 
     async def _update(self, interaction: discord.Interaction, *, entries: list[dict]) -> None:
         await interaction.response.edit_message(
-            embed=leaderboard_embed(
-                title=self.title,
-                entries=entries,
-                lb_type=cast(LBType, self.lb_type),
-                page=self.page,
-                page_size=PAGE_SIZE,
-            ),
+            embed=leaderboard_embed(title=self.title, entries=entries, lb_type=cast(LBType, self.lb_type), page=self.page, page_size=PAGE_SIZE),
             view=self,
         )
