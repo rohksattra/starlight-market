@@ -8,7 +8,7 @@ from db.mongo import get_db
 from app.domains.enums.order_status_enum import OrderStatus
 
 
-CLEANUP_DAYS = 30
+CLEANUP_DAYS = 91
 
 
 class CleanupdataService:

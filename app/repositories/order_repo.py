@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 from datetime import datetime
+from bson.int64 import Int64
 
 from pymongo import ReturnDocument
 
@@ -72,9 +73,19 @@ class OrderRepository:
             {
                 "$setOnInsert": {
                     **order,
+                    "order_number": Int64(order["order_number"]),
+                    "item_price": Int64(order["item_price"]),
+                    "item_quantity": Int64(order["item_quantity"]),
+                    "order_claims": {
+                        "order_delivered": Int64(order["order_claims"]["order_delivered"]),
+                        "order_completed": Int64(order["order_claims"]["order_completed"]),
+                        "order_claimed": Int64(order["order_claims"]["order_claimed"]),
+                        "order_claimable": Int64(order["order_claims"]["order_claimable"]),
+                    },
                     "created_at": now,
                     "updated_at": now,
                 }
+
             },
             upsert=True,
         )
@@ -130,9 +141,9 @@ class OrderRepository:
             },
             {
                 "$inc": {
-                    f"worker_claims.{worker_id}": qty,
-                    "order_claims.order_claimed": qty,
-                    "order_claims.order_claimable": -qty,
+                    f"worker_claims.{worker_id}": Int64(qty),
+                    "order_claims.order_claimed": Int64(qty),
+                    "order_claims.order_claimable": Int64(-qty),
                 },
                 "$set": {
                     "order_status": OrderStatus.CLAIMED,
@@ -152,9 +163,9 @@ class OrderRepository:
             },
             {
                 "$inc": {
-                    f"worker_claims.{worker_id}": -qty,
-                    "order_claims.order_claimed": -qty,
-                    "order_claims.order_claimable": qty,
+                    f"worker_claims.{worker_id}": Int64(-qty),
+                    "order_claims.order_claimed": Int64(-qty),
+                    "order_claims.order_claimable": Int64(qty),
                 },
                 "$set": {"updated_at": datetime.utcnow()},
             },
@@ -171,9 +182,9 @@ class OrderRepository:
             },
             {
                 "$inc": {
-                    f"worker_claims.{worker_id}": -qty,
-                    "order_claims.order_completed": qty,
-                    "order_claims.order_claimed": -qty,
+                    f"worker_claims.{worker_id}": Int64(-qty),
+                    "order_claims.order_completed": Int64(qty),
+                    "order_claims.order_claimed": Int64(-qty),
                 },
                 "$set": {"updated_at": datetime.utcnow()},
             },
@@ -195,8 +206,8 @@ class OrderRepository:
             },
             {
                 "$inc": {
-                    "order_claims.order_completed": -qty,
-                    "order_claims.order_delivered": qty,
+                    "order_claims.order_completed": Int64(-qty),
+                    "order_claims.order_delivered": Int64(qty),
                 },
                 "$set": {"updated_at": datetime.utcnow()},
             },

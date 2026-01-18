@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 from datetime import datetime
+from bson.int64 import Int64
 
 from db.mongo import get_db
 
@@ -23,8 +24,8 @@ class CustomerRepository:
             {
                 "$setOnInsert": {
                     "customer_id": customer_id,
-                    "total_customer_order": 0,
-                    "total_customer_spent": 0,
+                    "total_customer_order": Int64(0),
+                    "total_customer_spent": Int64(0),
                 },
                  "$set": {
                      "updated_at": datetime.utcnow()
@@ -37,7 +38,7 @@ class CustomerRepository:
         await self.customers.update_one(
             {"customer_id": customer_id},
             {
-                "$inc": {"total_customer_order": qty},
+                "$inc": {"total_customer_order": Int64(qty)},
                 "$set": {"updated_at": datetime.utcnow()},
             },
             upsert=True,
@@ -47,7 +48,7 @@ class CustomerRepository:
         await self.customers.update_one(
             {"customer_id": customer_id},
             {
-                "$inc": {"total_customer_spent": amount},
+                "$inc": {"total_customer_spent": Int64(amount)},
                 "$set": {"updated_at": datetime.utcnow()},
             },
             upsert=True,

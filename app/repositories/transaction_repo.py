@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 from datetime import datetime
+from bson.int64 import Int64
 
 from db.mongo import get_db
 
@@ -20,6 +21,8 @@ class TransactionRepository:
             {
                 "$setOnInsert": {
                     **transaction,
+                    "item_quantity": Int64(transaction["item_quantity"]),
+                    "total_price": Int64(transaction["total_price"]),
                     "created_at": transaction.get("created_at") or datetime.utcnow(),
                 }
             },

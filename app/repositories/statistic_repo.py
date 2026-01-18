@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 from datetime import datetime
+from bson.int64 import Int64
 
 from db.mongo import get_db
 
@@ -22,13 +23,13 @@ class StatisticRepository:
             {"$setOnInsert": {
                 "_id": _GLOBAL_ID,
                 "orders": {
-                    "total_customer_order": 0,
-                    "total_finished_order": 0,
-                    "total_cancelled_order": 0,
+                    "total_customer_order": Int64(0),
+                    "total_finished_order": Int64(0),
+                    "total_cancelled_order": Int64(0),
                 },
                 "gold": {
-                    "total_worker_income": 0,
-                    "total_customer_spent": 0,
+                    "total_worker_income": Int64(0),
+                    "total_customer_spent": Int64(0),
                 },
                 "updated_at": datetime.utcnow(),
             }},
@@ -42,7 +43,7 @@ class StatisticRepository:
         await self.stats.update_one(
             {"_id": _GLOBAL_ID},
             {
-                "$inc": {"orders.total_customer_order": qty},
+                "$inc": {"orders.total_customer_order": Int64(qty)},
                 "$set": {"updated_at": datetime.utcnow()},
             },
             upsert=True,
@@ -52,7 +53,7 @@ class StatisticRepository:
         await self.stats.update_one(
             {"_id": _GLOBAL_ID},
             {
-                "$inc": {"orders.total_finished_order": qty},
+                "$inc": {"orders.total_finished_order": Int64(qty)},
                 "$set": {"updated_at": datetime.utcnow()},
             },
             upsert=True,
@@ -62,7 +63,7 @@ class StatisticRepository:
         await self.stats.update_one(
             {"_id": _GLOBAL_ID},
             {
-                "$inc": {"orders.total_cancelled_order": qty},
+                "$inc": {"orders.total_cancelled_order": Int64(qty)},
                 "$set": {"updated_at": datetime.utcnow()},
             },
             upsert=True,
@@ -72,7 +73,7 @@ class StatisticRepository:
         await self.stats.update_one(
             {"_id": _GLOBAL_ID},
             {
-                "$inc": {"gold.total_worker_income": amount},
+                "$inc": {"gold.total_worker_income": Int64(amount)},
                 "$set": {"updated_at": datetime.utcnow()},
             },
             upsert=True,
@@ -82,7 +83,7 @@ class StatisticRepository:
         await self.stats.update_one(
             {"_id": _GLOBAL_ID},
             {
-                "$inc": {"gold.total_customer_spent": amount},
+                "$inc": {"gold.total_customer_spent": Int64(amount)},
                 "$set": {"updated_at": datetime.utcnow()},
             },
             upsert=True,

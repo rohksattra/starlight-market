@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 from datetime import datetime
+from bson.int64 import Int64
 
 from pymongo import ReturnDocument
 
@@ -51,8 +52,8 @@ class ItemRepository:
                     "item_id": item_id,
                     "item_category": category,
                     "item_name": name,
-                    "item_price": price,
-                    "item_sold": 0,
+                    "item_price": Int64(price),
+                    "item_sold": Int64(0),
                     "updated_at": datetime.utcnow(),
                 }
             },
@@ -64,7 +65,7 @@ class ItemRepository:
             {"item_id": item_id},
             {
                 "$set": {
-                    "item_price": new_price,
+                    "item_price": Int64(new_price),
                     "updated_at": datetime.utcnow(),
                 }
             },
@@ -104,7 +105,7 @@ class ItemRepository:
         await self.items.update_one(
             {"item_id": item_id},
             {
-                "$inc": {"item_sold": qty},
+                "$inc": {"item_sold": Int64(qty)},
                 "$set": {"updated_at": datetime.utcnow()},
             },
             upsert=True,

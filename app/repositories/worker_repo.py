@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 from datetime import datetime
+from bson.int64 import Int64
 
 from db.mongo import get_db
 
@@ -23,10 +24,10 @@ class WorkerRepository:
             {
                 "$setOnInsert": {
                     "worker_id": worker_id,
-                    "total_worker_finished_item": 0,
-                    "total_worker_income": 0,
-                    "count_worker_rating": 0,
-                    "total_worker_star": 0,
+                    "total_worker_finished_item": Int64(0),
+                    "total_worker_income": Int64(0),
+                    "count_worker_rating": Int64(0),
+                    "total_worker_star": Int64(0),
                     "updated_at": datetime.utcnow(),
                 }
             },
@@ -38,8 +39,8 @@ class WorkerRepository:
             {"worker_id": worker_id},
             {
                 "$inc": {
-                    "total_worker_finished_item": finished_item_inc,
-                    "total_worker_income": income_inc,
+                    "total_worker_finished_item": Int64(finished_item_inc),
+                    "total_worker_income": Int64(income_inc),
                 },
                 "$set": {"updated_at": datetime.utcnow()},
             },
@@ -51,8 +52,8 @@ class WorkerRepository:
             {"worker_id": worker_id},
             {
                 "$inc": {
-                    "count_worker_rating": 1,
-                    "total_worker_star": rating,
+                    "count_worker_rating": Int64(1),
+                    "total_worker_star": Int64(rating),
                 },
                 "$set": {"updated_at": datetime.utcnow()},
             },
