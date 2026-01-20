@@ -41,6 +41,7 @@ class TransactionService:
             log.warning("Record income failed | order not found | channel=%s", channel_id)
             raise ValueError("Order not found")
         transaction_id = str(uuid4())
+
         if target == "worker":
             updated = await self.orders.inc_complete_by_worker(order_id=order["order_id"], worker_id=user_id, qty=quantity)
             if not updated:
@@ -48,14 +49,15 @@ class TransactionService:
                 raise ValueError("Cannot complete more than claimed")
             if updated.get("worker_claims", {}).get(user_id, 0) <= 0:
                 await self.orders.unset_worker_claim(order["order_id"], user_id)
-            raw_income = order["item_price"] * quantity
+            price = updated["item_price"]
+            raw_income = price * quantity
             worker_income = int(raw_income * WORKER_FEE_RATE)
             ok = await self.transactions.create_transaction({
                 "transaction_id": transaction_id,
                 "order_id": order["order_id"],
                 "user_id": user_id,
                 "user_role": ServerRole.WORKER,
-                "item_id": order["item_id"],
+                "item_id": updated["item_id"],
                 "item_quantity": quantity,
                 "total_price": worker_income,
             })
@@ -69,10 +71,9 @@ class TransactionService:
             finished = (claims["order_completed"] + claims["order_delivered"] >= updated["item_quantity"])
             if finished and updated["order_status"] != OrderStatus.COMPLETED:
                 updated = await self.orders.update_fields(order["order_id"], {"order_status": OrderStatus.COMPLETED})
-            log.info(
-                "Income(worker) | order=%s worker=%s qty=%s income=%s finished=%s", order["order_id"], user_id, quantity, worker_income, finished,
-            )
+            log.info("Income(worker) | order=%s worker=%s qty=%s income=%s finished=%s", order["order_id"], user_id, quantity, worker_income, finished)
             return {"order": updated, "target": "worker", "finished": finished}
+
         if user_id != order["customer_id"]:
             log.warning("Income(customer) denied | order=%s user=%s", order["order_id"], user_id)
             raise ValueError("This customer does not own the order")
@@ -80,13 +81,14 @@ class TransactionService:
         if not updated:
             log.warning("Income(customer) denied | order=%s qty=%s", order["order_id"], quantity)
             raise ValueError("Quantity exceeds completed items")
-        total_price = order["item_price"] * quantity
+        price = updated["item_price"]
+        total_price = price * quantity
         ok = await self.transactions.create_transaction({
             "transaction_id": transaction_id,
             "order_id": order["order_id"],
             "user_id": user_id,
             "user_role": ServerRole.CUSTOMER,
-            "item_id": order["item_id"],
+            "item_id": updated["item_id"],
             "item_quantity": quantity,
             "total_price": total_price,
         })
@@ -95,13 +97,11 @@ class TransactionService:
             return {"order": updated, "target": "customer", "delivered": False}
         await self.customers.ensure_customer(user_id)
         await self.customers.inc_customer_spent(customer_id=user_id, amount=total_price)
-        if not order.get("is_custom"):
-            await self.items.inc_item_sold(item_id=order["item_id"], qty=quantity)
+        if not updated.get("is_custom"):
+            await self.items.inc_item_sold(item_id=updated["item_id"], qty=quantity)
         await self.statistics.inc_customer_spent(amount=total_price)
         delivered = (updated["order_claims"]["order_delivered"] >= updated["item_quantity"])
         if delivered and updated["order_status"] != OrderStatus.DELIVERED:
             updated = await self.orders.update_fields(order["order_id"], {"order_status": OrderStatus.DELIVERED})
-        log.info(
-            "Income(customer) | order=%s customer=%s qty=%s spent=%s delivered=%s", order["order_id"], user_id, quantity, total_price, delivered,
-        )
+        log.info("Income(customer) | order=%s customer=%s qty=%s spent=%s delivered=%s", order["order_id"], user_id, quantity, total_price, delivered)
         return {"order": updated, "target": "customer", "delivered": delivered}

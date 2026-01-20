@@ -84,10 +84,13 @@ class Income(commands.Cog):
         except ValueError as exc:
             await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
             return
-        order = result["order"]
         guild = interaction.guild
         order_channel = interaction.channel
         member = guild.get_member(int(user))
+        order = await self.order_serv.get_by_channel_id(str(order_channel.id))
+        if not order:
+            await safe_respond(interaction, content="❌ Order not found after income.", ephemeral=True)
+            return
         await update_order_embed(channel=order_channel, order=order, worker_role_id=settings.WORKER_ROLE_ID)
         tx_channel = guild.get_channel(settings.TRANSACTION_CHANNEL_ID)
         if isinstance(tx_channel, discord.TextChannel) and member:
