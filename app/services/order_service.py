@@ -140,7 +140,13 @@ class OrderService:
         )
         if not updated:
             raise ValueError("Order not found")
+        claims_updated = updated["order_claims"]
+        if (updated["order_status"] == OrderStatus.CLAIMED and claims_updated["order_completed"] >= updated["item_quantity"]):
+            updated = await self.orders.update_fields(order["order_id"], {"order_status": OrderStatus.COMPLETED})
+            if not updated:
+                raise ValueError("Order not found")
         log.info("Order quantity updated | order_id=%s new_qty=%s", order["order_id"], new_quantity)
+        assert updated is not None
         return updated
 
     async def close_order(self, *, order: OrderData) -> None:
