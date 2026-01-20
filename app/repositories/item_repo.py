@@ -103,6 +103,11 @@ class ItemRepository:
 
     async def inc_item_sold(self, *, item_id: str, qty: int) -> None:
         await self.items.update_one(
+            {"item_id": item_id, "item_sold": None},
+            {"$set": {"item_sold": Int64(0)}},
+        )
+        
+        await self.items.update_one(
             {"item_id": item_id},
             {
                 "$inc": {"item_sold": Int64(qty)},
