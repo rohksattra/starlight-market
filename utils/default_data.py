@@ -122,23 +122,11 @@ DEFAULT_ITEMS = {
     ],
     "Spellbinding (Tomes)": [
         {"item_name": "Magic Essence", "item_price": 600},
-        {"item_name": "Paper", "item_price": 300},
         {"item_name": "Book", "item_price": 1500},
-        {"item_name": "Ember Tome", "item_price": 8},
-        {"item_name": "Leech Tome", "item_price": 13},
-        {"item_name": "Icicle Tome", "item_price": 19},
-        {"item_name": "Haunt Tome", "item_price": 23},
-        {"item_name": "Ignite Tome", "item_price": 30},
-        {"item_name": "Drain Tome", "item_price": 35},
-        {"item_name": "Freeze Tome", "item_price": 40},
-        {"item_name": "Curse Tome", "item_price": 45},
         {"item_name": "Inferno Tome", "item_price": 90},
         {"item_name": "Consume Tome", "item_price": 120},
         {"item_name": "Blizzard Tome", "item_price": 100},
         {"item_name": "Torture Tome", "item_price": 250},
-    ],
-    "Alchemy Materials T0": [
-        {"item_name": "Bat Eye", "item_price": 100},
     ],
     "Alchemy Materials T1": [
         {"item_name": "Pink Gelatin", "item_price": 5000},
