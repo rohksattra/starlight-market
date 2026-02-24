@@ -21,24 +21,43 @@ from app.uis.worker_rating_button import RatingWorkerButton
 
 log = logging.getLogger("core.bot")
 
-start_web_background()
-
 
 class StarlightBot(commands.Bot):
     async def setup_hook(self) -> None:
         await bootstrap_database()
         await load_cogs(self)
+
         item_serv = ItemService()
         categories = await item_serv.list_categories()
         for category in categories:
             self.add_view(PriceRefreshView(category=category))
-        self.add_view(LeaderboardPaginationView(lb_type="worker", title="🏆 Top 100 Workers"))
-        self.add_view(LeaderboardPaginationView(lb_type="customer", title="🏅 Top 100 Customers"))
-        self.add_view(LeaderboardPaginationView(lb_type="item", title="🛒 Top 100 Items"))
+
+        self.add_view(
+            LeaderboardPaginationView(
+                lb_type="worker",
+                title="🏆 Top 100 Workers",
+            )
+        )
+        self.add_view(
+            LeaderboardPaginationView(
+                lb_type="customer",
+                title="🏅 Top 100 Customers",
+            )
+        )
+        self.add_view(
+            LeaderboardPaginationView(
+                lb_type="item",
+                title="🛒 Top 100 Items",
+            )
+        )
         self.add_view(RatingWorkerButton())
-        guild = discord.Object(id=settings.GUILD_ID)
-        self.tree.copy_global_to(guild=guild)
-        await self.tree.sync(guild=guild)
+
+        if not getattr(self, "_synced", False):
+            guild = discord.Object(id=settings.GUILD_ID)
+            self.tree.copy_global_to(guild=guild)
+            await self.tree.sync(guild=guild)
+            self._synced = True
+
         log.info("Setup hook completed.")
 
 
@@ -77,35 +96,55 @@ async def shutdown(bot: commands.Bot, sig: signal.Signals | None = None) -> None
 
 
 def run_bot() -> None:
+    start_web_background()
+
     intents = discord.Intents.default()
     intents.guilds = True
     intents.members = True
     intents.messages = True
     intents.message_content = True
-    bot = StarlightBot(command_prefix="!", intents=intents)
+
+    bot = StarlightBot(
+        command_prefix="!",
+        intents=intents,
+    )
 
     @bot.event
     async def on_ready() -> None:
         if getattr(bot, "_ready_ran", False):
             return
         setattr(bot, "_ready_ran", True)
+
         if bot.user:
-            log.info("Connected as %s (%s)", bot.user, bot.user.id)
+            log.info(
+                "Connected as %s (%s)",
+                bot.user,
+                bot.user.id,
+            )
+
         log.info("Bot is fully ready.")
 
     async def runner() -> None:
         loop = asyncio.get_running_loop()
+
         for sig in (signal.SIGINT, signal.SIGTERM):
             try:
-                loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(shutdown(bot, s)))
+                loop.add_signal_handler(
+                    sig,
+                    lambda s=sig: asyncio.create_task(
+                        shutdown(bot, s)
+                    ),
+                )
             except NotImplementedError:
                 pass
+
         try:
             await bot.start(settings.DISCORD_TOKEN)
         except asyncio.CancelledError:
             log.info("Bot task cancelled.")
         finally:
             await shutdown(bot)
+
     try:
         asyncio.run(runner())
     except KeyboardInterrupt:
