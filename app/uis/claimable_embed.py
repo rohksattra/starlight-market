@@ -28,7 +28,7 @@ def claimable_embed(
         qty = int(e.get("value", 0))
 
         lines.append(
-            f"**{idx}. {item_name} — 🏷 {qty:,}**\n"
+            f"***{idx}. {item_name} — 🏷 {qty:,}***\n"
             f"{ch}"
         )
 
