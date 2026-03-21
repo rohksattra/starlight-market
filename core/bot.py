@@ -16,6 +16,7 @@ from core.web import start_web_background
 from app.services.item_service import ItemService
 from app.uis.price_button import PriceRefreshView
 from app.uis.leaderboard_button import LeaderboardPaginationView
+from app.uis.claimable_button import ClaimablePaginationView
 from app.uis.worker_rating_button import RatingWorkerButton
 
 
@@ -31,6 +32,10 @@ class StarlightBot(commands.Bot):
         categories = await item_serv.list_categories()
         for category in categories:
             self.add_view(PriceRefreshView(category=category))
+
+        self.add_view(ClaimablePaginationView())
+
+        self.add_view(RatingWorkerButton())
 
         self.add_view(
             LeaderboardPaginationView(
@@ -50,7 +55,6 @@ class StarlightBot(commands.Bot):
                 title="🛒 Top 100 Items",
             )
         )
-        self.add_view(RatingWorkerButton())
 
         if not getattr(self, "_synced", False):
             guild = discord.Object(id=settings.GUILD_ID)
@@ -71,6 +75,7 @@ async def load_cogs(bot: commands.Bot) -> None:
         "app.cogs.price",
         "app.cogs.market_statistic",
         "app.cogs.leaderboard",
+        "app.cogs.claimable",
         "app.cogs.profile",
         "app.cogs.transaction",
         "app.cogs.worker_rating",
