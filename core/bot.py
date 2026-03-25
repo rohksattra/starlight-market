@@ -146,7 +146,7 @@ def run_bot() -> None:
         try:
             await bot.start(settings.DISCORD_TOKEN)
         except asyncio.CancelledError:
-            log.info("Bot task cancelled.")
+            log.info("Bot task canceled.")
         finally:
             await shutdown(bot)
 

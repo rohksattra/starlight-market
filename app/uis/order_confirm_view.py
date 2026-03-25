@@ -36,7 +36,7 @@ class OrderConfirmView(discord.ui.View):
             if isinstance(item, discord.ui.Button):
                 item.disabled = True
         await safe_edit_message(interaction, view=self)
-        await safe_respond(interaction, content="❌ Order cancelled.", ephemeral=True)
+        await safe_respond(interaction, content="❌ Order canceled.", ephemeral=True)
         self.stop()
 
     async def on_timeout(self) -> None:

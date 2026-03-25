@@ -8,7 +8,7 @@ from datetime import datetime
 class OrderStatistics(TypedDict):
     total_customer_order: int
     total_finished_order: int
-    total_cancelled_order: int
+    total_canceled_order: int
 
 
 class GoldStatistics(TypedDict):

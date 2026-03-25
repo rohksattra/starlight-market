@@ -21,7 +21,7 @@ class CleanupdataService:
     async def cleanupdata(self) -> Dict[str, int]:
         cutoff = datetime.now(timezone.utc) - timedelta(days=CLEANUP_DAYS)
         order_res = await self.orders.delete_many({
-            "order_status": {"$in": [OrderStatus.CLOSED, OrderStatus.CANCELLED]},
+            "order_status": {"$in": [OrderStatus.CLOSED, OrderStatus.CANCELED]},
             "updated_at": {"$lt": cutoff},
         })
         tx_res = await self.transactions.delete_many({

@@ -21,7 +21,7 @@ def market_statistic_embed(
         f"- Active Orders: 🔄 ***{order['active']:,}***\n"
         f"- Completed Orders: ✅ ***{completed:,}***\n"
         f"- Finished Orders: 📦 ***{order['finished']:,}***\n"
-        f"- Canceled Orders: ❌ ***{order['cancelled']:,}***\n\n"
+        f"- Canceled Orders: ❌ ***{order['canceled']:,}***\n\n"
         "### 👥 Market Overview\n"
         f"- Total Workers: 👷 ***{total_workers:,}***\n"
         f"- Total Customers: 🛍️ ***{total_customers:,}***\n\n"

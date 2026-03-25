@@ -7,4 +7,4 @@ class OrderStatus(StrEnum):
     COMPLETED = "completed"
     DELIVERED = "delivered"
     CLOSED = "closed"
-    CANCELLED = "cancelled"
+    CANCELED = "canceled"

@@ -84,7 +84,7 @@ class CustomOrder(commands.Cog):
                 await self.order_serv.cancel_order(order=order)
                 await safe_respond(inter, content=(
                         "❌ **Failed to create order channel.**\n"
-                        "Order has been cancelled automatically.\n"
+                        "Order has been canceled automatically.\n"
                         "You can make it again."
                     ), ephemeral=True)
                 return

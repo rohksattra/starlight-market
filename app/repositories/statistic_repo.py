@@ -25,7 +25,7 @@ class StatisticRepository:
                 "orders": {
                     "total_customer_order": Int64(0),
                     "total_finished_order": Int64(0),
-                    "total_cancelled_order": Int64(0),
+                    "total_canceled_order": Int64(0),
                 },
                 "gold": {
                     "total_worker_income": Int64(0),
@@ -59,11 +59,11 @@ class StatisticRepository:
             upsert=True,
         )
 
-    async def inc_cancelled_order(self, *, qty: int = 1) -> None:
+    async def inc_canceled_order(self, *, qty: int = 1) -> None:
         await self.stats.update_one(
             {"_id": _GLOBAL_ID},
             {
-                "$inc": {"orders.total_cancelled_order": Int64(qty)},
+                "$inc": {"orders.total_canceled_order": Int64(qty)},
                 "$set": {"updated_at": datetime.utcnow()},
             },
             upsert=True,

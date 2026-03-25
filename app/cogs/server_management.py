@@ -41,7 +41,7 @@ class ServerManagement(commands.Cog):
         confirm_msg = await ctx.send(
             "⚠️ **Confirmation Required**\n\n"
             "This will permanently delete:\n"
-            "- Orders (closed / cancelled) > **90 days**\n"
+            "- Orders (closed / canceled) > **90 days**\n"
             "- Transactions > **90 days**\n"
             "- Worker ratings > **90 days**\n\n"
             "Reply with **Yes** or **No**."

@@ -31,7 +31,7 @@ class StatisticService:
                 "active": active,
                 "completed": completed,
                 "finished": orders.get("total_finished_order", 0),
-                "cancelled": orders.get("total_cancelled_order", 0),
+                "canceled": orders.get("total_canceled_order", 0),
             },
             "gold": {
                 "worker_income": gold.get("total_worker_income", 0),

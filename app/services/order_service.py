@@ -158,10 +158,10 @@ class OrderService:
         log.info("Order closed | order_id=%s", order["order_id"])
 
     async def cancel_order(self, *, order: OrderData) -> None:
-        if not await self.orders.update_fields(order_id=order["order_id"], fields={"order_status": OrderStatus.CANCELLED}):
+        if not await self.orders.update_fields(order_id=order["order_id"], fields={"order_status": OrderStatus.CANCELED}):
             raise ValueError("Order not found")
-        await self.statistics.inc_cancelled_order()
-        log.warning("Order cancelled | order_id=%s", order["order_id"])
+        await self.statistics.inc_canceled_order()
+        log.warning("Order canceled | order_id=%s", order["order_id"])
 
     async def set_channel_and_message(self, *, order_id: str, channel_id: str, message_id: int) -> None:
         await self.orders.set_channel(order_id, channel_id)
