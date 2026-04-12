@@ -4,6 +4,10 @@ from __future__ import annotations
 import discord
 
 
+def fmt(value: int) -> str:
+    return f"{value:,}"
+
+
 def format_rating_stars(average: float, *, max_stars: int = 5) -> str:
     if average <= 0:
         return ""
@@ -24,11 +28,14 @@ def format_rating_stars(average: float, *, max_stars: int = 5) -> str:
 def worker_rating_embed(
     *, worker: discord.Member, customer: discord.Member, item_name: str, item_quantity: int, order_channel: discord.TextChannel, item_emoji: str = "🌟"
 ) -> tuple[str, discord.Embed]:
+    item_fmt = f"{item_emoji} {item_name}"
+    qty_fmt = f"🏷 ***{fmt(item_quantity)}x***"
+
     embed = discord.Embed(
         title="⭐ Rate Worker Performance",
         description=(
             f"***{worker.mention}*** has successfully completed "
-            f"***{item_quantity:,}x {item_emoji} {item_name}*** for your order in "  # Tambahkan emoji sebelum item_name
+            f"{qty_fmt} of ***{item_fmt}*** for your order in "
             f"***{order_channel.mention}***\n\n"
             f"Please take a moment to rate their performance."
         ),
@@ -44,5 +51,5 @@ def worker_rating_summary(*, average: float, count: int) -> str:
     stars = format_rating_stars(average)
     return (
         f"{stars} ***{average:.2f}***\n"
-        f"***{count:,}*** rating(s)"
+        f"***{fmt(count)}*** rating(s)"
     )

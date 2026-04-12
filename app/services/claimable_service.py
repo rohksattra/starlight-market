@@ -1,4 +1,4 @@
-#app/services/claimable_service.py
+# app/services/claimable_service.py
 from __future__ import annotations
 
 from typing import List, Dict, Any
@@ -11,10 +11,13 @@ class ClaimableService:
 
     async def list_claimable(self) -> List[Dict[str, Any]]:
         orders = await self.repo.get_claimable_orders()
+        orders.sort(key=lambda o: o.get("order_number", 0))
 
         return [
             {
-                "name": f"Order #{o['order_number']} • {o.get('item_name', 'Unknown')}",
+                "order_number": o.get("order_number", 0),
+                "item_name": o.get("item_name", "Unknown"),
+                "item_emoji": o.get("item_emoji", "🌟"),
                 "value": o["order_claims"]["order_claimable"],
                 "channel_id": o.get("channel_id"),
             }

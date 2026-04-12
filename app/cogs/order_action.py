@@ -59,7 +59,16 @@ class OrderActions(commands.Cog):
         log_channel = guild.get_channel(settings.CLAIM_MESSAGE_CHANNEL_ID)
         if not isinstance(log_channel, discord.TextChannel):
             return
-        embed = claim_log_embed(worker=interaction.user, item_name=order["item_name"], quantity=quantity, channel=interaction.channel, action=action)
+
+        embed = claim_log_embed(
+            worker=interaction.user,
+            item_name=order["item_name"],
+            item_emoji=order.get("item_emoji", "🌟"),  # 🔥 FIX
+            quantity=quantity,
+            channel=interaction.channel,
+            action=action
+        )
+
         await log_channel.send(embed=embed)
 
     @app_commands.command(name="claim", description="(Worker) Claim items from this order")

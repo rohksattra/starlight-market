@@ -94,14 +94,19 @@ class Income(commands.Cog):
         await update_order_embed(channel=order_channel, order=order, worker_role_id=settings.WORKER_ROLE_ID)
         tx_channel = guild.get_channel(settings.TRANSACTION_CHANNEL_ID)
         if isinstance(tx_channel, discord.TextChannel) and member:
-            await tx_channel.send(embed=transaction_embed(role=target, member=member, order=order, quantity=quantity))
+            await tx_channel.send(embed=transaction_embed(role=target, member=member, order=order, quantity=quantity, item_emoji=order.get("item_emoji", "🌟")))
         if target == "worker" and member:
             rating_channel = guild.get_channel(settings.RATING_MESSAGE_CHANNEL_ID)
             if isinstance(rating_channel, discord.TextChannel):
                 customer = guild.get_member(int(order["customer_id"]))
                 if customer:
                     content, embed = worker_rating_embed(
-                        worker=member, customer=customer, item_name=order["item_name"], item_quantity=quantity, order_channel=order_channel,
+                        worker=member,
+                        customer=customer,
+                        item_name=order["item_name"],
+                        item_emoji=order.get("item_emoji", "🌟"),
+                        item_quantity=quantity,
+                        order_channel=order_channel,
                     )
                     msg = await rating_channel.send(content=content, embed=embed, view=RatingWorkerButton())
                     await self.worker_ratings_serv.request_rating(transaction_id=str(msg.id), worker_id=str(user), customer_id=str(customer.id))
@@ -115,6 +120,7 @@ class Income(commands.Cog):
                     customer_mention=customer.mention,
                     bank_manager_role_id=settings.BANK_MANAGER_ROLE_ID,
                     item_name=order["item_name"],
+                    item_emoji=order.get("item_emoji", "🌟"),
                     quantity=order["order_claims"]["order_completed"],
                     total_price=(order["order_claims"]["order_completed"] * order["item_price"]),
                     )
