@@ -44,22 +44,6 @@ class ItemRepository:
     async def count_by_category(self, category: str) -> int:
         return await self.items.count_documents({"item_category": category})
 
-    async def create_item(self, *, item_id: str, category: str, name: str, price: int) -> None:
-        await self.items.update_one(
-            {"item_id": item_id},
-            {
-                "$setOnInsert": {
-                    "item_id": item_id,
-                    "item_category": category,
-                    "item_name": name,
-                    "item_price": Int64(price),
-                    "item_sold": Int64(0),
-                    "updated_at": datetime.utcnow(),
-                }
-            },
-            upsert=True,
-        )
-
     async def update_item_price(self, *, item_id: str, new_price: int) -> Optional[ItemData]:
         return await self.items.find_one_and_update(
             {"item_id": item_id},
@@ -106,7 +90,6 @@ class ItemRepository:
             {"item_id": item_id, "item_sold": None},
             {"$set": {"item_sold": Int64(0)}},
         )
-        
         await self.items.update_one(
             {"item_id": item_id},
             {

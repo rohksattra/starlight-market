@@ -47,26 +47,6 @@ class ItemManagement(commands.Cog):
     def _is_staff(self, member: discord.Member) -> bool:
         return has_any_role(member, ORDER_MANAGEMENT_ROLES)
 
-    @app_commands.command(name="add-item-category", description="(Staff) Add new item category")
-    async def add_category(self, interaction: discord.Interaction, category_name: str) -> None:
-        await safe_defer(interaction, ephemeral=True)
-        if not isinstance(interaction.user, discord.Member):
-            return
-        try:
-            check_cooldown(user_id=interaction.user.id, key="add_item_category", seconds=5)
-        except ValueError as exc:
-            await safe_respond(interaction, content=f"⏳ {exc}", ephemeral=True)
-            return
-        if not self._is_staff(interaction.user):
-            await safe_respond(interaction, content="❌ Staff only.", ephemeral=True)
-            return
-        try:
-            await self.item_serv.add_category(category_name)
-        except ValueError as exc:
-            await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
-            return
-        await safe_respond(interaction, content=f"✅ Category **{category_name.strip()}** added.", ephemeral=True)
-
     @app_commands.command(name="update-category-name", description="(Staff) Update category name")
     @app_commands.autocomplete(category=category_autocomplete)
     async def update_category_name(self, interaction: discord.Interaction, category: str, new_category_name: str) -> None:
@@ -87,48 +67,6 @@ class ItemManagement(commands.Cog):
             await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
             return
         await safe_respond(interaction, content=f"✅ Category **{category}** renamed to **{new_category_name.strip()}**.", ephemeral=True)
-
-    @app_commands.command(name="delete-item-category", description="(Staff) Delete item category")
-    @app_commands.autocomplete(category=category_autocomplete)
-    async def delete_category(self, interaction: discord.Interaction, category: str, force: bool = False) -> None:
-        await safe_defer(interaction, ephemeral=True)
-        if not isinstance(interaction.user, discord.Member):
-            return
-        try:
-            check_cooldown(user_id=interaction.user.id, key="delete_category", seconds=5)
-        except ValueError as exc:
-            await safe_respond(interaction, content=f"⏳ {exc}", ephemeral=True)
-            return
-        if not self._is_staff(interaction.user):
-            await safe_respond(interaction, content="❌ Staff only.", ephemeral=True)
-            return
-        try:
-            await self.item_serv.delete_category(category=category, force=force)
-        except ValueError as exc:
-            await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
-            return
-        await safe_respond(interaction, content=f"🗑️ Category **{category}** deleted.", ephemeral=True)
-
-    @app_commands.command(name="add-item", description="(Staff) Add new item")
-    @app_commands.autocomplete(category=category_autocomplete)
-    async def add_item(self, interaction: discord.Interaction, category: str, item_name: str, price: int) -> None:
-        await safe_defer(interaction, ephemeral=True)
-        if not isinstance(interaction.user, discord.Member):
-            return
-        try:
-            check_cooldown(user_id=interaction.user.id, key="add_item", seconds=5)
-        except ValueError as exc:
-            await safe_respond(interaction, content=f"⏳ {exc}", ephemeral=True)
-            return
-        if not self._is_staff(interaction.user):
-            await safe_respond(interaction, content="❌ Staff only.", ephemeral=True)
-            return
-        try:
-            await self.item_serv.add_item(category=category, item_name=item_name, price=price)
-        except ValueError as exc:
-            await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
-            return
-        await safe_respond(interaction, content=f"✅ Item **{item_name.strip()}** added to **{category}**.", ephemeral=True)
 
     @app_commands.command(name="update-item-name", description="(Staff) Update item name")
     @app_commands.autocomplete(category=category_autocomplete, item_id=item_by_category_autocomplete)
@@ -171,28 +109,6 @@ class ItemManagement(commands.Cog):
             await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
             return
         await safe_respond(interaction, content="✅ Item price updated.", ephemeral=True)
-
-    @app_commands.command(name="delete-item", description="(Staff) Delete item")
-    @app_commands.autocomplete(category=category_autocomplete, item_id=item_by_category_autocomplete)
-    async def delete_item(self, interaction: discord.Interaction, category: str, item_id: str) -> None:
-        await safe_defer(interaction, ephemeral=True)
-        if not isinstance(interaction.user, discord.Member):
-            return
-        try:
-            check_cooldown(user_id=interaction.user.id, key="delete_item", seconds=5)
-        except ValueError as exc:
-            await safe_respond(interaction, content=f"⏳ {exc}", ephemeral=True)
-            return
-
-        if not self._is_staff(interaction.user):
-            await safe_respond(interaction, content="❌ Staff only.", ephemeral=True)
-            return
-        try:
-            await self.item_serv.delete_item(item_id)
-        except ValueError as exc:
-            await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
-            return
-        await safe_respond(interaction, content="🗑️ Item deleted.", ephemeral=True)
 
 
 async def setup(bot: commands.Bot) -> None:

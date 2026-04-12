@@ -13,6 +13,7 @@ from app.domains.enums.order_status_enum import OrderStatus
 from app.domains.enums.role_enum import ServerRole
 from app.services.order_claim_service import OrderClaimService
 from app.services.order_service import OrderService
+from app.services.item_service import ItemService
 from app.uis.claim_embed import claim_log_embed
 from app.uis.order_embed import update_order_embed
 from utils.interaction_safe import safe_defer, safe_respond
@@ -28,6 +29,7 @@ class OrderActions(commands.Cog):
         self.bot = bot
         self.order_serv = OrderService()
         self.order_claim_serv = OrderClaimService()
+        self.item_serv = ItemService()
 
     async def _get_order(self, channel: discord.TextChannel) -> dict | None:
         return await self.order_serv.get_by_channel_id(str(channel.id))
@@ -43,7 +45,11 @@ class OrderActions(commands.Cog):
             return
         claims = order["order_claims"]
         total = order["item_quantity"]
-        target_category_id = (settings.NEW_ORDERS_CATEGORY_ID if claims["order_claimable"] == total else settings.CLAIMED_ORDERS_CATEGORY_ID)
+        target_category_id = (
+            settings.NEW_ORDERS_CATEGORY_ID
+            if claims["order_claimable"] == total
+            else settings.CLAIMED_ORDERS_CATEGORY_ID
+        )
         category = guild.get_channel(target_category_id)
         if isinstance(category, discord.CategoryChannel):
             await channel.edit(category=category)
@@ -56,17 +62,21 @@ class OrderActions(commands.Cog):
             return
         if not isinstance(interaction.channel, discord.TextChannel):
             return
+
         log_channel = guild.get_channel(settings.CLAIM_MESSAGE_CHANNEL_ID)
         if not isinstance(log_channel, discord.TextChannel):
             return
 
+        item = await self.item_serv.items.get_by_id(order["item_id"])
+        emoji = item.get("item_emoji") if item else None
+
         embed = claim_log_embed(
             worker=interaction.user,
             item_name=order["item_name"],
-            item_emoji=order.get("item_emoji", "🌟"),  # 🔥 FIX
+            item_emoji=emoji,
             quantity=quantity,
             channel=interaction.channel,
-            action=action
+            action=action,
         )
 
         await log_channel.send(embed=embed)
@@ -87,28 +97,34 @@ class OrderActions(commands.Cog):
         if not isinstance(interaction.channel, discord.TextChannel):
             await safe_respond(interaction, content="❌ This command must be used in an order channel.", ephemeral=True)
             return
+
         order = await self._get_order(interaction.channel)
         if not order:
             await safe_respond(interaction, content="❌ This is not an order channel.", ephemeral=True)
             return
+
         worker_id = str(interaction.user.id)
         if order["customer_id"] == worker_id:
             await safe_respond(interaction, content="❌ You cannot claim your own order.", ephemeral=True)
             return
+
         already_claimed = order.get("worker_claims", {}).get(worker_id, 0) > 0
         if not already_claimed:
             active = await self._active_claim_count(worker_id)
             if active >= MAX_ACTIVE_CLAIM:
                 await safe_respond(interaction, content=f"❌ Claim limit reached (**{active}/{MAX_ACTIVE_CLAIM}**).", ephemeral=True)
                 return
+
         try:
             updated = await self.order_claim_serv.claim(order_id=order["order_id"], worker_id=worker_id, qty=quantity)
         except ValueError as exc:
             await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
             return
+
         await self._sync_category(channel=interaction.channel, order=updated)
         await update_order_embed(channel=interaction.channel, order=updated, worker_role_id=settings.WORKER_ROLE_ID)
         await self._send_log(interaction=interaction, order=updated, quantity=quantity, action="claim")
+
         await safe_respond(interaction, content=f"✅ Claimed ***{quantity:,}*** item(s).", ephemeral=True)
 
     @app_commands.command(name="unclaim", description="(Worker) Cancel your claim")
@@ -127,18 +143,22 @@ class OrderActions(commands.Cog):
         if not isinstance(interaction.channel, discord.TextChannel):
             await safe_respond(interaction, content="❌ This command must be used in an order channel.", ephemeral=True)
             return
+
         order = await self._get_order(interaction.channel)
         if not order:
             await safe_respond(interaction, content="❌ This is not an order channel.", ephemeral=True)
             return
+
         try:
             updated = await self.order_claim_serv.unclaim(order_id=order["order_id"], worker_id=str(interaction.user.id), qty=quantity)
         except ValueError as exc:
             await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
             return
+
         await self._sync_category(channel=interaction.channel, order=updated)
         await update_order_embed(channel=interaction.channel, order=updated, worker_role_id=settings.WORKER_ROLE_ID)
         await self._send_log(interaction=interaction, order=updated, quantity=quantity, action="unclaim")
+
         await safe_respond(interaction, content=f"✅ Unclaimed ***{quantity:,}*** item(s).", ephemeral=True)
 
 
