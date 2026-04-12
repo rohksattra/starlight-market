@@ -14,6 +14,7 @@ from app.domains.enums.role_enum import ORDER_MANAGEMENT_ROLES
 from app.repositories.order_repo import OrderRepository
 from app.services.order_claim_service import OrderClaimService
 from app.services.order_service import OrderService
+from app.services.item_service import ItemService
 from app.uis.calculate_worker_payment_view import CalcWorkerPaymentView
 from app.uis.claim_embed import claim_log_embed
 from app.uis.order_embed import update_order_embed
@@ -77,6 +78,7 @@ class OrderManagement(commands.Cog):
         self.bot = bot
         self.order_serv = OrderService()
         self.order_claim_serv = OrderClaimService()
+        self.item_serv = ItemService()
         self.calc_worker_ctx = app_commands.ContextMenu(name="Calculate Worker Payment", callback=self.calculate_worker_payment)
         self.bot.tree.add_command(self.calc_worker_ctx)
 
@@ -85,15 +87,18 @@ class OrderManagement(commands.Cog):
 
     async def _confirm(self, ctx: commands.Context, *, question: str) -> bool:
         await ctx.send(f"⚠️ **Confirmation Required**\n\n{question}\n\nReply with **Yes** or **No**.", delete_after=60)
+
         def check(m: discord.Message) -> bool:
             return m.author == ctx.author and m.channel == ctx.channel
+
         try:
             msg = await self.bot.wait_for("message", timeout=30, check=check)
         except asyncio.TimeoutError:
             await ctx.send("⏱️ Confirmation timed out.", delete_after=5)
             return False
+
         return msg.content.lower() in {"yes", "y"}
-    
+
     async def _sync_category(self, *, channel: discord.TextChannel, order: dict) -> None:
         guild = channel.guild
         if guild is None:
@@ -102,10 +107,18 @@ class OrderManagement(commands.Cog):
             return
         claims = order["order_claims"]
         total = order["item_quantity"]
-        target_category_id = (settings.NEW_ORDERS_CATEGORY_ID if claims["order_claimable"] == total else settings.CLAIMED_ORDERS_CATEGORY_ID)
+        target_category_id = (
+            settings.NEW_ORDERS_CATEGORY_ID
+            if claims["order_claimable"] == total
+            else settings.CLAIMED_ORDERS_CATEGORY_ID
+        )
         category = guild.get_channel(target_category_id)
         if isinstance(category, discord.CategoryChannel):
             await channel.edit(category=category)
+
+    async def _get_item_emoji(self, item_id: str) -> str | None:
+        item = await self.item_serv.items.get_by_id(item_id)
+        return item.get("item_emoji") if item else None
 
     @app_commands.command(name="order-item-price-update", description="(Staff) Update order item price")
     async def update_price(self, interaction: discord.Interaction, new_price: int) -> None:
@@ -210,23 +223,28 @@ class OrderManagement(commands.Cog):
         except ValueError as exc:
             await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
             return
+
         await self._sync_category(channel=interaction.channel, order=updated)
         await update_order_embed(channel=interaction.channel, order=updated, worker_role_id=settings.WORKER_ROLE_ID)
+
         guild = interaction.guild
         if guild:
             log_channel = guild.get_channel(settings.CLAIM_MESSAGE_CHANNEL_ID)
             worker = guild.get_member(int(worker_id))
+            emoji = await self._get_item_emoji(order["item_id"])
             if isinstance(log_channel, discord.TextChannel) and worker:
                 await log_channel.send(
                     embed=claim_log_embed(
                         worker=worker,
                         item_name=order["item_name"],
+                        item_emoji=emoji,
                         quantity=quantity,
                         channel=interaction.channel,
                         action="force_claim",
                         staff=interaction.user,
                     )
                 )
+
         await safe_respond(interaction, content="⚠️ Force claim executed.", ephemeral=True)
 
     @app_commands.command(name="force-unclaim", description="(Staff) Force unclaim to a worker")
@@ -255,22 +273,28 @@ class OrderManagement(commands.Cog):
         except ValueError as exc:
             await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
             return
+
         await self._sync_category(channel=interaction.channel, order=updated)
         await update_order_embed(channel=interaction.channel, order=updated, worker_role_id=settings.WORKER_ROLE_ID)
+
         guild = interaction.guild
         if guild:
             log_channel = guild.get_channel(settings.CLAIM_MESSAGE_CHANNEL_ID)
             worker = guild.get_member(int(worker_id))
+            emoji = await self._get_item_emoji(order["item_id"])
             if isinstance(log_channel, discord.TextChannel) and worker:
                 await log_channel.send(
                     embed=claim_log_embed(
-                        worker=worker, item_name=order["item_name"],
+                        worker=worker,
+                        item_name=order["item_name"],
+                        item_emoji=emoji,
                         quantity=quantity,
                         channel=interaction.channel,
                         action="force_unclaim",
                         staff=interaction.user,
                     )
                 )
+
         await safe_respond(interaction, content="⚠️ Force unclaim executed.", ephemeral=True)
 
     @commands.command(name="close")
@@ -351,7 +375,10 @@ class OrderManagement(commands.Cog):
             await safe_respond(interaction, content="❌ Guild only.", ephemeral=True)
             return
         view = CalcWorkerPaymentView(
-            order_serv=self.order_serv, source_message=message, guild=guild, claimed_category_id=settings.CLAIMED_ORDERS_CATEGORY_ID,
+            order_serv=self.order_serv,
+            source_message=message,
+            guild=guild,
+            claimed_category_id=settings.CLAIMED_ORDERS_CATEGORY_ID,
         )
         await view.order_select.load()
         await safe_respond(interaction, content="🧮 **Calculate Worker Payment**", view=view, ephemeral=True)
