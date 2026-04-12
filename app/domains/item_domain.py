@@ -11,4 +11,6 @@ class Item(TypedDict):
     item_name: str
     item_price: int
     item_sold: int
+    item_image: str
+    item_emoji: str
     updated_at: datetime | None

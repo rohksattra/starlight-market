@@ -21,8 +21,9 @@ def leaderboard_embed(
     for idx, entry in enumerate(sliced, start=start + 1):
         value = int(entry.get("value", 0))
         if lb_type == "item":
+            emoji = entry.get("item_emoji", "") or "🌟"
             name = str(entry.get("name", "Unknown Item"))
-            lines.append(f"***{idx}. {name}*** — 🏷 ***{value:,}x***")
+            lines.append(f"***{idx}. {emoji} {name}*** — 🏷 ***{value:,}x***")
         else:
             name = entry.get("name", "Unknown User")
             lines.append(f"***{idx}. {name}*** — 🪙 ***{value:,}***")

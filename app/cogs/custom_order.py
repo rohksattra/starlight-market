@@ -35,7 +35,7 @@ class CustomOrder(commands.Cog):
                 break
         return choices
 
-    @app_commands.command(name="custom_order", description="(Staff) Create a custom/manual order for a member")
+    @app_commands.command(name="custom-order", description="(Staff) Create a custom/manual order for a member")
     @app_commands.describe(customer="Customer (server member)", item_name="Custom item name", item_price="Price per item", quantity="Item quantity")
     @app_commands.autocomplete(customer=_autocomplete_member)
     async def custom_order(self, interaction: discord.Interaction, customer: str, item_name: str, item_price: int, quantity: int) -> None:

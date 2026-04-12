@@ -62,6 +62,7 @@ def _fmt_items(rows: Sequence[Dict[str, Any]]) -> str:
     lines: List[str] = []
     for i, row in enumerate(rows, start=1):
         name = row.get("name", "Unknown")
+        emoji = row.get("item_emoji", "") or "🌟"
         value = int(row.get("value", 0))
-        lines.append(f"{i}. ***{name}*** — 🏷 ***{value:,}x***")
+        lines.append(f"{i}. ***{emoji} {name}*** — 🏷 ***{value:,}x***")
     return "\n".join(lines)

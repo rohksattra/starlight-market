@@ -62,6 +62,8 @@ class OrderService:
             "item_id": item["item_id"],
             "item_name": item["item_name"],
             "item_price": item["item_price"],
+            "item_image": item.get("item_image", ""),
+            "item_category": item.get("item_category", ""),
             "item_quantity": quantity,
             "worker_claims": {},
             "order_claims": {

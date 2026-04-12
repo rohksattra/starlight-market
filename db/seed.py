@@ -19,12 +19,18 @@ async def seed_items() -> None:
         for item in items:
             await db.items.update_one(
                 {"item_category": category, "item_name": item["item_name"]},
-                {"$setOnInsert": {
+                {
+                    "$set": {
+                        "item_image": item["item_image"],
+                        "item_emoji": item["item_emoji"],
+                    },
+                    "$setOnInsert": {
                         "item_id": str(uuid.uuid4()),
                         "item_category": category,
                         "item_name": item["item_name"],
                         "item_price": item["item_price"],
-                    }},
+                    }
+                },
                 upsert=True,
             )
-    log.info("Default items seeded")
+    log.info("Default items seeded/updated")

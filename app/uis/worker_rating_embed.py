@@ -22,13 +22,13 @@ def format_rating_stars(average: float, *, max_stars: int = 5) -> str:
 
 
 def worker_rating_embed(
-    *, worker: discord.Member, customer: discord.Member, item_name: str, item_quantity: int, order_channel: discord.TextChannel,
+    *, worker: discord.Member, customer: discord.Member, item_name: str, item_quantity: int, order_channel: discord.TextChannel, item_emoji: str = "🌟"
 ) -> tuple[str, discord.Embed]:
     embed = discord.Embed(
         title="⭐ Rate Worker Performance",
         description=(
             f"***{worker.mention}*** has successfully completed "
-            f"***{item_quantity:,}x {item_name}*** for your order in "
+            f"***{item_quantity:,}x {item_emoji} {item_name}*** for your order in "  # Tambahkan emoji sebelum item_name
             f"***{order_channel.mention}***\n\n"
             f"Please take a moment to rate their performance."
         ),

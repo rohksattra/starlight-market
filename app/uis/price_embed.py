@@ -11,8 +11,9 @@ def price_embed(*, category: str, items: List[Dict[str, Any]], refreshed_at: dat
     lines: List[str] = []
     for item in items:
         name = item.get("item_name", "Unknown Item")
+        emoji = item.get("item_emoji", "") or "🌟"
         price = int(item.get("item_price", 0))
-        lines.append(f"• ***{name}*** — 🪙 ***{price:,}***")
+        lines.append(f"***{emoji} {name}*** — 🪙 ***{price:,}***")
     embed = discord.Embed(
         title=f"📦 Price List Each— ***{category}***",
         description="\n".join(lines) if lines else "⚠️ No items available.",

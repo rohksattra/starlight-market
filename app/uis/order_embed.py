@@ -6,6 +6,8 @@ from typing import Dict, Any, Tuple
 import discord
 from discord import TextChannel
 
+from core.config import settings
+
 
 def fmt(value: int) -> str:
     return f"{value:,}"
@@ -60,9 +62,18 @@ def order_description(order: Dict[str, Any]) -> str:
     )
 
 
+def _get_item_image_url(item_image: str, item_category: str) -> str:
+    """Generate image URL dari GitHub raw content."""
+    if not item_image or not item_category:
+        return ""
+    return f"https://github.com/{settings.GITHUB_USER}/{settings.GITHUB_REPO}/raw/refs/heads/{settings.GITHUB_BRANCH}/assets/images/{item_category.replace(' ', '%20')}/{item_image}"
+
+
 def order_embed(*, order: Dict[str, Any], worker_role_id: int, guild: discord.Guild) -> Tuple[str, discord.Embed]:
     quantity = int(order.get("item_quantity", 0))
     item_name = order.get("item_name", "Item")
+    item_image = order.get("item_image", "")
+    item_category = order.get("item_category", "")
     worker_role = guild.get_role(worker_role_id)
     worker_mention = worker_role.mention if worker_role else "@Worker"
     embed = discord.Embed(
@@ -70,6 +81,10 @@ def order_embed(*, order: Dict[str, Any], worker_role_id: int, guild: discord.Gu
         description=order_description(order),
         color=0xFFD700,
     )
+    if item_image and item_category:
+        image_url = _get_item_image_url(item_image, item_category)
+        if image_url:
+            embed.set_thumbnail(url=image_url)
     embed.set_footer(text="🌟 Starlight Market\nGood Luck 💪 & Have Fun 🙃")
     return f"🔊 {worker_mention}", embed
 
@@ -87,11 +102,17 @@ async def update_order_embed(*, channel: TextChannel, order: Dict[str, Any], wor
     worker_mention = worker_role.mention if worker_role else "@Worker"
     quantity = int(order.get("item_quantity", 0))
     item_name = order.get("item_name", "Item")
+    item_image = order.get("item_image", "")
+    item_category = order.get("item_category", "")
     embed = discord.Embed(
         title=f"📦 New Order — ***{fmt(quantity)}x {item_name}***",
         description=order_description(order),
         color=0xFFD700,
     )
+    if item_image and item_category:
+        image_url = _get_item_image_url(item_image, item_category)
+        if image_url:
+            embed.set_thumbnail(url=image_url)
     embed.set_footer(text="🌟 Starlight Market\nGood Luck 💪 & Have Fun 🙃")
     await msg.edit(
         content=f"🔊 {worker_mention}",

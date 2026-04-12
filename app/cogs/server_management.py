@@ -83,7 +83,7 @@ class ServerManagement(commands.Cog):
         await confirm_msg.delete(delay=5)
 
     
-    @app_commands.command(name="delete_message", description="(Staff) Delete recent messages from this channel")
+    @app_commands.command(name="delete-message", description="(Staff) Delete recent messages from this channel")
     @app_commands.describe(quantity="Number of messages to delete (max 100)")
     async def delete_message(self, interaction: discord.Interaction, quantity: int) -> None:
         await safe_defer(interaction, ephemeral=True)

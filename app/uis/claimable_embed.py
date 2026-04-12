@@ -24,11 +24,12 @@ def claimable_embed(
 
         name = e.get("name", "Unknown")
         item_name = name.split("•")[-1].strip()
+        emoji = e.get("item_emoji", "") or "🌟"
 
         qty = int(e.get("value", 0))
 
         lines.append(
-            f"***{idx}. {item_name} — 🏷 {qty:,}***\n"
+            f"***{idx}. {emoji} {item_name} — 🏷 {qty:,}***\n"
             f"{ch}"
         )
 

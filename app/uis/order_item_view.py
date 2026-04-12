@@ -38,9 +38,12 @@ class OrderItemView(discord.ui.View):
         slice_ = self.items[start:end]
         options: list[discord.SelectOption] = []
         for it in slice_:
+            emoji = it.get("item_emoji", "🌟") or "🌟"
+            name = str(it.get("item_name", "Item"))
+            label = f"{emoji} {name}"[:100]
             options.append(
                 discord.SelectOption(
-                    label=str(it.get("item_name", "Item"))[:100],
+                    label=label,
                     value=str(it.get("item_id")),
                     description=f"🪙 {int(it.get('item_price', 0)):,}",
                 )

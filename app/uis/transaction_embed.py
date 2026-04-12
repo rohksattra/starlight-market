@@ -17,19 +17,20 @@ def fmt(value: int) -> str:
 
 def transaction_embed(*, role: TransactionRole, member: discord.Member, order: Dict[str, Any], quantity: int) -> discord.Embed:
     item_name: str = order.get("item_name", "Item")
+    item_emoji: str = order.get("item_emoji", "") or "🌟"
     price: int = int(order.get("item_price", 0))
     quantity = int(quantity)
     if role == "worker":
         amount = int(price * quantity * WORKER_FEE_RATE)
         description = (
             f"***Starlight Market*** paid 🪙 ***{fmt(amount)}*** to "
-            f"{member.mention} for 🏷 ***{fmt(quantity)}x {item_name}***."
+            f"{member.mention} for 🏷 ***{fmt(quantity)}x {item_emoji} {item_name}***."
         )
     else:
         amount = price * quantity
         description = (
             f"{member.mention} spent 🪙 ***{fmt(amount)}*** for "
-            f"🏷 ***{fmt(quantity)}x {item_name}*** at ***Starlight Market***."
+            f"🏷 ***{fmt(quantity)}x {item_emoji} {item_name}*** at ***Starlight Market***."
         )
     embed = discord.Embed(
         title="💰 Transaction Record",

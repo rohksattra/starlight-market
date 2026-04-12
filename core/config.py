@@ -41,6 +41,10 @@ class Settings:
     # ================= DISCORD =================
     DISCORD_TOKEN: str = _require(os.getenv("DISCORD_TOKEN"), "DISCORD_TOKEN")
     GUILD_ID: int = _require_int(os.getenv("GUILD_ID"), "GUILD_ID")
+    # ================= GITHUB (untuk images) =================
+    GITHUB_USER: str = _require(os.getenv("GITHUB_USER"), "GITHUB_USER")
+    GITHUB_REPO: str = _require(os.getenv("GITHUB_REPO"), "GITHUB_REPO")
+    GITHUB_BRANCH: str = _require(os.getenv("GITHUB_BRANCH"), "GITHUB_BRANCH")
     # ================= ROLE IDS =================
     BOT_DEVELOPER_ROLE_ID: int = _require_int(os.getenv("BOT_DEVELOPER_ROLE_ID"), "BOT_DEVELOPER_ROLE_ID")
     BANK_MANAGER_ROLE_ID: int = _require_int(os.getenv("BANK_MANAGER_ROLE_ID"), "BANK_MANAGER_ROLE_ID")
