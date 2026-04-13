@@ -116,9 +116,8 @@ class OrderManagement(commands.Cog):
         if isinstance(category, discord.CategoryChannel):
             await channel.edit(category=category)
 
-    async def _get_item_emoji(self, item_id: str) -> str | None:
-        item = await self.item_serv.items.get_by_id(item_id)
-        return item.get("item_emoji") if item else None
+    async def _get_item_emoji(self, item_id: str) -> str:
+        return await self.item_serv.get_item_emoji(item_id)
 
     @app_commands.command(name="order-item-price-update", description="(Staff) Update order item price")
     async def update_price(self, interaction: discord.Interaction, new_price: int) -> None:
@@ -374,12 +373,7 @@ class OrderManagement(commands.Cog):
         if guild is None:
             await safe_respond(interaction, content="❌ Guild only.", ephemeral=True)
             return
-        view = CalcWorkerPaymentView(
-            order_serv=self.order_serv,
-            source_message=message,
-            guild=guild,
-            claimed_category_id=settings.CLAIMED_ORDERS_CATEGORY_ID,
-        )
+        view = CalcWorkerPaymentView(order_serv=self.order_serv, source_message=message, guild=guild, claimed_category_id=settings.CLAIMED_ORDERS_CATEGORY_ID, item_serv=self.item_serv)
         await view.order_select.load()
         await safe_respond(interaction, content="🧮 **Calculate Worker Payment**", view=view, ephemeral=True)
 
