@@ -6,7 +6,6 @@ from typing import List, Dict, Any
 import discord
 from discord.ext import commands
 
-from core.config import settings
 from core.role_map import has_any_role
 from app.domains.enums.role_enum import ORDER_MANAGEMENT_ROLES
 from app.services.item_service import ItemService
@@ -27,31 +26,29 @@ class Price(commands.Cog):
     async def _validate_ctx(self, ctx: commands.Context) -> discord.Guild | None:
         if ctx.guild is None or not isinstance(ctx.author, discord.Member):
             return None
+
         try:
             check_cooldown(user_id=ctx.author.id, key="price", seconds=5)
         except ValueError as exc:
             await ctx.send(f"⏳ {exc}", delete_after=5)
             await failed(ctx)
             return None
+
         if not self._is_staff(ctx.author):
             await ctx.send("❌ Staff only.", delete_after=5)
             await failed(ctx)
             return None
+
         return ctx.guild
 
     def _format_items(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        result: List[Dict[str, Any]] = []
-
-        for item in items:
-            emoji = item.get("item_emoji") or "🌟"
-            name = item.get("item_name", "Unknown Item")
-
-            result.append({
-                "name": f"{emoji} {name}",
-                "price": int(item.get("item_price", 0)),
-            })
-
-        return result
+        return [
+            {
+                "name": f"{item['item_emoji']} {item['item_name']}",
+                "price": item["item_price"],
+            }
+            for item in items
+        ]
 
     @commands.command(name="price")
     async def price(self, ctx: commands.Context) -> None:
@@ -69,11 +66,20 @@ class Price(commands.Cog):
         for category in categories:
             items = await self.item_serv.list_item_price_by_category(category)
 
+            if not items:
+                continue
+
             formatted_items = self._format_items(items)
 
-            embed = price_embed(category=category, items=formatted_items)
+            embed = price_embed(
+                category=category,
+                items=formatted_items,
+            )
 
-            await ctx.send(embed=embed, view=PriceRefreshView(category=category))
+            await ctx.send(
+                embed=embed,
+                view=PriceRefreshView(category=category),
+            )
 
         await success(ctx)
 

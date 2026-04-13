@@ -29,16 +29,39 @@ class ItemService:
 
     async def list_items(self) -> List[Dict[str, Any]]:
         items = await self.items.get_all()
-        log.debug("List items | count=%s", len(items))
-        return items
+
+        result: List[Dict[str, Any]] = []
+        for item in items:
+            result.append({
+                "item_id": item.get("item_id"),
+                "item_name": item.get("item_name", "Unknown Item"),
+                "item_price": int(item.get("item_price", 0)),
+                "item_emoji": item.get("item_emoji") or "🌟",
+                "item_category": item.get("item_category"),
+            })
+
+        log.debug("List items | count=%s", len(result))
+        return result
 
     async def list_items_by_category(self, category: str) -> List[Dict[str, Any]]:
         if not category.strip():
             log.warning("List items failed | empty category")
             return []
+
         items = await self.items.get_by_category(category)
-        log.info("List items | category=%s count=%s", category, len(items))
-        return items
+
+        result: List[Dict[str, Any]] = []
+        for item in items:
+            result.append({
+                "item_id": item.get("item_id"),
+                "item_name": item.get("item_name", "Unknown Item"),
+                "item_price": int(item.get("item_price", 0)),
+                "item_emoji": item.get("item_emoji") or "🌟",
+                "item_category": item.get("item_category"),
+            })
+
+        log.info("List items | category=%s count=%s", category, len(result))
+        return result
 
     async def list_item_price_by_category(self, category: str, *, limit: int = 50) -> List[Dict[str, Any]]:
         if not category.strip():
@@ -46,34 +69,62 @@ class ItemService:
             return []
 
         items = await self.items.get_by_category(category)
-        items.sort(key=lambda x: x["item_name"].lower())
+
+        result: List[Dict[str, Any]] = []
+        for item in items:
+            result.append({
+                "item_id": item.get("item_id"),
+                "item_name": item.get("item_name", "Unknown Item"),
+                "item_price": int(item.get("item_price", 0)),
+                "item_emoji": item.get("item_emoji") or "🌟",
+            })
+
+        result.sort(key=lambda x: x["item_name"].lower())
 
         if limit > 0:
-            items = items[:limit]
+            result = result[:limit]
 
-        log.debug("List item price | category=%s count=%s limit=%s", category, len(items), limit)
-        return items
+        log.debug(
+            "List item price | category=%s count=%s limit=%s",
+            category,
+            len(result),
+            limit,
+        )
+        return result
 
     async def get_item_emoji(self, item_id: str) -> str:
         item = await self.items.get_by_id(item_id)
+
         if not item:
             log.warning("Get item emoji failed | item not found | item_id=%s", item_id)
             return "❓"
-        return item.get("item_emoji", "❓")
+
+        return item.get("item_emoji") or "❓"
 
     async def update_category_name(self, *, old_name: str, new_name: str) -> None:
         self._validate_non_empty(old_name, new_name)
 
-        updated = await self.items.rename_category(old_name=old_name, new_name=new_name)
+        updated = await self.items.rename_category(
+            old_name=old_name,
+            new_name=new_name,
+        )
         if updated == 0:
             raise ValueError("Category not found")
 
-        log.info("Category renamed | from=%s to=%s count=%s", old_name, new_name, updated)
+        log.info(
+            "Category renamed | from=%s to=%s count=%s",
+            old_name,
+            new_name,
+            updated,
+        )
 
     async def update_item_name(self, *, item_id: str, new_name: str) -> None:
         self._validate_non_empty(new_name)
 
-        if not await self.items.rename_item(item_id=item_id, new_name=new_name):
+        if not await self.items.rename_item(
+            item_id=item_id,
+            new_name=new_name,
+        ):
             raise ValueError("Item not found")
 
         log.info("Item renamed | item_id=%s new_name=%s", item_id, new_name)
@@ -81,7 +132,10 @@ class ItemService:
     async def update_price(self, item_id: str, new_price: int) -> None:
         self._validate_price(new_price)
 
-        if not await self.items.update_item_price(item_id=item_id, new_price=new_price):
+        if not await self.items.update_item_price(
+            item_id=item_id,
+            new_price=new_price,
+        ):
             raise ValueError("Item not found")
 
         log.info("Item price updated | item_id=%s new_price=%s", item_id, new_price)

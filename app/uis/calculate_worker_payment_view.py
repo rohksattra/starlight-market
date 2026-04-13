@@ -268,19 +268,25 @@ class CalcWorkerPaymentView(discord.ui.View):
         if not self.order:
             await safe_respond(interaction, content="❌ Order not selected.", ephemeral=True)
             return
+
         fresh = await self.order_serv.get_by_channel_id(self.order["channel_id"])
         if not fresh:
             await safe_respond(interaction, content="❌ Order no longer exists.", ephemeral=True)
             return
+
         self.order = fresh
+
         if not self.worker_select.values:
             await safe_respond(interaction, content="❌ Worker not selected.", ephemeral=True)
             return
+
         if self.quantity is None:
             await safe_respond(interaction, content="❌ Quantity not set.", ephemeral=True)
             return
+
         worker_id = self.worker_select.values[0]
         claimed_qty = int(self.order["worker_claims"].get(worker_id, 0))
+
         if self.quantity > claimed_qty:
             await safe_respond(
                 interaction,
@@ -288,10 +294,15 @@ class CalcWorkerPaymentView(discord.ui.View):
                 ephemeral=True,
             )
             return
+
         item_price = int(self.order["item_price"])
         payment = int(item_price * self.quantity * WORKER_FEE_RATE)
-        item_emoji = await self.item_serv.get_item_emoji(self.order["item_id"])
+        item_id = self.order.get("item_id")
+        item_emoji = await self.item_serv.get_item_emoji(item_id) if item_id else "🌟"
+        item_emoji = item_emoji or "🌟"
+
         await safe_respond(interaction, content="✅ Payment calculated.", ephemeral=True)
+
         await self.source_message.reply(
             (
                 f"🏷 ***{self.quantity:,}x {item_emoji} {self.order['item_name']}*** "
