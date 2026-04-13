@@ -97,9 +97,9 @@ class ItemService:
 
         if not item:
             log.warning("Get item emoji failed | item not found | item_id=%s", item_id)
-            return "❓"
+            return "🌟"
 
-        return item.get("item_emoji") or "❓"
+        return item.get("item_emoji") or "🌟"
 
     async def update_category_name(self, *, old_name: str, new_name: str) -> None:
         self._validate_non_empty(old_name, new_name)

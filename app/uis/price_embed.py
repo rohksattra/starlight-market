@@ -1,4 +1,3 @@
-# app/uis/price_embed.py
 from __future__ import annotations
 
 from typing import Dict, Any, List
@@ -7,14 +6,17 @@ from datetime import datetime
 import discord
 
 
-def price_embed(*, category: str, items: List[Dict[str, Any]], refreshed_at: datetime | None = None) -> discord.Embed:
+def price_embed(*, category: str, items: List[Dict[str, Any]], refreshed_at: datetime | None = None,
+) -> discord.Embed:
+
     lines: List[str] = []
 
     for item in items:
-        name = item.get("name", "Unknown Item")
-        price = int(item.get("price", 0))
+        emoji = item.get("item_emoji") or "🌟"
+        name = item.get("item_name", "Unknown Item")
+        price = int(item.get("item_price", 0))
 
-        lines.append(f"***{name}*** — 🪙 ***{price:,}***")
+        lines.append(f"***{emoji} {name}*** — 🪙 ***{price:,}***")
 
     embed = discord.Embed(
         title=f"📦 Price List Each— ***{category}***",

@@ -41,15 +41,6 @@ class Price(commands.Cog):
 
         return ctx.guild
 
-    def _format_items(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        return [
-            {
-                "name": f"{item['item_emoji']} {item['item_name']}",
-                "price": item["item_price"],
-            }
-            for item in items
-        ]
-
     @commands.command(name="price")
     async def price(self, ctx: commands.Context) -> None:
         guild = await self._validate_ctx(ctx)
@@ -69,11 +60,9 @@ class Price(commands.Cog):
             if not items:
                 continue
 
-            formatted_items = self._format_items(items)
-
             embed = price_embed(
                 category=category,
-                items=formatted_items,
+                items=items,
             )
 
             await ctx.send(
