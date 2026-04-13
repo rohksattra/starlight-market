@@ -27,28 +27,34 @@ class Leaderboard(commands.Cog):
     async def _validate_ctx(self, ctx: commands.Context) -> discord.Guild | None:
         if ctx.guild is None or not isinstance(ctx.author, discord.Member):
             return None
+
         try:
             check_cooldown(user_id=ctx.author.id, key="leaderboard", seconds=5)
         except ValueError as exc:
             await ctx.send(f"⏳ {exc}", delete_after=5)
             await failed(ctx)
             return None
+
         if not self._is_staff(ctx.author):
             await ctx.send("❌ Staff only.", delete_after=5)
             await failed(ctx)
             return None
+
         return ctx.guild
 
     def _get_channel(self, guild: discord.Guild | None, lb_type: str) -> discord.TextChannel | None:
         if guild is None:
             return None
+
         channel_id = {
             "worker": settings.TOP_WORKER_CHANNEL_ID,
             "customer": settings.TOP_CUSTOMER_CHANNEL_ID,
             "item": settings.TOP_ITEM_CHANNEL_ID,
         }.get(lb_type)
+
         if not channel_id:
             return None
+
         channel = guild.get_channel(channel_id)
         return channel if isinstance(channel, discord.TextChannel) else None
 
@@ -60,7 +66,11 @@ class Leaderboard(commands.Cog):
         for r in rows:
             member = guild.get_member(int(r["id"])) if guild else None
             name = member.display_name if member else "Unknown"
-            result.append({"name": name, "value": r["value"]})
+
+            result.append({
+                "name": name,
+                "value": r["value"],
+            })
 
         return result
 
@@ -72,20 +82,16 @@ class Leaderboard(commands.Cog):
         for r in rows:
             member = guild.get_member(int(r["id"])) if guild else None
             name = member.display_name if member else "Unknown"
-            result.append({"name": name, "value": r["value"]})
+
+            result.append({
+                "name": name,
+                "value": r["value"],
+            })
 
         return result
 
     async def _fetch_item(self) -> List[Dict[str, Any]]:
-        rows = await self.leaderboard_serv.top_items()
-
-        return [
-            {
-                "name": f"{r.get('item_emoji', '🌟')} {r.get('name', 'Unknown')}",
-                "value": r["value"],
-            }
-            for r in rows
-        ]
+        return await self.leaderboard_serv.top_items()
 
     @commands.command(name="lbw")
     async def leaderboard_worker(self, ctx: commands.Context) -> None:
@@ -100,7 +106,11 @@ class Leaderboard(commands.Cog):
             return
 
         entries = await self._fetch_worker()
-        view = LeaderboardPaginationView(lb_type="worker", title="🏆 Top 100 Workers")
+
+        view = LeaderboardPaginationView(
+            lb_type="worker",
+            title="🏆 Top 100 Workers",
+        )
         view.set_initial_state(total_items=len(entries))
 
         await channel.send(
@@ -113,6 +123,7 @@ class Leaderboard(commands.Cog):
             ),
             view=view,
         )
+
         await success(ctx)
 
     @commands.command(name="lbc")
@@ -128,7 +139,11 @@ class Leaderboard(commands.Cog):
             return
 
         entries = await self._fetch_customer()
-        view = LeaderboardPaginationView(lb_type="customer", title="🏅 Top 100 Customers")
+
+        view = LeaderboardPaginationView(
+            lb_type="customer",
+            title="🏅 Top 100 Customers",
+        )
         view.set_initial_state(total_items=len(entries))
 
         await channel.send(
@@ -141,6 +156,7 @@ class Leaderboard(commands.Cog):
             ),
             view=view,
         )
+
         await success(ctx)
 
     @commands.command(name="lbi")
@@ -156,7 +172,11 @@ class Leaderboard(commands.Cog):
             return
 
         entries = await self._fetch_item()
-        view = LeaderboardPaginationView(lb_type="item", title="🛒 Top 100 Items")
+
+        view = LeaderboardPaginationView(
+            lb_type="item",
+            title="🛒 Top 100 Items",
+        )
         view.set_initial_state(total_items=len(entries))
 
         await channel.send(
@@ -169,6 +189,7 @@ class Leaderboard(commands.Cog):
             ),
             view=view,
         )
+
         await success(ctx)
 
 

@@ -24,14 +24,15 @@ class LeaderboardService:
         item_ids = [r["item_id"] for r in rows]
 
         db_items = await self.items.get_all()
+
         emoji_map = {
-            i["item_id"]: i.get("item_emoji", "🌟")
+            i["item_id"]: i.get("item_emoji") or "🌟"
             for i in db_items
             if i["item_id"] in item_ids
         }
 
         for r in rows:
-            r["item_emoji"] = emoji_map.get(r["item_id"], "🌟")
+            r["item_emoji"] = emoji_map.get(r["item_id"]) or "🌟"
 
         return rows
 

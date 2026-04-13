@@ -10,9 +10,9 @@ import discord
 LBType = Literal["worker", "customer", "item"]
 
 
-def leaderboard_embed(
-    *, title: str, entries: List[Dict[str, Any]], lb_type: LBType, page: int, page_size: int, refreshed_at: datetime | None = None,
+def leaderboard_embed(*, title: str, entries: List[Dict[str, Any]], lb_type: LBType, page: int, page_size: int, refreshed_at: datetime | None = None
 ) -> discord.Embed:
+
     start = page * page_size
     end = start + page_size
     sliced = entries[start:end]
@@ -24,10 +24,17 @@ def leaderboard_embed(
 
         if lb_type == "item":
             name = str(entry.get("name", "Unknown Item"))
-            lines.append(f"***{idx}. {name}*** — 🏷 ***{value:,}x***")
+            emoji = entry.get("item_emoji") or "🌟"
+
+            lines.append(
+                f"***{idx}. {emoji} {name}*** — 🏷 ***{value:,}x***"
+            )
         else:
             name = entry.get("name", "Unknown User")
-            lines.append(f"***{idx}. {name}*** — 🪙 ***{value:,}***")
+
+            lines.append(
+                f"***{idx}. {name}*** — 🪙 ***{value:,}***"
+            )
 
     embed = discord.Embed(
         title=title,
