@@ -1,7 +1,7 @@
 # app/cogs/leaderboard.py
 from __future__ import annotations
 
-from typing import Any, cast, Dict, List
+from typing import Any, Dict, List
 
 import discord
 from discord.ext import commands
@@ -42,7 +42,11 @@ class Leaderboard(commands.Cog):
     def _get_channel(self, guild: discord.Guild | None, lb_type: str) -> discord.TextChannel | None:
         if guild is None:
             return None
-        channel_id = {"worker": settings.TOP_WORKER_CHANNEL_ID, "customer": settings.TOP_CUSTOMER_CHANNEL_ID, "item": settings.TOP_ITEM_CHANNEL_ID}.get(lb_type)
+        channel_id = {
+            "worker": settings.TOP_WORKER_CHANNEL_ID,
+            "customer": settings.TOP_CUSTOMER_CHANNEL_ID,
+            "item": settings.TOP_ITEM_CHANNEL_ID,
+        }.get(lb_type)
         if not channel_id:
             return None
         channel = guild.get_channel(channel_id)
@@ -51,38 +55,64 @@ class Leaderboard(commands.Cog):
     async def _fetch_worker(self) -> List[Dict[str, Any]]:
         rows = await self.leaderboard_serv.top_workers()
         guild = self.bot.get_guild(settings.GUILD_ID)
+
         result = []
         for r in rows:
             member = guild.get_member(int(r["id"])) if guild else None
-            result.append({"name": member.display_name if member else "Unknown", "value": r["value"]})
+            name = member.display_name if member else "Unknown"
+            result.append({"name": name, "value": r["value"]})
+
         return result
 
     async def _fetch_customer(self) -> List[Dict[str, Any]]:
         rows = await self.leaderboard_serv.top_customers()
         guild = self.bot.get_guild(settings.GUILD_ID)
+
         result = []
         for r in rows:
             member = guild.get_member(int(r["id"])) if guild else None
-            result.append({"name": member.display_name if member else "Unknown", "value": r["value"]})
+            name = member.display_name if member else "Unknown"
+            result.append({"name": name, "value": r["value"]})
+
         return result
 
     async def _fetch_item(self) -> List[Dict[str, Any]]:
-        return cast(List[Dict[str, Any]], await self.leaderboard_serv.top_items())
+        rows = await self.leaderboard_serv.top_items()
+
+        return [
+            {
+                "name": f"{r.get('item_emoji', '🌟')} {r.get('name', 'Unknown')}",
+                "value": r["value"],
+            }
+            for r in rows
+        ]
 
     @commands.command(name="lbw")
     async def leaderboard_worker(self, ctx: commands.Context) -> None:
         guild = await self._validate_ctx(ctx)
         if guild is None:
             return
+
         channel = self._get_channel(guild, "worker")
         if channel is None:
             await ctx.send("❌ Worker leaderboard channel not found.", delete_after=5)
             await failed(ctx)
             return
+
         entries = await self._fetch_worker()
         view = LeaderboardPaginationView(lb_type="worker", title="🏆 Top 100 Workers")
         view.set_initial_state(total_items=len(entries))
-        await channel.send(embed=leaderboard_embed(title="🏆 Top 100 Workers", entries=entries, lb_type="worker", page=0, page_size=25), view=view)
+
+        await channel.send(
+            embed=leaderboard_embed(
+                title="🏆 Top 100 Workers",
+                entries=entries,
+                lb_type="worker",
+                page=0,
+                page_size=25,
+            ),
+            view=view,
+        )
         await success(ctx)
 
     @commands.command(name="lbc")
@@ -90,15 +120,27 @@ class Leaderboard(commands.Cog):
         guild = await self._validate_ctx(ctx)
         if guild is None:
             return
+
         channel = self._get_channel(guild, "customer")
         if channel is None:
             await ctx.send("❌ Customer leaderboard channel not found.", delete_after=5)
             await failed(ctx)
             return
+
         entries = await self._fetch_customer()
         view = LeaderboardPaginationView(lb_type="customer", title="🏅 Top 100 Customers")
         view.set_initial_state(total_items=len(entries))
-        await channel.send(embed=leaderboard_embed(title="🏅 Top 100 Customers", entries=entries, lb_type="customer", page=0, page_size=25), view=view)
+
+        await channel.send(
+            embed=leaderboard_embed(
+                title="🏅 Top 100 Customers",
+                entries=entries,
+                lb_type="customer",
+                page=0,
+                page_size=25,
+            ),
+            view=view,
+        )
         await success(ctx)
 
     @commands.command(name="lbi")
@@ -106,15 +148,27 @@ class Leaderboard(commands.Cog):
         guild = await self._validate_ctx(ctx)
         if guild is None:
             return
+
         channel = self._get_channel(guild, "item")
         if channel is None:
             await ctx.send("❌ Item leaderboard channel not found.", delete_after=5)
             await failed(ctx)
             return
+
         entries = await self._fetch_item()
         view = LeaderboardPaginationView(lb_type="item", title="🛒 Top 100 Items")
         view.set_initial_state(total_items=len(entries))
-        await channel.send(embed=leaderboard_embed(title="🛒 Top 100 Items", entries=entries, lb_type="item", page=0, page_size=25), view=view)
+
+        await channel.send(
+            embed=leaderboard_embed(
+                title="🛒 Top 100 Items",
+                entries=entries,
+                lb_type="item",
+                page=0,
+                page_size=25,
+            ),
+            view=view,
+        )
         await success(ctx)
 
 

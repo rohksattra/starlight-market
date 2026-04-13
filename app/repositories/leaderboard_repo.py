@@ -48,12 +48,21 @@ class LeaderboardRepository:
         cursor = (
             self.items.find(
                 {"item_sold": {"$gt": 0}},
-                {"_id": 0, "item_name": 1, "item_sold": 1, "item_emoji": 1},
+                {
+                    "_id": 0,
+                    "item_id": 1,
+                    "item_name": 1,
+                    "item_sold": 1,
+                },
             )
             .sort("item_sold", -1)
             .limit(limit)
         )
         return [
-            {"name": d["item_name"], "value": int(d["item_sold"]), "item_emoji": d.get("item_emoji", "")}
+            {
+                "item_id": d["item_id"],
+                "name": d["item_name"],
+                "value": int(d["item_sold"]),
+            }
             async for d in cursor
         ]

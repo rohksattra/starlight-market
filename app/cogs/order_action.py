@@ -67,8 +67,7 @@ class OrderActions(commands.Cog):
         if not isinstance(log_channel, discord.TextChannel):
             return
 
-        item = await self.item_serv.items.get_by_id(order["item_id"])
-        emoji = item.get("item_emoji") if item else None
+        emoji = await self.item_serv.get_item_emoji(order["item_id"])
 
         embed = claim_log_embed(
             worker=interaction.user,

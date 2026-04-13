@@ -1,7 +1,7 @@
 # app/cogs/price.py
 from __future__ import annotations
 
-from typing import List
+from typing import List, Dict, Any
 
 import discord
 from discord.ext import commands
@@ -39,20 +39,42 @@ class Price(commands.Cog):
             return None
         return ctx.guild
 
+    def _format_items(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        result: List[Dict[str, Any]] = []
+
+        for item in items:
+            emoji = item.get("item_emoji") or "🌟"
+            name = item.get("item_name", "Unknown Item")
+
+            result.append({
+                "name": f"{emoji} {name}",
+                "price": int(item.get("item_price", 0)),
+            })
+
+        return result
+
     @commands.command(name="price")
     async def price(self, ctx: commands.Context) -> None:
         guild = await self._validate_ctx(ctx)
         if guild is None:
             return
+
         categories: List[str] = await self.item_serv.list_categories()
+
         if not categories:
             await ctx.send("⚠️ No item categories available.", delete_after=5)
             await failed(ctx)
             return
+
         for category in categories:
             items = await self.item_serv.list_item_price_by_category(category)
-            embed = price_embed(category=category, items=items)
+
+            formatted_items = self._format_items(items)
+
+            embed = price_embed(category=category, items=formatted_items)
+
             await ctx.send(embed=embed, view=PriceRefreshView(category=category))
+
         await success(ctx)
 
 

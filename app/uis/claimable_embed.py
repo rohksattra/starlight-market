@@ -19,11 +19,11 @@ def claimable_embed(
         ch = f"<#{e['channel_id']}>" if e.get("channel_id") else "No Channel"
 
         emoji = e.get("item_emoji", "🌟")
-        item_name = e.get("item_name", "Unknown")
+        name = e.get("item_name", "Unknown")
         qty = int(e.get("value", 0))
 
         lines.append(
-            f"***{idx}. {emoji} {item_name} — 🏷 {qty:,}***\n"
+            f"***{idx}. {emoji} {name} — 🏷 {qty:,}***\n"
             f"{ch}"
         )
 

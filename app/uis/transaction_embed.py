@@ -1,3 +1,4 @@
+# app/uis/transaction_embed.py
 from __future__ import annotations
 
 from typing import Literal, Dict, Any
@@ -14,10 +15,17 @@ def fmt(value: int) -> str:
     return f"{value:,}"
 
 
-def transaction_embed(*, role: TransactionRole, member: discord.Member, order: Dict[str, Any], quantity: int, item_emoji: str = "🌟",
+def transaction_embed(
+    *,
+    role: TransactionRole,
+    member: discord.Member,
+    order: Dict[str, Any],
+    quantity: int,
+    item_emoji: str = "🌟",
 ) -> discord.Embed:
+
     item_name: str = order.get("item_name", "Item")
-    emoji: str = order.get("item_emoji", item_emoji) or item_emoji
+    emoji: str = item_emoji or "🌟"
     price: int = int(order.get("item_price", 0))
     quantity = int(quantity)
 

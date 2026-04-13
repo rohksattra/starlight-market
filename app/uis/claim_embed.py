@@ -14,39 +14,26 @@ def claim_log_embed(
 ) -> discord.Embed:
 
     emoji = item_emoji or "🌟"
+    qty = f"***{quantity:,}x***"
+    item = f"***{emoji} {item_name}***"
+    place = f"***{channel.mention}***"
+    worker_m = f"***{worker.mention}***"
+    staff_m = f"***{staff.mention}***" if staff else "***Staff***"
 
     if action == "claim":
-        description = (
-            f"***{worker.mention}*** has claimed "
-            f"🏷 ***{quantity:,}x*** of ***{emoji} {item_name}*** "
-            f"in ***{channel.mention}***"
-        )
+        text = f"{worker_m} has claimed 🏷 {qty} of {item} in {place}"
     elif action == "unclaim":
-        description = (
-            f"***{worker.mention}*** has unclaimed "
-            f"🏷 ***{quantity:,}x*** of ***{emoji} {item_name}*** "
-            f"in ***{channel.mention}***"
-        )
+        text = f"{worker_m} has unclaimed 🏷 {qty} of {item} in {place}"
     elif action == "force_claim":
-        staff_mention = staff.mention if staff else "**Staff**"
-        description = (
-            f"***{staff_mention}*** forced ***{worker.mention}*** to claim "
-            f"🏷 ***{quantity:,}x*** of ***{emoji} {item_name}*** "
-            f"in ***{channel.mention}***"
-        )
+        text = f"{staff_m} forced {worker_m} to claim 🏷 {qty} of {item} in {place}"
     elif action == "force_unclaim":
-        staff_mention = staff.mention if staff else "**Staff**"
-        description = (
-            f"***{staff_mention}*** forced ***{worker.mention}*** to unclaim "
-            f"🏷 ***{quantity:,}x*** of ***{emoji} {item_name}*** "
-            f"in ***{channel.mention}***"
-        )
+        text = f"{staff_m} forced {worker_m} to unclaim 🏷 {qty} of {item} in {place}"
     else:
-        description = "Unknown claim action."
+        text = "Unknown claim action."
 
     embed = discord.Embed(
         title="📌 Order Claim Update",
-        description=description,
+        description=text,
         color=0xFFD700,
     )
     embed.set_footer(text="🌟 Starlight Market")
