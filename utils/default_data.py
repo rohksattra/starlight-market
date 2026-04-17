@@ -262,6 +262,8 @@ DEFAULT_ITEMS = {
         {"item_name": "Blood Diamond", "item_price": 5000000, "item_image": "Blood_Diamond_m.png", "item_emoji": "<:Blood_Diamond_m:1492791232471236658>"},
     ],
     "Equipment Materials": [
+        {"item_name": "Cactus Chunk", "item_price": 3500, "item_image": "Cactus_Chunk_m.png", "item_emoji": "<:Cactus_Chunk_m:1494623648152289320>"},
+        {"item_name": "Cactus Cloth", "item_price": 8000, "item_image": "Cactus_Cloth_m.png", "item_emoji": "<:Cactus_Cloth_m:1494623650685521970>"},
         {"item_name": "Spider Carapace", "item_price": 12000, "item_image": "Spider_Carapace_m.png", "item_emoji": "<:Spider_Carapace_m:1492792016008908802>"},
         {"item_name": "Spider Web", "item_price": 15000, "item_image": "Spider_Web_m.png", "item_emoji": "<:Spider_Web_m:1492792018047336468>"},
         {"item_name": "Icy Left Half", "item_price": 2500000, "item_image": "Icy_Left_Half_m.png", "item_emoji": "<:Icy_Left_Half_m:1492791993573834853>"},
