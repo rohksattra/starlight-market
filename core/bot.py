@@ -14,7 +14,7 @@ from db.mongo import close_mongo
 
 from core.web import start_web_background
 from app.services.item_service import ItemService
-from app.uis.price_button import PriceRefreshView
+from app.uis.price_button import PricePaginationView
 from app.uis.leaderboard_button import LeaderboardPaginationView
 from app.uis.claimable_button import ClaimablePaginationView
 from app.uis.worker_rating_button import RatingWorkerButton
@@ -27,11 +27,11 @@ class StarlightBot(commands.Bot):
     async def setup_hook(self) -> None:
         await bootstrap_database()
         await load_cogs(self)
-
+        
         item_serv = ItemService()
         categories = await item_serv.list_categories()
         for category in categories:
-            self.add_view(PriceRefreshView(category=category))
+            self.add_view(PricePaginationView(category=category))
 
         self.add_view(ClaimablePaginationView())
 

@@ -1,7 +1,7 @@
 # app/cogs/price.py
 from __future__ import annotations
 
-from typing import List, Dict, Any
+from typing import List
 
 import discord
 from discord.ext import commands
@@ -10,7 +10,7 @@ from core.role_map import has_any_role
 from app.domains.enums.role_enum import ORDER_MANAGEMENT_ROLES
 from app.services.item_service import ItemService
 from app.uis.price_embed import price_embed
-from app.uis.price_button import PriceRefreshView
+from app.uis.price_button import PricePaginationView
 from utils.command_prefix_feedback import success, failed
 from utils.cooldown import check_cooldown
 
@@ -60,14 +60,16 @@ class Price(commands.Cog):
             if not items:
                 continue
 
-            embed = price_embed(
-                category=category,
-                items=items,
-            )
+            view = PricePaginationView(category=category)
+            view.set_initial_state(total_items=len(items))
 
             await ctx.send(
-                embed=embed,
-                view=PriceRefreshView(category=category),
+                embed=price_embed(
+                    category=category,
+                    items=items,
+                    page=0,
+                ),
+                view=view,
             )
 
         await success(ctx)
