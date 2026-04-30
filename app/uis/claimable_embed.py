@@ -18,7 +18,7 @@ def claimable_embed(
     for idx, e in enumerate(sliced, start=start + 1):
         ch = f"<#{e['channel_id']}>" if e.get("channel_id") else "No Channel"
 
-        emoji = e.get("item_emoji", "🌟")
+        emoji = e.get("item_emoji") or "🌟"
         name = e.get("item_name", "Unknown")
         qty = int(e.get("value", 0))
 
