@@ -23,7 +23,7 @@ def pickup_embed(
             f"Your {qty_fmt} of ***{item_fmt}*** is ready.\n"
             f"Total Price {total_fmt}\n\n"
             f"Please ping {bank_manager_mention} to pickup your order.\n\n"
-            f"You have ⏳ ***7 days*** to pickup or to inform Bank Manager when will you pickup the order. If no information during after the time, the Market will sell the items."
+            f"You have ⏳ ***7 days*** to pickup or to inform Bank Manager when will you pickup the order. If no information after the time, the Market will sell the items."
         ),
         color=0xFFD700,
     )
