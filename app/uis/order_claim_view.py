@@ -24,7 +24,7 @@ class OrderClaimView(discord.ui.View):
             custom_id="orderclaim:unclaim",
         )
         self.refresh_btn = discord.ui.Button(
-            label="🔄 Refresh",
+            label="Refresh",
             style=discord.ButtonStyle.secondary,
             custom_id="orderclaim:refresh",
         )
