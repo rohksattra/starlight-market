@@ -42,7 +42,7 @@ class Profile(commands.Cog):
         except ValueError as exc:
             await safe_respond(interaction, content=f"⏳ {exc}", ephemeral=True)
             return
-        await safe_defer(interaction, ephemeral=False)
+        await safe_defer(interaction, ephemeral=True)
         await self._send_profile(interaction, member)
 
     async def _send_profile(self, ctx_or_interaction: commands.Context | discord.Interaction, member: discord.Member) -> None:
