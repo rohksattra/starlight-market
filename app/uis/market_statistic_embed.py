@@ -77,7 +77,7 @@ def _fmt_users(guild: discord.Guild, rows: Sequence[Dict[str, Any]]) -> str:
             name = "Unknown User"
         else:
             member = guild.get_member(int(user_id))
-            name = member.display_name if member else "Unknown User"
+            name = member.display_name if member else "Unknown"
 
         lines.append(f"{i}. ***{name}*** — 🪙 ***{value:,}***")
 

@@ -20,7 +20,7 @@ def counting_leaderboard_embed(
 
     lines: List[str] = []
     for idx, entry in enumerate(sliced, start=start + 1):
-        name = entry.get("name", "Unknown User")
+        name = entry.get("name", "Unknown")
         value = int(entry.get("value", 0))
         lines.append(f"***{idx}. {name}*** — 🔢 ***{value:,} pts***")
 
