@@ -28,15 +28,35 @@ class ManualIncome(commands.Cog):
         return has_any_role(member, ORDER_MANAGEMENT_ROLES)
 
     async def user_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-        if not current or interaction.guild is None:
+        if interaction.guild is None:
             return []
 
-        docs = await self.users.users.find({"user_id": {"$regex": current}}, {"user_id": 1}).to_list(50)
+        current_lower = current.lower()
 
         results = []
+        seen_ids = set()
+
+        for member in interaction.guild.members:
+            display = member.display_name.lower()
+            username = member.name.lower()
+
+            if current_lower in display or current_lower in username:
+                uid = str(member.id)
+
+                label = f"{member.display_name} (@{member.name}) [{uid}]"
+
+                results.append(app_commands.Choice(name=label[:100], value=uid))
+
+                seen_ids.add(uid)
+
+            if len(results) >= 20:
+                break
+
+        docs = await self.users.users.find({"user_id": {"$regex": current}}, {"user_id": 1}).to_list(20)
+
         for d in docs:
             uid = d.get("user_id")
-            if not uid:
+            if not uid or uid in seen_ids:
                 continue
 
             try:
@@ -50,6 +70,9 @@ class ManualIncome(commands.Cog):
                 label = f"Unknown User [{uid}]"
 
             results.append(app_commands.Choice(name=label[:100], value=uid))
+
+            if len(results) >= 25:
+                break
 
         return results[:25]
 
