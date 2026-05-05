@@ -67,7 +67,7 @@ class ManualIncome(commands.Cog):
             if member:
                 label = f"{member.display_name} (@{member.name}) [{uid}]"
             else:
-                label = f"Unknown User [{uid}]"
+                label = f"Unknown [{uid}]"
 
             results.append(app_commands.Choice(name=label[:100], value=uid))
 
