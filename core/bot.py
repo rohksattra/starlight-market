@@ -89,6 +89,7 @@ async def load_cogs(bot: commands.Bot) -> None:
         "app.cogs.claimable",
         "app.cogs.profile",
         "app.cogs.transaction",
+        "app.cogs.manual_income",
         "app.cogs.worker_rating",
         "app.cogs.item_management",
         "app.cogs.server_management",
