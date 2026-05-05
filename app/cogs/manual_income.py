@@ -28,16 +28,28 @@ class ManualIncome(commands.Cog):
         return has_any_role(member, ORDER_MANAGEMENT_ROLES)
 
     async def user_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-        if not current:
+        if not current or interaction.guild is None:
             return []
 
-        docs = await self.users.users.find({}, {"user_id": 1}).to_list(100)
+        docs = await self.users.users.find({"user_id": {"$regex": current}}, {"user_id": 1}).to_list(50)
 
         results = []
         for d in docs:
             uid = d.get("user_id")
-            if uid and current in uid:
-                results.append(app_commands.Choice(name=uid, value=uid))
+            if not uid:
+                continue
+
+            try:
+                member = interaction.guild.get_member(int(uid))
+            except (ValueError, TypeError):
+                member = None
+
+            if member:
+                label = f"{member.display_name} (@{member.name}) [{uid}]"
+            else:
+                label = f"Unknown User [{uid}]"
+
+            results.append(app_commands.Choice(name=label[:100], value=uid))
 
         return results[:25]
 
