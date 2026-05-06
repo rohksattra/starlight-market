@@ -277,7 +277,7 @@ DEFAULT_ITEMS = {
         {"item_name": "Dragon Scales", "item_price": 15000, "item_image": "Dragon_Scale_m.png", "item_emoji": "<:Dragon_Scale_m:1492791978293858355>"},
         {"item_name": "Dragon Horns", "item_price": 2000000, "item_image": "Dragon_Horn_m.png", "item_emoji": "<:Dragon_Horn_m:1492791976112689253>"},
         {"item_name": "Dragon Eye", "item_price": 10000000, "item_image": "Dragon_Eye_m.png", "item_emoji": "<:Dragon_Eye_m:1492791974040703057>"},
-        {"item_name": "Dragon Claws", "item_price": 25000000, "item_image": "Dragon_Claw_m.png", "item_emoji": "<:Dragon_Claw_m:1492791972031889418>"},
+        {"item_name": "Dragon Claw", "item_price": 25000000, "item_image": "Dragon_Claw_m.png", "item_emoji": "<:Dragon_Claw_m:1492791972031889418>"},
         {"item_name": "Ancient Handle", "item_price": 4000000, "item_image": "Ancient_Handle_m.png", "item_emoji": "<:Ancient_Handle_m:1492791966323179622>"},
         {"item_name": "Mummy Bandage", "item_price": 2000000, "item_image": "Mummy_Bandage_m.png", "item_emoji": "<:Mummy_Bandage_m:1492791999601053726>"},
         {"item_name": "Soul Jar", "item_price": 2000000, "item_image": "Soul_Jar_m.png", "item_emoji": "<:Soul_Jar_m:1492792013823672320>"},
