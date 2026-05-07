@@ -274,7 +274,7 @@ DEFAULT_ITEMS = {
         {"item_name": "Golemite Orb", "item_price": 2500000, "item_image": "Golemite_Orb_m.png", "item_emoji": "<:Golemite_Orb_m:1492791988410519582>"},
         {"item_name": "Golemite Shard", "item_price": 3500000, "item_image": "Golemite_Shard_m.png", "item_emoji": "<:Golemite_Shard_m:1492791989794508941>"},
         {"item_name": "Golemite Slab", "item_price": 3500000, "item_image": "Golemite_Slab_m.png", "item_emoji": "<:Golemite_Slab_m:1492791991573020764>"},
-        {"item_name": "Dragon Scales", "item_price": 15000, "item_image": "Dragon_Scale_m.png", "item_emoji": "<:Dragon_Scale_m:1492791978293858355>"},
+        {"item_name": "Dragon Scale", "item_price": 15000, "item_image": "Dragon_Scale_m.png", "item_emoji": "<:Dragon_Scale_m:1492791978293858355>"},
         {"item_name": "Dragon Horn", "item_price": 2000000, "item_image": "Dragon_Horn_m.png", "item_emoji": "<:Dragon_Horn_m:1492791976112689253>"},
         {"item_name": "Dragon Eye", "item_price": 10000000, "item_image": "Dragon_Eye_m.png", "item_emoji": "<:Dragon_Eye_m:1492791974040703057>"},
         {"item_name": "Dragon Claw", "item_price": 25000000, "item_image": "Dragon_Claw_m.png", "item_emoji": "<:Dragon_Claw_m:1492791972031889418>"},
