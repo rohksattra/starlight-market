@@ -343,6 +343,7 @@ DEFAULT_ITEMS = {
         {"item_name": "Candy", "item_price": 250000, "item_image": "Candy_m.png", "item_emoji": "<:Candy_m:1492794113240600646>"},
         {"item_name": "Lollipop", "item_price": 1200000, "item_image": "Lollipop_m.png", "item_emoji": "<:Lollipop_m:1492794115992326234>"},
         {"item_name": "Remote Bank Chest", "item_price": 500000, "item_image": "Remote_Bank_Chest_m.png", "item_emoji": "<:Remote_Bank_Chest_m:1492794118181490689>"},
+        {"item_name": "Skilling Pass", "item_price": 225000, "item_image": "Skilling_Pass_m.png", "item_emoji": "<:Skilling_Pass_m:1501869596918157402>"},
     ],
     # Add more here... {"item_name": "abc", "item_price": 123, "item_image": "", "item_emoji": ""},
 }
