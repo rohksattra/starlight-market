@@ -10,6 +10,7 @@ from core.role_map import has_any_role
 from app.domains.enums.role_enum import ORDER_MANAGEMENT_ROLES
 from app.uis.role_claim_embed import role_claim_embed
 from app.uis.role_claim_view import RoleClaimView
+from utils.command_prefix_feedback import success
 
 log = logging.getLogger("cogs.role_claim")
 
@@ -35,10 +36,7 @@ class RoleClaim(commands.Cog):
         except discord.Forbidden:
             await ctx.send("❌ Cannot send messages to the role claim channel.", delete_after=8)
             return
-        try:
-            await ctx.message.add_reaction("✅")
-        except discord.HTTPException:
-            pass
+        await success(ctx)
 
 
 async def setup(bot: commands.Bot) -> None:

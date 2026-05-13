@@ -12,38 +12,11 @@ from core.role_map import has_any_role
 from app.domains.enums.role_enum import ORDER_MANAGEMENT_ROLES
 from app.repositories.user_repo import UserRepository
 from app.services.tier_role_service import TierRoleService, donor_role_for_total
+from app.uis.donation_embed import donation_embed
 from utils.interaction_safe import safe_defer, safe_respond
 from utils.cooldown import check_cooldown
 
 log = logging.getLogger("cogs.donation")
-
-
-def _donation_embed(
-    *,
-    donor: discord.Member | None,
-    donor_id: str,
-    gold: int,
-    description: str,
-    donor_role: discord.Role | None,
-) -> discord.Embed:
-    donor_line = donor.mention if donor else f"<@{donor_id}>"
-    if donor_role:
-        role_info = f"{donor_role.mention} ({donor_role.name})"
-    else:
-        role_info = "No donor tier yet (cumulative gold < 1,000,000)."
-
-    embed = discord.Embed(
-        title="New Donation",
-        description=(
-            "Thank you for your donation.\n"
-            f"**Role (current donor tier):** {role_info}"
-        ),
-        color=discord.Color.gold(),
-    )
-    embed.add_field(name="Donor", value=donor_line, inline=False)
-    embed.add_field(name="Gold", value=f"🪙 **{gold:,}**", inline=False)
-    embed.add_field(name="Detail", value=description[:1024] or "—", inline=False)
-    return embed
 
 
 class DonationCog(commands.Cog):
@@ -131,29 +104,23 @@ class DonationCog(commands.Cog):
             return
 
         await self.users.ensure_user(user)
-        prev = await self.users.get_user(user)
-        prev_donation = int(prev.get("donation_given", 0) or 0) if prev else 0
-
         await self.users.inc_donation_given(user_id=user, amount=gold)
-        new_total = prev_donation + gold
 
         donor_member = interaction.guild.get_member(int(user)) if user.isdigit() else None
         if donor_member:
             await self.tiers.sync_member(donor_member)
 
-        donor_role_id = donor_role_for_total(new_total)
-        donor_discord_role = (
-            interaction.guild.get_role(donor_role_id) if donor_role_id else None
-        )
+        doc = await self.users.get_user(user)
+        donation_total = int(doc.get("donation_given", 0) or 0) if doc else 0
+        donor_tier_role_id = donor_role_for_total(donation_total)
 
         ch = interaction.guild.get_channel(settings.MARKET_DONATION_CHANNEL_ID)
         if isinstance(ch, discord.TextChannel):
-            embed = _donation_embed(
-                donor=donor_member,
+            embed = donation_embed(
                 donor_id=user,
                 gold=gold,
                 description=description,
-                donor_role=donor_discord_role,
+                donor_tier_role_id=donor_tier_role_id,
             )
             try:
                 await ch.send(embed=embed)
