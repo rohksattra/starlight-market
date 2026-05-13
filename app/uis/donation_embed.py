@@ -7,9 +7,16 @@ def fmt(value: int) -> str:
     return f"{value:,}"
 
 
-def donation_embed(*, donor: discord.Member, gold: int, description: str) -> discord.Embed:
+def donation_embed(
+    *,
+    user_id: str,
+    gold: int,
+    description: str,
+    donor_tier_role_id: int | None = None,
+) -> discord.Embed:
+    """Public donation announcement (channel embed)."""
     raw = (description or "").strip()
-    detail_line = raw.replace("\n", " ")[:900] if raw else "—"
+    detail_line = discord.utils.escape_markdown(raw.replace("\n", " ")[:900]) if raw else "—"
 
     tier_block = ""
     if donor_tier_role_id is not None:
@@ -20,7 +27,7 @@ def donation_embed(*, donor: discord.Member, gold: int, description: str) -> dis
 
     body = (
         f"**Donor**\n"
-        f"- ***<@{donor_id}>***\n"
+        f"- ***<@{user_id}>***\n"
         f"**Gold**\n"
         f"- 🪙 ***{fmt(gold)}***\n"
         f"{tier_block}"

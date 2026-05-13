@@ -117,7 +117,7 @@ class DonationCog(commands.Cog):
         ch = interaction.guild.get_channel(settings.MARKET_DONATION_CHANNEL_ID)
         if isinstance(ch, discord.TextChannel):
             embed = donation_embed(
-                donor_id=user,
+                user_id=user,
                 gold=gold,
                 description=description,
                 donor_tier_role_id=donor_tier_role_id,
