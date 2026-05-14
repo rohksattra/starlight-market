@@ -5,6 +5,7 @@ from typing import List
 
 import discord
 
+from core.config import settings
 from app.domains.giveaway_domain import Giveaway, giveaway_effective_status
 
 
@@ -94,6 +95,13 @@ def giveaway_winners_embed(
         if isinstance(last_rerolled_at, datetime):
             reroll_line += f"\nAt {discord.utils.format_dt(last_rerolled_at, style='F')}."
         embed.add_field(name="Reroll Info", value=reroll_line, inline=False)
+
+    bank_manager_mention = f"<@&{settings.BANK_MANAGER_ROLE_ID}>"
+    embed.add_field(
+        name="Reward",
+        value=f"\n\nPlease ping {bank_manager_mention} to collect your reward.",
+        inline=False,
+    )
 
     embed.set_footer(text="🌟 Starlight Market")
     return embed
