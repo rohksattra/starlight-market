@@ -82,5 +82,18 @@ def giveaway_winners_embed(
     )
     embed.add_field(name="Host", value=host_mention, inline=True)
     embed.add_field(name="Winners", value=winners_block, inline=False)
+
+    reroll_count = int(doc.get("reroll_count", 0) or 0)
+    last_rerolled_by = str(doc.get("last_rerolled_by", "") or "")
+    last_rerolled_at = doc.get("last_rerolled_at")
+
+    if reroll_count > 0:
+        reroll_line = f"🔄 Rerolled **{reroll_count}** time(s)."
+        if last_rerolled_by.isdigit():
+            reroll_line += f"\nLast rerolled by <@{last_rerolled_by}>."
+        if isinstance(last_rerolled_at, datetime):
+            reroll_line += f"\nAt {discord.utils.format_dt(last_rerolled_at, style='F')}."
+        embed.add_field(name="Reroll Info", value=reroll_line, inline=False)
+
     embed.set_footer(text="🌟 Starlight Market")
     return embed

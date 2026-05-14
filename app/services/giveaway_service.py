@@ -10,10 +10,14 @@ from uuid import uuid4
 import discord
 
 from core.config import settings
-from app.domains.giveaway_domain import GiveawayInsert, giveaway_effective_status
+from core.role_map import has_any_role
+from app.domains.enums.role_enum import ORDER_MANAGEMENT_ROLES
+from app.domains.giveaway_domain import Giveaway, GiveawayInsert, giveaway_effective_status
 from app.repositories.giveaway_repo import GiveawayRepository
 from app.uis.giveaway_embed import giveaway_panel_embed, giveaway_winners_embed
 from app.uis.giveaway_view import GiveawayView
+from app.uis.giveaway_winner_view import GiveawayWinnerSelectView, GiveawayWinnerView
+
 
 log = logging.getLogger("services.giveaway_service")
 
@@ -43,6 +47,15 @@ class GiveawayService:
     def _new_giveaway_id(self) -> str:
         return uuid4().hex
 
+    def _ensure_reroll_allowed(self, interaction: discord.Interaction) -> bool:
+        if interaction.guild is None or not isinstance(interaction.user, discord.Member):
+            return False
+        return has_any_role(interaction.user, ORDER_MANAGEMENT_ROLES)
+
+    def _winner_mentions(self, winner_user_ids: List[str]) -> str | None:
+        mentions = [f"<@{uid}>" for uid in winner_user_ids]
+        return " ".join(mentions) if mentions else None
+
     async def register_persistent_views(self, bot: discord.Client) -> int:
         rows = await self.repo.find_open_or_ended()
         n = 0
@@ -50,12 +63,19 @@ class GiveawayService:
             gid = row.get("giveaway_id")
             if not gid:
                 continue
+
             doc = await self.repo.get_by_id(str(gid))
             if not doc:
                 continue
+
             join_off = giveaway_effective_status(doc) != "open"
             bot.add_view(GiveawayView(str(gid), join_disabled=join_off))
             n += 1
+
+            if giveaway_effective_status(doc) == "completed" and doc.get("announcement_message_id"):
+                bot.add_view(GiveawayWinnerView(str(gid)))
+                n += 1
+
         log.info("Registered %s persistent giveaway view(s)", n)
         return n
 
@@ -232,6 +252,7 @@ class GiveawayService:
         if mid2 is None:
             await interaction.followup.send("❌ Could not load the giveaway message.", ephemeral=True)
             return
+
         msg = await self._safe_fetch_message(ch, int(mid2))
         if msg is None:
             await interaction.followup.send("❌ Could not load the giveaway message.", ephemeral=True)
@@ -245,6 +266,184 @@ class GiveawayService:
             log.warning("Giveaway refresh edit failed | id=%s", giveaway_id)
 
         await interaction.followup.send("✅ Giveaway panel updated.", ephemeral=True)
+
+    async def handle_reroll_all(self, interaction: discord.Interaction, giveaway_id: str) -> None:
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
+        if not self._ensure_reroll_allowed(interaction):
+            await interaction.followup.send("❌ Only Bot Developer / Bank Manager can reroll.", ephemeral=True)
+            return
+
+        async with _finalize_lock(giveaway_id):
+            doc = await self.repo.get_by_id(giveaway_id)
+            if not doc:
+                await interaction.followup.send("❌ Giveaway not found.", ephemeral=True)
+                return
+
+            if giveaway_effective_status(doc) != "completed":
+                await interaction.followup.send("❌ Only completed giveaways can be rerolled.", ephemeral=True)
+                return
+
+            pids: List[str] = list(doc.get("participant_user_ids") or [])
+            if not pids:
+                await interaction.followup.send("❌ No participants available for reroll.", ephemeral=True)
+                return
+
+            k = min(int(doc.get("winner_count", 1)), len(pids))
+            winners = random.sample(pids, k=k)
+
+            ok = await self.repo.update_winners(
+                giveaway_id=giveaway_id,
+                winner_user_ids=winners,
+                moderator_id=str(interaction.user.id),
+                now=datetime.utcnow(),
+            )
+            if not ok:
+                await interaction.followup.send("❌ Failed to update winners.", ephemeral=True)
+                return
+
+            await self._edit_winner_announcement(
+                bot=interaction.client,
+                giveaway_id=giveaway_id,
+                guild=interaction.guild,
+                winner_user_ids=winners,
+            )
+
+        await interaction.followup.send("✅ All winners rerolled.", ephemeral=True)
+
+    async def handle_reroll_partial_prompt(self, interaction: discord.Interaction, giveaway_id: str) -> None:
+        if not self._ensure_reroll_allowed(interaction):
+            await interaction.response.send_message("❌ Only Bot Developer / Bank Manager can reroll.", ephemeral=True)
+            return
+
+        doc = await self.repo.get_by_id(giveaway_id)
+        if not doc:
+            await interaction.response.send_message("❌ Giveaway not found.", ephemeral=True)
+            return
+
+        if giveaway_effective_status(doc) != "completed":
+            await interaction.response.send_message("❌ Only completed giveaways can be rerolled.", ephemeral=True)
+            return
+
+        winners: List[str] = list(doc.get("winner_user_ids") or [])
+        if not winners:
+            await interaction.response.send_message("❌ No winners available to reroll.", ephemeral=True)
+            return
+
+        view = GiveawayWinnerSelectView(giveaway_id, winners[:25], interaction.guild)
+        await interaction.response.send_message(
+            "Choose winner(s) you want to reroll.",
+            view=view,
+            ephemeral=True,
+        )
+
+    async def handle_reroll_partial_selected(
+        self,
+        interaction: discord.Interaction,
+        giveaway_id: str,
+        selected_winner_ids: List[str],
+    ) -> None:
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
+        if not self._ensure_reroll_allowed(interaction):
+            await interaction.followup.send("❌ Only Bot Developer / Bank Manager can reroll.", ephemeral=True)
+            return
+
+        async with _finalize_lock(giveaway_id):
+            doc = await self.repo.get_by_id(giveaway_id)
+            if not doc:
+                await interaction.followup.send("❌ Giveaway not found.", ephemeral=True)
+                return
+
+            if giveaway_effective_status(doc) != "completed":
+                await interaction.followup.send("❌ Only completed giveaways can be rerolled.", ephemeral=True)
+                return
+
+            participants: List[str] = list(doc.get("participant_user_ids") or [])
+            current_winners: List[str] = list(doc.get("winner_user_ids") or [])
+
+            selected = [uid for uid in selected_winner_ids if uid in current_winners]
+            if not selected:
+                await interaction.followup.send("❌ Selected winner is no longer valid.", ephemeral=True)
+                return
+
+            eligible = [
+                uid for uid in participants
+                if uid not in current_winners
+            ]
+
+            if len(eligible) < len(selected):
+                await interaction.followup.send(
+                    "❌ Not enough eligible participants to replace selected winner(s).",
+                    ephemeral=True,
+                )
+                return
+
+            replacements = random.sample(eligible, k=len(selected))
+            replacement_map = dict(zip(selected, replacements))
+
+            new_winners = [
+                replacement_map.get(uid, uid)
+                for uid in current_winners
+            ]
+
+            ok = await self.repo.update_winners(
+                giveaway_id=giveaway_id,
+                winner_user_ids=new_winners,
+                moderator_id=str(interaction.user.id),
+                now=datetime.utcnow(),
+            )
+            if not ok:
+                await interaction.followup.send("❌ Failed to update winners.", ephemeral=True)
+                return
+
+            await self._edit_winner_announcement(
+                bot=interaction.client,
+                giveaway_id=giveaway_id,
+                guild=interaction.guild,
+                winner_user_ids=new_winners,
+            )
+
+        await interaction.followup.send("✅ Selected winner(s) rerolled.", ephemeral=True)
+
+    async def _edit_winner_announcement(
+        self,
+        *,
+        bot: discord.Client,
+        giveaway_id: str,
+        guild: discord.Guild | None,
+        winner_user_ids: List[str],
+    ) -> None:
+        doc = await self.repo.get_by_id(giveaway_id)
+        if not doc:
+            return
+
+        ch_id = doc.get("announcement_channel_id") or doc.get("channel_id")
+        msg_id = doc.get("announcement_message_id")
+        if not ch_id or not msg_id:
+            return
+
+        ch = bot.get_channel(int(ch_id))
+        if not isinstance(ch, discord.TextChannel):
+            return
+
+        msg = await self._safe_fetch_message(ch, int(msg_id))
+        if msg is None:
+            return
+
+        try:
+            await msg.edit(
+                content=self._winner_mentions(winner_user_ids),
+                embed=giveaway_winners_embed(
+                    doc=doc,
+                    guild=guild,
+                    winner_user_ids=winner_user_ids,
+                ),
+                view=GiveawayWinnerView(giveaway_id),
+                allowed_mentions=discord.AllowedMentions(users=True),
+            )
+        except discord.HTTPException:
+            log.warning("Giveaway winner announcement edit failed | id=%s", giveaway_id)
 
     async def _safe_fetch_message(self, channel: discord.TextChannel, message_id: int) -> discord.Message | None:
         try:
@@ -296,10 +495,11 @@ class GiveawayService:
             msg = None
         else:
             msg = await self._safe_fetch_message(channel, int(mid))
+
         view = GiveawayView(giveaway_id, join_disabled=True)
         if msg:
             try:
-                completed_doc = {**doc, "status": "completed"}
+                completed_doc: Giveaway = {**doc, "status": "completed"}
                 await msg.edit(embed=giveaway_panel_embed(doc=completed_doc, guild=guild), view=view)
             except discord.HTTPException:
                 log.warning("Giveaway finalize: main message edit failed | id=%s", giveaway_id)
@@ -307,11 +507,10 @@ class GiveawayService:
         win_embed = giveaway_winners_embed(doc=doc, guild=guild, winner_user_ids=winners)
         announce: discord.Message | None = None
         try:
-            mentions = [f"<@{uid}>" for uid in winners]
-            content = " ".join(mentions) if mentions else None
             announce = await channel.send(
-                content=content,
+                content=self._winner_mentions(winners),
                 embed=win_embed,
+                view=GiveawayWinnerView(giveaway_id),
                 allowed_mentions=discord.AllowedMentions(users=True),
             )
         except discord.HTTPException:
@@ -332,3 +531,6 @@ class GiveawayService:
                     await announce.delete()
                 except discord.HTTPException:
                     pass
+            return
+
+        bot.add_view(GiveawayWinnerView(giveaway_id))

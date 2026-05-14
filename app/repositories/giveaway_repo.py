@@ -65,8 +65,36 @@ class GiveawayRepository:
                     "winner_user_ids": winner_user_ids,
                     "announcement_channel_id": announcement_channel_id,
                     "announcement_message_id": announcement_message_id,
+                    "reroll_count": 0,
                     "updated_at": datetime.utcnow(),
                 }
+            },
+        )
+        return res.modified_count > 0
+
+    async def update_winners(
+        self,
+        *,
+        giveaway_id: str,
+        winner_user_ids: List[str],
+        moderator_id: str,
+        now: datetime,
+    ) -> bool:
+        res = await self.col.update_one(
+            {
+                "giveaway_id": giveaway_id,
+                "status": "completed",
+            },
+            {
+                "$set": {
+                    "winner_user_ids": winner_user_ids,
+                    "last_rerolled_by": moderator_id,
+                    "last_rerolled_at": now,
+                    "updated_at": now,
+                },
+                "$inc": {
+                    "reroll_count": 1,
+                },
             },
         )
         return res.modified_count > 0

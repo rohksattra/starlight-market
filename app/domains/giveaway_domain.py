@@ -25,6 +25,9 @@ class Giveaway(GiveawayInsert, total=False):
     updated_at: datetime
     announcement_channel_id: int
     announcement_message_id: int | None
+    reroll_count: int
+    last_rerolled_by: str
+    last_rerolled_at: datetime
 
 
 class GiveawayIdProjection(TypedDict):
