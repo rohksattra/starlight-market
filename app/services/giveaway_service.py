@@ -178,6 +178,10 @@ class GiveawayService:
         if not doc:
             await interaction.response.send_message("❌ Giveaway not found.", ephemeral=True)
             return
+        host_id = str(doc.get("host_user_id", ""))
+        if host_id == str(interaction.user.id):
+            await interaction.response.send_message("❌ You cannot join your own giveaway.", ephemeral=True)
+            return
         if giveaway_effective_status(doc) != "open":
             await interaction.response.send_message("❌ This giveaway is no longer accepting entries.", ephemeral=True)
             return
