@@ -19,7 +19,7 @@ def giveaway_panel_embed(*, doc: Giveaway, guild: discord.Guild | None) -> disco
     pids: List[str] = list(doc.get("participant_user_ids") or [])
     participant_count = len(pids)
 
-    host_mention = f"<@{host_id}>" if host_id.isdigit() else "—"
+    host_mention = f"- <@{host_id}>" if host_id.isdigit() else "—"
     if guild and host_id.isdigit():
         m = guild.get_member(int(host_id))
         if m:
@@ -37,7 +37,7 @@ def giveaway_panel_embed(*, doc: Giveaway, guild: discord.Guild | None) -> disco
     embed = discord.Embed(
         title="🎁 Giveaway",
         description=prize or "—",
-        color=0xE91E63,
+        color=0xFFD700,
     )
     embed.add_field(name="Host", value=host_mention, inline=True)
     embed.add_field(name="Winners", value=f"**{winner_count}**", inline=True)
@@ -56,7 +56,7 @@ def giveaway_winners_embed(
 ) -> discord.Embed:
     prize = str(doc.get("prize_description", ""))[:4096]
     host_id = str(doc.get("host_user_id", ""))
-    host_mention = f"<@{host_id}>" if host_id.isdigit() else "—"
+    host_mention = f"- <@{host_id}>" if host_id.isdigit() else "—"
     if guild and host_id.isdigit():
         m = guild.get_member(int(host_id))
         if m:
