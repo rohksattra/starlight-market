@@ -7,9 +7,26 @@ class CountingService:
     def generate(self) -> tuple[str, int]:
         a = random.randint(1, 100)
         b = random.randint(1, 100)
-        op = random.choice(["+", "-", "*", "/"])
+
+        op = random.choice(
+            ["+", "-", "*", "/"]
+        )
+
         if op == "/":
-            a = a * b
+            a *= b
+
         question = f"{a} {op} {b}"
-        answer = int(eval(question))
+
+        if op == "+":
+            answer = a + b
+
+        elif op == "-":
+            answer = a - b
+
+        elif op == "*":
+            answer = a * b
+
+        else:
+            answer = a // b
+
         return question, answer

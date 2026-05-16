@@ -11,82 +11,42 @@ from app.domains.enums.role_enum import ORDER_MANAGEMENT_ROLES
 
 from app.services.manual_income_service import ManualIncomeService
 from app.services.tier_role_service import schedule_member_tier_sync
-from app.repositories.user_repo import UserRepository
 from app.repositories.item_repo import ItemRepository
 
 from utils.interaction_safe import safe_defer, safe_respond
 from utils.cooldown import check_cooldown
+from utils.autocomplete import user_autocomplete
 
 
 class ManualIncome(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.service = ManualIncomeService()
-        self.users = UserRepository()
         self.items = ItemRepository()
 
     def _is_allowed(self, member: discord.Member) -> bool:
         return has_any_role(member, ORDER_MANAGEMENT_ROLES)
 
-    async def user_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-        if interaction.guild is None:
-            return []
-
-        current_lower = current.lower()
-
-        results = []
-        seen_ids = set()
-
-        for member in interaction.guild.members:
-            display = member.display_name.lower()
-            username = member.name.lower()
-
-            if current_lower in display or current_lower in username:
-                uid = str(member.id)
-
-                label = f"{member.display_name} (@{member.name}) [{uid}]"
-
-                results.append(app_commands.Choice(name=label[:100], value=uid))
-
-                seen_ids.add(uid)
-
-            if len(results) >= 20:
-                break
-
-        docs = await self.users.users.find({"user_id": {"$regex": current}}, {"user_id": 1}).to_list(20)
-
-        for d in docs:
-            uid = d.get("user_id")
-            if not uid or uid in seen_ids:
-                continue
-
-            try:
-                member = interaction.guild.get_member(int(uid))
-            except (ValueError, TypeError):
-                member = None
-
-            if member:
-                label = f"{member.display_name} (@{member.name}) [{uid}]"
-            else:
-                label = f"Unknown [{uid}]"
-
-            results.append(app_commands.Choice(name=label[:100], value=uid))
-
-            if len(results) >= 25:
-                break
-
-        return results[:25]
-
     async def item_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
         items = await self.items.get_all()
 
         results = []
+
         for i in items:
             name = i.get("item_name", "")
-            if current.lower() in name.lower():
-                results.append(app_commands.Choice(name=name, value=i["item_id"]))
 
-        return results[:25]
+            if current.lower() in name.lower():
+                results.append(
+                    app_commands.Choice(
+                        name=name[:100],
+                        value=i["item_id"],
+                    )
+                )
+
+            if len(results) >= 25:
+                break
+
+        return results
 
     @app_commands.command(name="paid", description="(Bot Manager) Add manual worker income")
     @app_commands.autocomplete(user=user_autocomplete, item=item_autocomplete)
@@ -108,13 +68,16 @@ class ManualIncome(commands.Cog):
             return
 
         try:
-            result = await self.service.paid_worker(user_id=user, item_id=item, quantity=quantity)
+            result = await self.service.paid_worker(
+                user_id=user,
+                item_id=item,
+                quantity=quantity,
+            )
         except ValueError as exc:
             await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
             return
 
-        if interaction.guild:
-            schedule_member_tier_sync(interaction.guild, user)
+        schedule_member_tier_sync(interaction.guild, user)
 
         await safe_respond(
             interaction,
@@ -148,13 +111,16 @@ class ManualIncome(commands.Cog):
             return
 
         try:
-            result = await self.service.spent_customer(user_id=user, item_id=item, quantity=quantity)
+            result = await self.service.spent_customer(
+                user_id=user,
+                item_id=item,
+                quantity=quantity,
+            )
         except ValueError as exc:
             await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
             return
 
-        if interaction.guild:
-            schedule_member_tier_sync(interaction.guild, user)
+        schedule_member_tier_sync(interaction.guild, user)
 
         await safe_respond(
             interaction,

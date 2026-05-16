@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import List
+
 from db.mongo import get_db
 from app.domains.order_domain import Order
 from app.domains.enums.order_status_enum import OrderStatus
@@ -16,7 +17,10 @@ class ClaimableRepository:
                 {
                     "order_claims.order_claimable": {"$gt": 0},
                     "order_status": {
-                        "$in": [OrderStatus.NEW, OrderStatus.CLAIMED],
+                        "$in": [
+                            OrderStatus.NEW,
+                            OrderStatus.CLAIMED,
+                        ],
                     },
                 },
                 {"_id": 0},

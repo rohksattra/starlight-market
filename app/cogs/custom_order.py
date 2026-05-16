@@ -13,32 +13,13 @@ from app.uis.order_embed import order_embed
 from app.uis.order_claim_view import OrderClaimView
 from utils.interaction_safe import safe_defer, safe_respond
 from utils.cooldown import check_cooldown
+from utils.autocomplete import user_autocomplete
 
 
 class CustomOrder(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.order_serv = OrderService()
-
-    async def _autocomplete_member(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-        if interaction.guild is None:
-            return []
-
-        current_lower = current.lower()
-        choices: list[app_commands.Choice[str]] = []
-
-        for member in interaction.guild.members:
-            if member.bot:
-                continue
-
-            name = f"{member.display_name} ({member.name})"
-            if current_lower in name.lower():
-                choices.append(app_commands.Choice(name=name[:100], value=str(member.id)))
-
-            if len(choices) >= 20:
-                break
-
-        return choices
 
     @app_commands.command(name="custom-order", description="(Staff) Create a custom/manual order for a member")
     @app_commands.describe(
@@ -47,7 +28,7 @@ class CustomOrder(commands.Cog):
         item_price="Price per item",
         quantity="Item quantity",
     )
-    @app_commands.autocomplete(customer=_autocomplete_member)
+    @app_commands.autocomplete(customer=user_autocomplete)
     async def custom_order(
         self,
         interaction: discord.Interaction,
@@ -73,7 +54,7 @@ class CustomOrder(commands.Cog):
             await safe_respond(interaction, content="❌ Staff only.", ephemeral=True)
             return
 
-        member = interaction.guild.get_member(int(customer))
+        member = interaction.guild.get_member(int(customer)) if customer.isdigit() else None
         if member is None:
             await safe_respond(interaction, content="❌ Member not found.", ephemeral=True)
             return
