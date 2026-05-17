@@ -12,6 +12,7 @@ from app.domains.enums.role_enum import ORDER_MANAGEMENT_ROLES
 from app.services.cleanupdata_service import CleanupdataService
 from app.services.server_service import ServerService
 from app.services.tier_role_service import TierRoleService
+from utils.autocomplete import user_autocomplete
 from utils.cooldown import check_cooldown
 from utils.interaction_safe import safe_defer, safe_respond
 
@@ -212,18 +213,28 @@ class ServerManagement(commands.Cog):
 
     @app_commands.command(
         name="update-member-role",
-        description="(Staff) Resync donor, worker, and customer tier roles for all members from database",
+        description="(Staff) Resync donor, worker, and customer tier roles for selected member",
+    )
+    @app_commands.describe(
+        user_id="Select member from database",
+    )
+    @app_commands.autocomplete(
+        user_id=user_autocomplete,
     )
     async def update_member_role(
         self,
         interaction: discord.Interaction,
+        user_id: str,
     ) -> None:
         await safe_defer(
             interaction,
             ephemeral=True,
         )
 
-        if interaction.guild is None or not isinstance(interaction.user, discord.Member):
+        if interaction.guild is None or not isinstance(
+            interaction.user,
+            discord.Member,
+        ):
             await safe_respond(
                 interaction,
                 content="❌ Guild only command.",
@@ -231,7 +242,10 @@ class ServerManagement(commands.Cog):
             )
             return
 
-        if not has_any_role(interaction.user, ORDER_MANAGEMENT_ROLES):
+        if not has_any_role(
+            interaction.user,
+            ORDER_MANAGEMENT_ROLES,
+        ):
             await safe_respond(
                 interaction,
                 content="❌ Only Bot Developer / Bank Manager.",
@@ -243,7 +257,7 @@ class ServerManagement(commands.Cog):
             check_cooldown(
                 user_id=interaction.user.id,
                 key="update_member_role",
-                seconds=10,
+                seconds=5,
             )
         except ValueError as exc:
             await safe_respond(
@@ -253,21 +267,50 @@ class ServerManagement(commands.Cog):
             )
             return
 
-        try:
-            stats = await self.tier_roles.bulk_sync_guild(
-                interaction.guild,
-            )
-
-        except discord.HTTPException:
+        if not user_id.isdigit():
             await safe_respond(
                 interaction,
-                content="❌ Failed while loading members. Try again in a moment.",
+                content="❌ Invalid user ID.",
                 ephemeral=True,
             )
             return
 
+        try:
+            member = interaction.guild.get_member(
+                int(user_id),
+            )
+
+            if member is None:
+                member = await interaction.guild.fetch_member(
+                    int(user_id),
+                )
+
+        except discord.NotFound:
+            await safe_respond(
+                interaction,
+                content="❌ Member not found in this server.",
+                ephemeral=True,
+            )
+            return
+
+        except discord.HTTPException:
+            await safe_respond(
+                interaction,
+                content="❌ Failed to fetch member. Try again in a moment.",
+                ephemeral=True,
+            )
+            return
+
+        try:
+            await self.tier_roles.sync_member(
+                member,
+            )
+
         except Exception:
-            log.exception("update-member-role bulk sync failed")
+            log.exception(
+                "update-member-role failed | user=%s",
+                user_id,
+            )
 
             await safe_respond(
                 interaction,
@@ -276,23 +319,9 @@ class ServerManagement(commands.Cog):
             )
             return
 
-        err = int(stats.get("errors", 0))
-        n = int(stats.get("members", 0))
-
-        msg = (
-            f"✅ Tier role resync finished.\n"
-            f"Members processed: **{n:,}**"
-        )
-
-        if err:
-            msg += (
-                f"\n⚠️ **{err}** member(s) hit errors "
-                "(missing permissions or API issues — see logs)."
-            )
-
         await safe_respond(
             interaction,
-            content=msg,
+            content=f"✅ Tier role synced for {member.mention}.",
             ephemeral=True,
         )
 

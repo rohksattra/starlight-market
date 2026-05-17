@@ -10,13 +10,13 @@ from app.repositories.user_repo import UserRepository
 log = logging.getLogger("services.tier_role_service")
 
 DONOR_TIER_THRESHOLDS: tuple[tuple[int, int], ...] = (
-    (200_000_000, settings.ASTRALIS_DONOR_ROLE_ID),
-    (125_000_000, settings.ELYSIUM_DONOR_ROLE_ID),
-    (75_000_000, settings.ZENITH_DONOR_ROLE_ID),
-    (40_000_000, settings.AETHER_DONOR_ROLE_ID),
-    (15_000_000, settings.SANCTUM_DONOR_ROLE_ID),
-    (5_000_000, settings.ORACLE_DONOR_ROLE_ID),
-    (1_000_000, settings.RELIC_DONOR_ROLE_ID),
+    (1_000_000_000, settings.ASTRALIS_DONOR_ROLE_ID),
+    (500_000_000, settings.ELYSIUM_DONOR_ROLE_ID),
+    (250_000_000, settings.ZENITH_DONOR_ROLE_ID),
+    (100_000_000, settings.AETHER_DONOR_ROLE_ID),
+    (50_000_000, settings.SANCTUM_DONOR_ROLE_ID),
+    (20_000_000, settings.ORACLE_DONOR_ROLE_ID),
+    (5_000_000, settings.RELIC_DONOR_ROLE_ID),
 )
 
 WORKER_TIER_THRESHOLDS: tuple[tuple[int, int], ...] = (
