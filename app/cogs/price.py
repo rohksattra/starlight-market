@@ -5,6 +5,7 @@ from typing import List
 import discord
 from discord.ext import commands
 
+from core.config import settings
 from core.role_map import has_any_role
 from app.domains.enums.role_enum import ORDER_MANAGEMENT_ROLES
 from app.services.item_service import ItemService
@@ -53,6 +54,12 @@ class Price(commands.Cog):
             await failed(ctx)
             return
 
+        price_channel = guild.get_channel(settings.PRICE_CHANNEL_ID)
+        if not isinstance(price_channel, discord.TextChannel):
+            await ctx.send("❌ Price channel is not configured correctly.", delete_after=5)
+            await failed(ctx)
+            return
+
         for category in categories:
             items = await self.item_serv.list_item_price_by_category(category)
 
@@ -62,7 +69,7 @@ class Price(commands.Cog):
             view = PricePaginationView(category=category)
             view.set_initial_state(total_items=len(items))
 
-            await ctx.send(
+            await price_channel.send(
                 embed=price_embed(
                     category=category,
                     items=items,
