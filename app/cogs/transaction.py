@@ -23,6 +23,7 @@ from app.uis.worker_rating_button import RatingWorkerButton
 from app.uis.worker_rating_embed import worker_rating_embed
 from utils.interaction_safe import safe_defer, safe_respond
 from utils.cooldown import check_cooldown
+from utils.discord_publish import publish_news
 
 
 IncomeTarget = Literal["worker", "customer"]
@@ -218,6 +219,7 @@ class Income(commands.Cog):
 
         guild = interaction.guild
         order_channel = interaction.channel
+
         member = guild.get_member(
             int(user),
         )
@@ -261,7 +263,7 @@ class Income(commands.Cog):
             )
             and member
         ):
-            await tx_channel.send(
+            msg = await tx_channel.send(
                 embed=transaction_embed(
                     role=target,
                     member=member,
@@ -269,6 +271,10 @@ class Income(commands.Cog):
                     quantity=quantity,
                     item_emoji=item_emoji,
                 )
+            )
+
+            await publish_news(
+                msg,
             )
 
         if target == "worker" and member:

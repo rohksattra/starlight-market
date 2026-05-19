@@ -63,7 +63,7 @@ class ClaimablePaginationView(discord.ui.View):
         if cog is None:
             raise RuntimeError("Claimable cog not loaded")
 
-        cog = cast(Any, cog)  # ⬅️ FIX: no circular import
+        cog = cast(Any, cog)
 
         return await cog._fetch_claimable()
 

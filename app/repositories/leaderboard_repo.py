@@ -100,7 +100,6 @@ class LeaderboardRepository:
             {"$sort": {"avg_rating": -1, "count_worker_rating": -1}},
             {"$limit": limit},
         ]
-
         rows = []
         async for d in self.users.aggregate(pipeline):
             rows.append(
