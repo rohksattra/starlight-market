@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Literal, TypedDict, cast
 
 
-GiveawayStatus = Literal["open", "ended", "completed", "cancelled"]
+GiveawayStatus = Literal["open", "ended", "completed", "closed", "cancelled"]
 
 
 class GiveawayInsert(TypedDict):
@@ -21,13 +21,25 @@ class GiveawayInsert(TypedDict):
 class Giveaway(GiveawayInsert, total=False):
     message_id: int
     participant_user_ids: list[str]
+
+    pending_winner_user_ids: list[str]
     winner_user_ids: list[str]
+    claimed_winner_user_ids: list[str]
+
     updated_at: datetime
+
     announcement_channel_id: int
     announcement_message_id: int | None
+
     reroll_count: int
     last_rerolled_by: str
     last_rerolled_at: datetime
+
+    closed_by: str
+    closed_at: datetime
+
+    cancelled_by: str
+    cancelled_at: datetime
 
 
 class GiveawayIdProjection(TypedDict):
@@ -41,6 +53,6 @@ class GiveawayScheduleProjection(TypedDict):
 
 def giveaway_effective_status(doc: Giveaway) -> GiveawayStatus:
     raw = doc.get("status", "open")
-    if raw in ("open", "ended", "completed", "cancelled"):
+    if raw in ("open", "ended", "completed", "closed", "cancelled"):
         return cast(GiveawayStatus, raw)
     return "open"

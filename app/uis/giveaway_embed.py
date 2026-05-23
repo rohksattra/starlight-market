@@ -16,6 +16,7 @@ def giveaway_panel_embed(*, doc: Giveaway, guild: discord.Guild | None) -> disco
     ends_at = doc.get("ends_at")
     if not isinstance(ends_at, datetime):
         ends_at = datetime.utcnow()
+
     status = giveaway_effective_status(doc)
     pids: List[str] = list(doc.get("participant_user_ids") or [])
     participant_count = len(pids)
@@ -30,10 +31,14 @@ def giveaway_panel_embed(*, doc: Giveaway, guild: discord.Guild | None) -> disco
         status_line = "🟢 **Open** — use **Join** to enter."
     elif status == "ended":
         status_line = "🔒 **Closed** — drawing winners…"
+    elif status == "completed":
+        status_line = "✅ **Completed** — winners announced below."
+    elif status == "closed":
+        status_line = "🔒 **Closed** — all rewards collected."
     elif status == "cancelled":
         status_line = "⛔ **Cancelled**."
     else:
-        status_line = "✅ **Completed** — winners announced below."
+        status_line = "—"
 
     embed = discord.Embed(
         title="🎁 Giveaway",
@@ -57,11 +62,14 @@ def giveaway_winners_embed(
 ) -> discord.Embed:
     prize = str(doc.get("prize_description", ""))[:4096]
     host_id = str(doc.get("host_user_id", ""))
+
     host_mention = f"- <@{host_id}>" if host_id.isdigit() else "—"
     if guild and host_id.isdigit():
         m = guild.get_member(int(host_id))
         if m:
             host_mention = m.mention
+
+    claimed_ids = set(str(uid) for uid in doc.get("claimed_winner_user_ids") or [])
 
     if winner_user_ids:
         lines = []
@@ -71,7 +79,10 @@ def giveaway_winners_embed(
                 mem = guild.get_member(int(uid))
                 if mem:
                     mention = mem.mention
-            lines.append(f"**{i}.** {mention}")
+
+            claimed_mark = " ✅" if str(uid) in claimed_ids else ""
+            lines.append(f"**{i}.** {mention}{claimed_mark}")
+
         winners_block = "\n".join(lines)
     else:
         winners_block = "*No entries — no winners.*"
@@ -84,6 +95,20 @@ def giveaway_winners_embed(
     embed.add_field(name="Host", value=host_mention, inline=True)
     embed.add_field(name="Winners", value=winners_block, inline=False)
 
+    status = giveaway_effective_status(doc)
+    if status == "closed":
+        embed.add_field(
+            name="Status",
+            value="🔒 Giveaway closed. All rewards have been collected.",
+            inline=False,
+        )
+    elif status == "cancelled":
+        embed.add_field(
+            name="Status",
+            value="⛔ Giveaway cancelled.",
+            inline=False,
+        )
+
     reroll_count = int(doc.get("reroll_count", 0) or 0)
     last_rerolled_by = str(doc.get("last_rerolled_by", "") or "")
     last_rerolled_at = doc.get("last_rerolled_at")
@@ -94,14 +119,16 @@ def giveaway_winners_embed(
             reroll_line += f"\nLast rerolled by <@{last_rerolled_by}>."
         if isinstance(last_rerolled_at, datetime):
             reroll_line += f"\nAt {discord.utils.format_dt(last_rerolled_at, style='F')}."
+
         embed.add_field(name="Reroll Info", value=reroll_line, inline=False)
 
-    bank_manager_mention = f"<@&{settings.BANK_MANAGER_ROLE_ID}>"
-    embed.add_field(
-        name="Reward",
-        value=f"\n\nPlease ping {bank_manager_mention} to collect your reward.",
-        inline=False,
-    )
+    if status not in ("closed", "cancelled"):
+        bank_manager_mention = f"<@&{settings.BANK_MANAGER_ROLE_ID}>"
+        embed.add_field(
+            name="Reward",
+            value=f"Please ping {bank_manager_mention} to collect your reward.",
+            inline=False,
+        )
 
     embed.set_footer(text="🌟 Starlight Market")
     return embed
