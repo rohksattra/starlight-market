@@ -86,7 +86,7 @@ class GiveawayView(ui.View):
             style=discord.ButtonStyle.danger,
             custom_id=giveaway_custom_cancel(giveaway_id),
             disabled=cancel_disabled,
-            row=1,
+            row=0,
         )
         cancel_btn.callback = self._on_cancel
         self.add_item(cancel_btn)
