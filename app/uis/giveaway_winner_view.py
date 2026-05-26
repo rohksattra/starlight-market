@@ -52,7 +52,7 @@ class GiveawayWinnerView(ui.View):
 
         reroll_all = ui.Button(
             label="Reroll All",
-            style=discord.ButtonStyle.danger,
+            style=discord.ButtonStyle.secondary,
             custom_id=giveaway_custom_reroll_all(giveaway_id),
             disabled=disabled,
             row=0,
@@ -71,21 +71,21 @@ class GiveawayWinnerView(ui.View):
         self.add_item(reroll_partial)
 
         claim_btn = ui.Button(
-            label="Mark Claimed",
+            label="Claimed",
             style=discord.ButtonStyle.success,
             custom_id=giveaway_custom_claim(giveaway_id),
             disabled=disabled,
-            row=1,
+            row=0,
         )
         claim_btn.callback = self._on_claim
         self.add_item(claim_btn)
 
         close_btn = ui.Button(
-            label="Close Giveaway",
-            style=discord.ButtonStyle.primary,
+            label="Close",
+            style=discord.ButtonStyle.danger,
             custom_id=giveaway_custom_close(giveaway_id),
             disabled=disabled,
-            row=1,
+            row=0,
         )
         close_btn.callback = self._on_close
         self.add_item(close_btn)
