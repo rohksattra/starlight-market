@@ -1,0 +1,1 @@
+WORKER_FEE_RATE: float = 0.99
