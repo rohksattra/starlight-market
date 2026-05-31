@@ -36,7 +36,6 @@ async def _upsert_user_from_customer(*, customer: dict) -> None:
                 "total_worker_income": Int64(0),
                 "count_worker_rating": Int64(0),
                 "total_worker_star": Int64(0),
-                "counting_score": Int64(0),
             },
             "$set": {
                 "total_customer_order": Int64(

@@ -16,7 +16,6 @@ def new_user_fields(*, user_id: str) -> dict:
         "starlight_points": Int64(0),
         "counting_score": Int64(0),
         "wordchain_score": Int64(0),
-        "trivia_score": Int64(0),
         "guess_score": Int64(0),
         "treasure_score": Int64(0),
         "boss_score": Int64(0),

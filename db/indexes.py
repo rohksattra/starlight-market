@@ -37,7 +37,6 @@ async def ensure_indexes() -> None:
         await db.users.create_index([("starlight_points", -1)])
     for field in (
         "wordchain_score",
-        "trivia_score",
         "guess_score",
         "treasure_score",
         "boss_score",

@@ -84,7 +84,6 @@ class Settings:
     ROLE_CLAIM_CHANNEL_ID: int = _require_int(os.getenv("ROLE_CLAIM_CHANNEL_ID"), "ROLE_CLAIM_CHANNEL_ID")
     COUNTING_CHANNEL_ID: int = _require_int(os.getenv("COUNTING_CHANNEL_ID"), "COUNTING_CHANNEL_ID")
     WORD_CHAIN_CHANNEL_ID: int = _require_int(os.getenv("WORD_CHAIN_CHANNEL_ID"), "WORD_CHAIN_CHANNEL_ID")
-    TRIVIA_CHANNEL_ID: int = _require_int(os.getenv("TRIVIA_CHANNEL_ID"), "TRIVIA_CHANNEL_ID")
     GUESS_NUMBER_CHANNEL_ID: int = _require_int(os.getenv("GUESS_NUMBER_CHANNEL_ID"), "GUESS_NUMBER_CHANNEL_ID")
     SCRAMBLE_WORD_CHANNEL_ID: int = _require_int(os.getenv("SCRAMBLE_WORD_CHANNEL_ID"), "SCRAMBLE_WORD_CHANNEL_ID")
     TREASURE_HUNT_CHANNEL_ID: int = _require_int(os.getenv("TREASURE_HUNT_CHANNEL_ID"), "TREASURE_HUNT_CHANNEL_ID")
