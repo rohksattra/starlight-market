@@ -56,7 +56,7 @@ class GameService:
         rows: List[Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
         for row in rows:
-            name = f"<@{row['id']}>"
+            name = "Unknown"
 
             if guild is not None:
                 member = guild.get_member(int(row["id"]))
