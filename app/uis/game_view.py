@@ -31,9 +31,12 @@ def _format_cooldown_wait(remaining: int) -> str:
     if remaining >= 60:
         minutes = remaining // 60
         seconds = remaining % 60
+
         if seconds:
             return f"**{minutes} minute(s) {seconds} second(s)**"
+
         return f"**{minutes} minute(s)**"
+
     return f"**{remaining} seconds**"
 
 
@@ -45,167 +48,301 @@ class _BaseGameView(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         return interaction.guild is not None
 
-    def _cooldown_remaining(self, user_id: int, seconds: int) -> int:
+    def _cooldown_remaining(
+        self,
+        user_id: int,
+        seconds: int,
+    ) -> int:
         now = time.time()
         last_used = self._cooldowns.get(user_id)
+
         if last_used is None:
             self._cooldowns[user_id] = now
             return 0
+
         remaining = seconds - (now - last_used)
+
         if remaining <= 0:
             self._cooldowns[user_id] = now
             return 0
+
         return int(remaining)
 
     def _game_cog(self, interaction: discord.Interaction) -> Any:
         bot = cast(commands.Bot, interaction.client)
         cog = bot.get_cog("Game")
+
         if cog is None:
             raise RuntimeError("Game cog missing")
+
         return cog
 
 
 class CountingGameView(_BaseGameView):
     def __init__(self) -> None:
         super().__init__()
+
         btn = discord.ui.Button(
-            label="🔄 New Question",
+            label="🔄 Refresh",
             style=discord.ButtonStyle.success,
-            custom_id="game:counting:new_question",
+            custom_id="game:counting:refresh",
         )
-        btn.callback = self.new_question
+
+        btn.callback = self.refresh
         self.add_item(btn)
 
-    async def new_question(self, interaction: discord.Interaction) -> None:
+    async def refresh(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
-        remaining = self._cooldown_remaining(interaction.user.id, QUESTION_COOLDOWN_SECONDS)
-        if remaining > 0:
-            await safe_respond(interaction, content=f"⏳ Please wait **{remaining} seconds**.", ephemeral=True)
+
+        user_id = interaction.user.id
+
+        remaining = begin_refresh_cooldown(
+            self._cooldowns,
+            user_id,
+            seconds=REFRESH_COOLDOWN_SECONDS,
+        )
+
+        if remaining is not None:
+            await safe_respond(
+                interaction,
+                content=f"⏳ Please wait **{remaining} seconds** before refreshing again.",
+                ephemeral=True,
+            )
             return
 
         try:
             cog = self._game_cog(interaction)
-            state = await cog.runtime.reset_counting()
-            await safe_edit_message(interaction, embed=counting_embed(question=state["question"]), view=self)
-            await safe_respond(interaction, content="✅ New counting question generated.", ephemeral=True)
+
+            state = await cog.runtime.state("counting")
+            if not state:
+                state = await cog.runtime.reset_counting()
+
+            await safe_edit_message(
+                interaction,
+                embed=counting_embed(question=state["question"]),
+                view=self,
+            )
+
+            await safe_respond(
+                interaction,
+                content="✅ Counting panel refreshed.",
+                ephemeral=True,
+            )
+
         except Exception:
-            await safe_respond(interaction, content="❌ Failed to generate question.", ephemeral=True)
+            clear_refresh_cooldown(self._cooldowns, user_id)
+
+            await safe_respond(
+                interaction,
+                content="❌ Failed to refresh panel.",
+                ephemeral=True,
+            )
 
 
 class WordChainGameView(_BaseGameView):
     def __init__(self) -> None:
         super().__init__()
+
         btn = discord.ui.Button(
             label="🔄 New Chain",
             style=discord.ButtonStyle.success,
             custom_id="game:wordchain:new_chain",
         )
+
         btn.callback = self.new_chain
         self.add_item(btn)
 
     async def new_chain(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
-        remaining = self._cooldown_remaining(interaction.user.id, QUESTION_COOLDOWN_SECONDS)
+
+        remaining = self._cooldown_remaining(
+            interaction.user.id,
+            QUESTION_COOLDOWN_SECONDS,
+        )
+
         if remaining > 0:
-            await safe_respond(interaction, content=f"⏳ Please wait **{remaining} seconds**.", ephemeral=True)
+            await safe_respond(
+                interaction,
+                content=f"⏳ Please wait **{remaining} seconds**.",
+                ephemeral=True,
+            )
             return
 
         cog = self._game_cog(interaction)
         state = await cog.runtime.reset_wordchain()
+
         await safe_edit_message(
             interaction,
-            embed=wordchain_embed(word=state["word"], used_count=len(state.get("used_words", []))),
+            embed=wordchain_embed(
+                word=state["word"],
+                used_count=len(state.get("used_words", [])),
+            ),
             view=self,
         )
-        await safe_respond(interaction, content="✅ New word chain started.", ephemeral=True)
+
+        await safe_respond(
+            interaction,
+            content="✅ New word chain started.",
+            ephemeral=True,
+        )
 
 
 class TriviaGameView(_BaseGameView):
     def __init__(self) -> None:
         super().__init__()
+
         btn = discord.ui.Button(
             label="🔄 New Question",
             style=discord.ButtonStyle.success,
             custom_id="game:trivia:new_question",
         )
+
         btn.callback = self.new_question
         self.add_item(btn)
 
     async def new_question(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
-        remaining = self._cooldown_remaining(interaction.user.id, QUESTION_COOLDOWN_SECONDS)
+
+        remaining = self._cooldown_remaining(
+            interaction.user.id,
+            QUESTION_COOLDOWN_SECONDS,
+        )
+
         if remaining > 0:
-            await safe_respond(interaction, content=f"⏳ Please wait **{remaining} seconds**.", ephemeral=True)
+            await safe_respond(
+                interaction,
+                content=f"⏳ Please wait **{remaining} seconds**.",
+                ephemeral=True,
+            )
             return
 
         cog = self._game_cog(interaction)
         state = await cog.runtime.reset_trivia()
-        await safe_edit_message(interaction, embed=trivia_embed(question=state["question"]), view=self)
-        await safe_respond(interaction, content="✅ New trivia question generated.", ephemeral=True)
+
+        await safe_edit_message(
+            interaction,
+            embed=trivia_embed(question=state["question"]),
+            view=self,
+        )
+
+        await safe_respond(
+            interaction,
+            content="✅ New trivia question generated.",
+            ephemeral=True,
+        )
 
 
 class GuessGameView(_BaseGameView):
     def __init__(self) -> None:
         super().__init__()
+
         btn = discord.ui.Button(
             label="🎲 New Round",
             style=discord.ButtonStyle.success,
             custom_id="game:guess:new_round",
         )
+
         btn.callback = self.new_round
         self.add_item(btn)
 
     async def new_round(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
-        remaining = self._cooldown_remaining(interaction.user.id, QUESTION_COOLDOWN_SECONDS)
+
+        remaining = self._cooldown_remaining(
+            interaction.user.id,
+            QUESTION_COOLDOWN_SECONDS,
+        )
+
         if remaining > 0:
-            await safe_respond(interaction, content=f"⏳ Please wait **{remaining} seconds**.", ephemeral=True)
+            await safe_respond(
+                interaction,
+                content=f"⏳ Please wait **{remaining} seconds**.",
+                ephemeral=True,
+            )
             return
 
         cog = self._game_cog(interaction)
         await cog.runtime.reset_guess()
-        await safe_edit_message(interaction, embed=guess_embed(active=True), view=self)
-        await safe_respond(interaction, content="✅ New guess round started.", ephemeral=True)
+
+        await safe_edit_message(
+            interaction,
+            embed=guess_embed(active=True),
+            view=self,
+        )
+
+        await safe_respond(
+            interaction,
+            content="✅ New guess round started.",
+            ephemeral=True,
+        )
 
 
 class ScrambleGameView(_BaseGameView):
     def __init__(self) -> None:
         super().__init__()
+
         btn = discord.ui.Button(
             label="🔄 New Word",
             style=discord.ButtonStyle.success,
             custom_id="game:scramble:new_word",
         )
+
         btn.callback = self.new_word
         self.add_item(btn)
 
     async def new_word(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
-        remaining = self._cooldown_remaining(interaction.user.id, QUESTION_COOLDOWN_SECONDS)
+
+        remaining = self._cooldown_remaining(
+            interaction.user.id,
+            QUESTION_COOLDOWN_SECONDS,
+        )
+
         if remaining > 0:
-            await safe_respond(interaction, content=f"⏳ Please wait **{remaining} seconds**.", ephemeral=True)
+            await safe_respond(
+                interaction,
+                content=f"⏳ Please wait **{remaining} seconds**.",
+                ephemeral=True,
+            )
             return
 
         cog = self._game_cog(interaction)
         state = await cog.runtime.reset_scramble()
-        await safe_edit_message(interaction, embed=scramble_embed(scrambled=state["scrambled"]), view=self)
-        await safe_respond(interaction, content="✅ New scramble word generated.", ephemeral=True)
+
+        await safe_edit_message(
+            interaction,
+            embed=scramble_embed(scrambled=state["scrambled"]),
+            view=self,
+        )
+
+        await safe_respond(
+            interaction,
+            content="✅ New scramble word generated.",
+            ephemeral=True,
+        )
 
 
 class TreasureGameView(_BaseGameView):
     def __init__(self) -> None:
         super().__init__()
+
         btn = discord.ui.Button(
             label="🎁 Claim Treasure",
             style=discord.ButtonStyle.success,
             custom_id="game:treasure:claim",
         )
+
         btn.callback = self.claim
         self.add_item(btn)
 
     async def claim(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
-        remaining = self._cooldown_remaining(interaction.user.id, TREASURE_COOLDOWN_SECONDS)
+
+        remaining = self._cooldown_remaining(
+            interaction.user.id,
+            TREASURE_COOLDOWN_SECONDS,
+        )
+
         if remaining > 0:
             await safe_respond(
                 interaction,
@@ -215,43 +352,86 @@ class TreasureGameView(_BaseGameView):
             return
 
         cog = self._game_cog(interaction)
-        reward = await cog.runtime.claim_treasure(user_id=str(interaction.user.id))
+
+        reward = await cog.runtime.claim_treasure(
+            user_id=str(interaction.user.id),
+        )
+
         await safe_respond(
             interaction,
-            content=f"{reward['emoji']} You found a **{reward['rarity']} Treasure** and gained **{reward['points']} SP**.",
+            content=(
+                f"{reward['emoji']} You found a **{reward['rarity']} Treasure** "
+                f"and gained **{reward['points']} SP**."
+            ),
             ephemeral=True,
         )
 
 
 class ReactionRushGameView(_BaseGameView):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        click_disabled: bool = False,
+    ) -> None:
         super().__init__()
-        btn = discord.ui.Button(
+
+        self.click_btn = discord.ui.Button(
             label="⚡ Click!",
             style=discord.ButtonStyle.danger,
             custom_id="game:reaction:click",
+            disabled=click_disabled,
         )
+
         refresh = discord.ui.Button(
             label="🔄",
             style=discord.ButtonStyle.success,
             custom_id="game:reaction:refresh",
         )
-        btn.callback = self.click
+
+        self.click_btn.callback = self.click
         refresh.callback = self.refresh
-        self.add_item(btn)
+
+        self.add_item(self.click_btn)
         self.add_item(refresh)
+
+    def _sync_click_button(
+        self,
+        *,
+        claimed_count: int,
+    ) -> None:
+        self.click_btn.disabled = claimed_count >= 3
 
     async def click(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
+
         cog = self._game_cog(interaction)
+
         try:
-            result = await cog.runtime.claim_reaction(user_id=str(interaction.user.id))
+            result = await cog.runtime.claim_reaction(
+                user_id=str(interaction.user.id),
+            )
+
         except ValueError as exc:
-            await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
+            await safe_respond(
+                interaction,
+                content=f"❌ {exc}",
+                ephemeral=True,
+            )
             return
 
-        await safe_edit_message(interaction, embed=reaction_embed(claimed_count=result["claimed_count"]), view=self)
-        if result["claimed_count"] >= 3:
+        claimed_count = int(result["claimed_count"])
+
+        self._sync_click_button(
+            claimed_count=claimed_count,
+        )
+
+        await safe_edit_message(
+            interaction,
+            embed=reaction_embed(claimed_count=claimed_count),
+            view=self,
+        )
+
+        if claimed_count >= 3:
             await safe_respond(
                 interaction,
                 content=(
@@ -264,16 +444,24 @@ class ReactionRushGameView(_BaseGameView):
 
         await safe_respond(
             interaction,
-            content=f"⚡ Rank **#{result['rank']}**! You gained **{result['points']} SP**.",
+            content=(
+                f"⚡ Rank **#{result['rank']}**! "
+                f"You gained **{result['points']} SP**."
+            ),
             ephemeral=True,
         )
 
     async def refresh(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
+
         user_id = interaction.user.id
+
         remaining = begin_refresh_cooldown(
-            self._cooldowns, user_id, seconds=REFRESH_COOLDOWN_SECONDS
+            self._cooldowns,
+            user_id,
+            seconds=REFRESH_COOLDOWN_SECONDS,
         )
+
         if remaining is not None:
             await safe_respond(
                 interaction,
@@ -286,13 +474,26 @@ class ReactionRushGameView(_BaseGameView):
             cog = self._game_cog(interaction)
             state = await cog.runtime.state("reaction")
             claimed_count = len(state.get("claimed_user_ids", [])) if state else 0
+
+            self._sync_click_button(
+                claimed_count=claimed_count,
+            )
+
             await safe_edit_message(
                 interaction,
                 embed=reaction_embed(claimed_count=claimed_count),
                 view=self,
             )
+
+            await safe_respond(
+                interaction,
+                content="✅ Reaction Rush panel refreshed.",
+                ephemeral=True,
+            )
+
         except Exception:
             clear_refresh_cooldown(self._cooldowns, user_id)
+
             await safe_respond(
                 interaction,
                 content="❌ Failed to refresh panel.",
@@ -303,67 +504,121 @@ class ReactionRushGameView(_BaseGameView):
 class DailyGameView(_BaseGameView):
     def __init__(self) -> None:
         super().__init__()
+
         btn = discord.ui.Button(
             label="📅 Claim Daily",
             style=discord.ButtonStyle.success,
             custom_id="game:daily:claim",
         )
+
         btn.callback = self.claim
         self.add_item(btn)
 
     async def claim(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
+
         cog = self._game_cog(interaction)
+
         try:
-            result = await cog.runtime.claim_daily(user_id=str(interaction.user.id))
+            result = await cog.runtime.claim_daily(
+                user_id=str(interaction.user.id),
+            )
+
         except ValueError as exc:
-            await safe_respond(interaction, content=f"⏳ {exc}", ephemeral=True)
+            await safe_respond(
+                interaction,
+                content=f"⏳ {exc}",
+                ephemeral=True,
+            )
             return
 
         await safe_respond(
             interaction,
-            content=f"✅ Daily claimed! Streak **{result['streak']}** • Reward **{result['reward']} SP**.",
+            content=(
+                "✅ **Daily Check-In Claimed!**\n"
+                f"🔥 Streak: **{result['streak']} day(s)**\n"
+                f"🌟 Reward: **+{result['reward']:,} SP**"
+            ),
             ephemeral=True,
         )
 
 
 class BattleGameView(_BaseGameView):
-    def __init__(self, *, game_type: PlayableGameType) -> None:
+    def __init__(
+        self,
+        *,
+        game_type: PlayableGameType,
+    ) -> None:
         super().__init__()
         self.game_type = game_type
+
         btn = discord.ui.Button(
             label="⚔️ Attack",
             style=discord.ButtonStyle.danger,
             custom_id=f"game:{game_type}:attack",
         )
+
         refresh = discord.ui.Button(
             label="🔄",
             style=discord.ButtonStyle.success,
             custom_id=f"game:{game_type}:refresh",
         )
+
         btn.callback = self.attack
         refresh.callback = self.refresh
+
         self.add_item(btn)
         self.add_item(refresh)
 
     async def attack(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
-        remaining = self._cooldown_remaining(interaction.user.id, ATTACK_COOLDOWN_SECONDS)
+
+        remaining = self._cooldown_remaining(
+            interaction.user.id,
+            ATTACK_COOLDOWN_SECONDS,
+        )
+
         if remaining > 0:
-            await safe_respond(interaction, content=f"⏳ Please wait **{remaining} seconds**.", ephemeral=True)
+            await safe_respond(
+                interaction,
+                content=f"⏳ Please wait **{remaining} seconds**.",
+                ephemeral=True,
+            )
             return
 
         cog = self._game_cog(interaction)
-        result = await cog.runtime.attack_enemy(game_type=self.game_type, user_id=str(interaction.user.id))
-        await safe_edit_message(interaction, embed=battle_embed(game_type=self.game_type, state=result["state"]), view=self)
-        await safe_respond(interaction, content=result["message"], ephemeral=True)
+
+        result = await cog.runtime.attack_enemy(
+            game_type=self.game_type,
+            user_id=str(interaction.user.id),
+        )
+
+        await safe_edit_message(
+            interaction,
+            embed=battle_embed(
+                game_type=self.game_type,
+                state=result["state"],
+            ),
+            view=self,
+        )
+
+        await safe_respond(
+            interaction,
+            content=result["message"],
+            ephemeral=True,
+        )
 
     async def refresh(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
+
         user_id = interaction.user.id
+
         remaining = begin_refresh_cooldown(
-            self._cooldowns, user_id, seconds=REFRESH_COOLDOWN_SECONDS
+            self._cooldowns,
+            user_id,
+            seconds=REFRESH_COOLDOWN_SECONDS,
         )
+
         if remaining is not None:
             await safe_respond(
                 interaction,
@@ -374,18 +629,36 @@ class BattleGameView(_BaseGameView):
 
         try:
             cog = self._game_cog(interaction)
+
             state = await cog.runtime.state(self.game_type)
             if not state:
                 clear_refresh_cooldown(self._cooldowns, user_id)
-                await safe_respond(interaction, content="❌ No battle state found.", ephemeral=True)
+
+                await safe_respond(
+                    interaction,
+                    content="❌ No battle state found.",
+                    ephemeral=True,
+                )
                 return
+
             await safe_edit_message(
                 interaction,
-                embed=battle_embed(game_type=self.game_type, state=state),
+                embed=battle_embed(
+                    game_type=self.game_type,
+                    state=state,
+                ),
                 view=self,
             )
+
+            await safe_respond(
+                interaction,
+                content="✅ Battle panel refreshed.",
+                ephemeral=True,
+            )
+
         except Exception:
             clear_refresh_cooldown(self._cooldowns, user_id)
+
             await safe_respond(
                 interaction,
                 content="❌ Failed to refresh panel.",

@@ -38,6 +38,7 @@ class GameRepository:
         message_id: str,
     ) -> None:
         now = datetime.utcnow()
+
         await self.panels.update_one(
             {
                 "panel_type": panel_type,
@@ -72,8 +73,15 @@ class GameRepository:
             {"_id": 0},
         )
 
-    async def get_panels_by_type(self, panel_type: GamePanelType) -> list[GamePanelData]:
-        cursor = self.panels.find({"panel_type": panel_type}, {"_id": 0})
+    async def get_panels_by_type(
+        self,
+        panel_type: GamePanelType,
+    ) -> list[GamePanelData]:
+        cursor = self.panels.find(
+            {"panel_type": panel_type},
+            {"_id": 0},
+        )
+
         return [doc async for doc in cursor]
 
     async def upsert_state(
@@ -83,6 +91,7 @@ class GameRepository:
         state: Dict[str, Any],
     ) -> None:
         now = datetime.utcnow()
+
         await self.states.update_one(
             {"game_type": game_type},
             {
@@ -98,8 +107,15 @@ class GameRepository:
             upsert=True,
         )
 
-    async def get_state(self, *, game_type: GameType) -> Optional[GameStateData]:
-        return await self.states.find_one({"game_type": game_type}, {"_id": 0})
+    async def get_state(
+        self,
+        *,
+        game_type: GameType,
+    ) -> Optional[GameStateData]:
+        return await self.states.find_one(
+            {"game_type": game_type},
+            {"_id": 0},
+        )
 
     async def update_state_fields(
         self,
@@ -111,7 +127,10 @@ class GameRepository:
             {"game_type": game_type},
             {
                 "$set": {
-                    **{f"state.{k}": v for k, v in fields.items()},
+                    **{
+                        f"state.{k}": v
+                        for k, v in fields.items()
+                    },
                     "updated_at": datetime.utcnow(),
                 }
             },
@@ -140,6 +159,7 @@ class GameRepository:
         state: Dict[str, Any],
     ) -> None:
         now = datetime.utcnow()
+
         await self.user_states.update_one(
             {
                 "game_type": game_type,
@@ -159,32 +179,58 @@ class GameRepository:
             upsert=True,
         )
 
-    async def try_claim_reaction_slot(self, *, user_id: str) -> Tuple[int, Dict[str, Any]] | None:
-        """Atomically claim a reaction slot. Returns (rank, state) or None if unavailable."""
+    async def try_claim_reaction_slot(
+        self,
+        *,
+        user_id: str,
+    ) -> Tuple[int, Dict[str, Any]] | None:
         doc = await self.states.find_one_and_update(
             {
                 "game_type": "reaction",
-                "state.claimed_user_ids": {"$ne": user_id},
+                "state.claimed_user_ids": {
+                    "$ne": user_id,
+                },
                 "$expr": {
                     "$lt": [
-                        {"$size": {"$ifNull": ["$state.claimed_user_ids", []]}},
+                        {
+                            "$size": {
+                                "$ifNull": [
+                                    "$state.claimed_user_ids",
+                                    [],
+                                ]
+                            }
+                        },
                         3,
                     ]
                 },
             },
             {
-                "$push": {"state.claimed_user_ids": user_id},
-                "$set": {"updated_at": datetime.utcnow()},
+                "$push": {
+                    "state.claimed_user_ids": user_id,
+                },
+                "$set": {
+                    "updated_at": datetime.utcnow(),
+                },
             },
             return_document=ReturnDocument.AFTER,
-            projection={"state": 1, "_id": 0},
+            projection={
+                "state": 1,
+                "_id": 0,
+            },
         )
+
         if not doc:
             return None
+
         state = doc.get("state")
+
         if not isinstance(state, dict):
             return None
-        claimed = list(state.get("claimed_user_ids") or [])
+
+        claimed = list(
+            state.get("claimed_user_ids") or []
+        )
+
         return len(claimed), state
 
     async def try_apply_battle_hit(
@@ -196,31 +242,45 @@ class GameRepository:
         killed: bool,
         spawn_at_iso: str | None = None,
     ) -> Dict[str, Any] | None:
-        """Optimistic HP/damage update; returns new state or None on conflict."""
         for _ in range(5):
-            doc = await self.get_state(game_type=game_type)
+            doc = await self.get_state(
+                game_type=game_type,
+            )
+
             if not doc:
                 return None
+
             state = doc.get("state")
+
             if not isinstance(state, dict):
                 return None
 
             hp = int(state.get("hp", 0) or 0)
             alive = bool(state.get("alive", True))
+
             if hp <= 0 or not alive:
                 return None
 
             new_hp = max(0, hp - dealt)
-            damage_map = dict(state.get("damage") or {})
-            damage_map[user_id] = int(damage_map.get(user_id, 0)) + dealt
+
+            damage_map = dict(
+                state.get("damage") or {}
+            )
+
+            damage_map[user_id] = (
+                int(damage_map.get(user_id, 0))
+                + dealt
+            )
 
             new_state: Dict[str, Any] = {
                 **state,
                 "hp": new_hp,
                 "damage": damage_map,
             }
+
             if killed:
                 new_state["alive"] = False
+
                 if spawn_at_iso:
                     new_state["auto_new_enemy_at"] = spawn_at_iso
 
@@ -237,8 +297,10 @@ class GameRepository:
                     }
                 },
             )
+
             if result.modified_count == 1:
                 return new_state
+
         return None
 
     async def try_claim_answer(
@@ -248,11 +310,11 @@ class GameRepository:
         answer_key: str | int,
         extra_filter: Dict[str, Any] | None = None,
     ) -> bool:
-        """Atomically mark a typed-answer puzzle solved (one winner)."""
         filt: Dict[str, Any] = {
             "game_type": game_type,
             "state.answer": answer_key,
         }
+
         if extra_filter:
             filt.update(extra_filter)
 
@@ -265,4 +327,46 @@ class GameRepository:
                 }
             },
         )
+
         return result.modified_count == 1
+
+    async def try_claim_daily(
+        self,
+        *,
+        user_id: str,
+        today_key: str,
+        streak: int,
+        reward: int,
+        now: datetime,
+    ) -> bool:
+        result = await self.user_states.update_one(
+            {
+                "game_type": "daily",
+                "user_id": user_id,
+                "state.last_claim_date": {
+                    "$ne": today_key,
+                },
+            },
+            {
+                "$set": {
+                    "game_type": "daily",
+                    "user_id": user_id,
+                    "state": {
+                        "last_claimed_at": now,
+                        "last_claim_date": today_key,
+                        "streak": streak,
+                        "last_reward": reward,
+                    },
+                    "updated_at": now,
+                },
+                "$setOnInsert": {
+                    "created_at": now,
+                },
+            },
+            upsert=True,
+        )
+
+        return (
+            result.modified_count > 0
+            or result.upserted_id is not None
+        )

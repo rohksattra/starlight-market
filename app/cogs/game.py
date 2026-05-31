@@ -120,12 +120,14 @@ class Game(commands.Cog):
             ),
             view=view,
         )
+
         await self.games.upsert_panel(
             panel_type="leaderboard",
             game_type=game_type,
             channel_id=str(channel.id),
             message_id=str(message.id),
         )
+
         return message
 
     async def _send_game_panel(
@@ -138,46 +140,61 @@ class Game(commands.Cog):
             state = await self.runtime.state("counting") or await self.runtime.reset_counting()
             embed = counting_embed(question=str(state["question"]))
             view = CountingGameView()
+
         elif game_type == "wordchain":
             state = await self.runtime.state("wordchain") or await self.runtime.reset_wordchain()
-            embed = wordchain_embed(word=str(state["word"]), used_count=len(state.get("used_words", [])))
+            embed = wordchain_embed(
+                word=str(state["word"]),
+                used_count=len(state.get("used_words", [])),
+            )
             view = WordChainGameView()
+
         elif game_type == "trivia":
             state = await self.runtime.state("trivia") or await self.runtime.reset_trivia()
             embed = trivia_embed(question=str(state["question"]))
             view = TriviaGameView()
+
         elif game_type == "guess":
             state = await self.runtime.state("guess") or await self.runtime.reset_guess()
             embed = guess_embed(active=bool(state.get("active", True)))
             view = GuessGameView()
+
         elif game_type == "treasure":
             embed = treasure_embed()
             view = TreasureGameView()
+
         elif game_type == "reaction":
             state = await self.runtime.state("reaction") or await self.runtime.reset_reaction()
-            embed = reaction_embed(claimed_count=len(state.get("claimed_user_ids", [])))
-            view = ReactionRushGameView()
+            claimed_count = len(state.get("claimed_user_ids", []))
+            embed = reaction_embed(claimed_count=claimed_count)
+            view = ReactionRushGameView(click_disabled=claimed_count >= 3)
+
         elif game_type == "scramble":
             state = await self.runtime.state("scramble") or await self.runtime.reset_scramble()
             embed = scramble_embed(scrambled=str(state["scrambled"]))
             view = ScrambleGameView()
+
         elif game_type == "daily":
             embed = daily_embed()
             view = DailyGameView()
+
         elif game_type in {"monster", "boss"}:
             state = await self.runtime.state(game_type) or await self.runtime.reset_enemy(game_type=game_type)
             embed = battle_embed(game_type=game_type, state=state)
             view = BattleGameView(game_type=game_type)
+
         else:
             raise ValueError("Unknown game type")
 
         message = await channel.send(embed=embed, view=view)
+
         await self.games.upsert_panel(
             panel_type="game",
             game_type=game_type,
             channel_id=str(channel.id),
             message_id=str(message.id),
         )
+
         return message
 
     @app_commands.command(name="game-panel", description="Post a persistent game panel in this channel.")
@@ -198,15 +215,29 @@ class Game(commands.Cog):
     )
     async def game_panel(self, interaction: discord.Interaction, game: app_commands.Choice[str]) -> None:
         if not self._ensure_staff(interaction):
-            await safe_respond(interaction, content="❌ You don't have permission to use this command.", ephemeral=True)
+            await safe_respond(
+                interaction,
+                content="❌ You don't have permission to use this command.",
+                ephemeral=True,
+            )
             return
+
         if interaction.guild is None:
-            await safe_respond(interaction, content="❌ Use this command in a server.", ephemeral=True)
+            await safe_respond(
+                interaction,
+                content="❌ Use this command in a server.",
+                ephemeral=True,
+            )
             return
 
         game_type = cast(PlayableGameType, game.value)
+
         if game_type not in GAME_TYPES:
-            await safe_respond(interaction, content="❌ Unknown game type.", ephemeral=True)
+            await safe_respond(
+                interaction,
+                content="❌ Unknown game type.",
+                ephemeral=True,
+            )
             return
 
         channel = self._resolve_playable_channel(interaction.guild, game_type)
@@ -219,7 +250,12 @@ class Game(commands.Cog):
             return
 
         await safe_defer(interaction, ephemeral=True)
-        await self._send_game_panel(channel=channel, game_type=game_type)
+
+        await self._send_game_panel(
+            channel=channel,
+            game_type=game_type,
+        )
+
         await safe_respond(
             interaction,
             content=f"✅ **{game.name}** panel posted in {channel.mention}.",
@@ -230,6 +266,7 @@ class Game(commands.Cog):
     async def game_answer_listener(self, message: discord.Message) -> None:
         if message.guild is None or message.author.bot:
             return
+
         if not isinstance(message.channel, discord.TextChannel):
             return
 
@@ -241,22 +278,35 @@ class Game(commands.Cog):
         if game_type is None:
             return
 
-        if game_type == "counting":
-            await self._handle_counting_answer(message)
-        elif game_type == "wordchain":
-            await self._handle_wordchain_answer(message)
-        elif game_type == "trivia":
-            await self._handle_trivia_answer(message)
-        elif game_type == "guess":
-            await self._handle_guess_answer(message)
-        elif game_type == "scramble":
-            await self._handle_scramble_answer(message)
+        try:
+            if game_type == "counting":
+                await self._handle_counting_answer(message)
+            elif game_type == "wordchain":
+                await self._handle_wordchain_answer(message)
+            elif game_type == "trivia":
+                await self._handle_trivia_answer(message)
+            elif game_type == "guess":
+                await self._handle_guess_answer(message)
+            elif game_type == "scramble":
+                await self._handle_scramble_answer(message)
+
+        except Exception:
+            log.exception(
+                "Game answer handler failed | game=%s channel=%s user=%s",
+                game_type,
+                message.channel.id,
+                message.author.id,
+            )
 
     async def _safe_react(self, message: discord.Message, emoji: str) -> None:
         try:
             await message.add_reaction(emoji)
         except discord.HTTPException:
-            pass
+            log.warning(
+                "Failed to add reaction | message=%s emoji=%s",
+                message.id,
+                emoji,
+            )
 
     async def _handle_counting_answer(self, message: discord.Message) -> None:
         raw = message.content.strip().replace(",", "")
@@ -270,22 +320,33 @@ class Game(commands.Cog):
             return
 
         answer = int(state.get("answer", 0))
+
         if int(raw) != answer:
             await self._safe_react(message, "❌")
             return
 
-        if not await self.games.try_claim_answer(game_type="counting", answer_key=answer):
+        if not await self.games.try_claim_answer(
+            game_type="counting",
+            answer_key=answer,
+        ):
             return
 
         await self.game_serv.add_points(
             user_id=str(message.author.id),
             game_type="counting",
-            score_points=1,
-            starlight_points=1,
+            score_points=2,
+            starlight_points=2,
         )
+
         await self._safe_react(message, "✅")
+
         state = await self.runtime.reset_counting()
-        await self.runtime.edit_game_panel(game_type="counting", embed=counting_embed(question=state["question"]), view=CountingGameView())
+
+        await self.runtime.edit_game_panel(
+            game_type="counting",
+            embed=counting_embed(question=state["question"]),
+            view=CountingGameView(),
+        )
 
     async def _handle_wordchain_answer(self, message: discord.Message) -> None:
         word = _normalize_answer(message.content)
@@ -302,23 +363,39 @@ class Game(commands.Cog):
         if str(message.author.id) == str(last_user_id):
             await self._safe_react(message, "❌")
             return
+
         if word in used or not word.startswith(current[-1].lower()):
             await self._safe_react(message, "❌")
             return
 
         used.append(word)
-        state = {"word": word, "used_words": used[-500:], "last_user_id": str(message.author.id)}
-        await self.games.upsert_state(game_type="wordchain", state=state)
+
+        state = {
+            "word": word,
+            "used_words": used[-500:],
+            "last_user_id": str(message.author.id),
+        }
+
+        await self.games.upsert_state(
+            game_type="wordchain",
+            state=state,
+        )
+
         await self.game_serv.add_points(
             user_id=str(message.author.id),
             game_type="wordchain",
             score_points=1,
             starlight_points=1,
         )
+
         await self._safe_react(message, "✅")
+
         await self.runtime.edit_game_panel(
             game_type="wordchain",
-            embed=wordchain_embed(word=word, used_count=len(used)),
+            embed=wordchain_embed(
+                word=word,
+                used_count=len(used),
+            ),
             view=WordChainGameView(),
         )
 
@@ -331,11 +408,15 @@ class Game(commands.Cog):
 
         submitted = _normalize_answer(message.content)
         answer = _normalize_answer(str(state.get("answer", "")))
+
         if submitted != answer:
             await self._safe_react(message, "❌")
             return
 
-        if not await self.games.try_claim_answer(game_type="trivia", answer_key=answer):
+        if not await self.games.try_claim_answer(
+            game_type="trivia",
+            answer_key=answer,
+        ):
             return
 
         await self.game_serv.add_points(
@@ -344,9 +425,16 @@ class Game(commands.Cog):
             score_points=1,
             starlight_points=10,
         )
+
         await self._safe_react(message, "✅")
+
         state = await self.runtime.reset_trivia()
-        await self.runtime.edit_game_panel(game_type="trivia", embed=trivia_embed(question=state["question"]), view=TriviaGameView())
+
+        await self.runtime.edit_game_panel(
+            game_type="trivia",
+            embed=trivia_embed(question=state["question"]),
+            view=TriviaGameView(),
+        )
 
     async def _handle_guess_answer(self, message: discord.Message) -> None:
         raw = message.content.strip().replace(",", "")
@@ -361,9 +449,11 @@ class Game(commands.Cog):
 
         submitted = int(raw)
         answer = int(state.get("answer", 0))
+
         if submitted < answer:
             await self._safe_react(message, "⬆️")
             return
+
         if submitted > answer:
             await self._safe_react(message, "⬇️")
             return
@@ -381,8 +471,11 @@ class Game(commands.Cog):
             score_points=1,
             starlight_points=15,
         )
+
         await self._safe_react(message, "✅")
+
         state = await self.runtime.reset_guess()
+
         await self.runtime.edit_game_panel(
             game_type="guess",
             embed=guess_embed(active=bool(state.get("active", True))),
@@ -398,11 +491,15 @@ class Game(commands.Cog):
 
         submitted = _normalize_answer(message.content)
         answer = _normalize_answer(str(state.get("answer", "")))
+
         if submitted != answer:
             await self._safe_react(message, "❌")
             return
 
-        if not await self.games.try_claim_answer(game_type="scramble", answer_key=answer):
+        if not await self.games.try_claim_answer(
+            game_type="scramble",
+            answer_key=answer,
+        ):
             return
 
         await self.game_serv.add_points(
@@ -411,9 +508,16 @@ class Game(commands.Cog):
             score_points=1,
             starlight_points=10,
         )
+
         await self._safe_react(message, "✅")
+
         state = await self.runtime.reset_scramble()
-        await self.runtime.edit_game_panel(game_type="scramble", embed=scramble_embed(scrambled=state["scrambled"]), view=ScrambleGameView())
+
+        await self.runtime.edit_game_panel(
+            game_type="scramble",
+            embed=scramble_embed(scrambled=state["scrambled"]),
+            view=ScrambleGameView(),
+        )
 
 
 async def setup(bot: commands.Bot) -> None:

@@ -9,9 +9,13 @@ from app.domains.game_domain import GAME_PANEL_TITLES, PlayableGameType
 from app.uis.embed_footer import set_starlight_footer
 
 
-def _footer(embed: discord.Embed, refreshed_at: datetime | None = None) -> discord.Embed:
+def _footer(
+    embed: discord.Embed,
+    refreshed_at: datetime | None = None,
+) -> discord.Embed:
     if refreshed_at is None:
         refreshed_at = datetime.utcnow()
+
     return set_starlight_footer(
         embed,
         detail=(
@@ -27,16 +31,23 @@ def counting_embed(*, question: str) -> discord.Embed:
         description=(
             "Send the numeric answer in this channel.\n\n"
             f"## `{question}`\n\n"
-            "✅ Correct: **+1 Counting Score** and **+1 SP**.\n"
-            "❌ Wrong: reaction only."
+            "✅ Correct: **+2 Counting Score** and **+2 SP**.\n"
+            "❌ Wrong: reaction only.\n\n"
+            "Use **Refresh** only if the panel does not update."
         ),
         color=0xFFD700,
     )
+
     return _footer(embed)
 
 
-def wordchain_embed(*, word: str, used_count: int = 0) -> discord.Embed:
+def wordchain_embed(
+    *,
+    word: str,
+    used_count: int = 0,
+) -> discord.Embed:
     last = word[-1].upper() if word else "?"
+
     embed = discord.Embed(
         title=GAME_PANEL_TITLES["wordchain"],
         description=(
@@ -48,7 +59,13 @@ def wordchain_embed(*, word: str, used_count: int = 0) -> discord.Embed:
         ),
         color=0xFFD700,
     )
-    embed.add_field(name="Used Words", value=f"{used_count:,}", inline=True)
+
+    embed.add_field(
+        name="Used Words",
+        value=f"{used_count:,}",
+        inline=True,
+    )
+
     return _footer(embed)
 
 
@@ -62,6 +79,7 @@ def trivia_embed(*, question: str) -> discord.Embed:
         ),
         color=0xFFD700,
     )
+
     return _footer(embed)
 
 
@@ -71,6 +89,7 @@ def guess_embed(*, active: bool = True) -> discord.Embed:
         if active
         else "Round ended — wait for staff to start a new round."
     )
+
     embed = discord.Embed(
         title=GAME_PANEL_TITLES["guess"],
         description=(
@@ -81,6 +100,7 @@ def guess_embed(*, active: bool = True) -> discord.Embed:
         ),
         color=0xFFD700,
     )
+
     return _footer(embed)
 
 
@@ -96,6 +116,7 @@ def treasure_embed() -> discord.Embed:
         ),
         color=0xFFD700,
     )
+
     return _footer(embed)
 
 
@@ -108,10 +129,12 @@ def reaction_embed(*, claimed_count: int = 0) -> discord.Embed:
             "🥈 Second: **10 SP**\n"
             "🥉 Third: **5 SP**\n\n"
             f"Claimed this round: **{claimed_count}/3**\n"
-            "When full, a new round starts automatically in **30 minutes**."
+            "When full, a new round starts automatically in **30 minutes**.\n\n"
+            "Use **Refresh** only if the panel does not update."
         ),
         color=0xFFD700,
     )
+
     return _footer(embed)
 
 
@@ -125,6 +148,7 @@ def scramble_embed(*, scrambled: str) -> discord.Embed:
         ),
         color=0xFFD700,
     )
+
     return _footer(embed)
 
 
@@ -143,23 +167,40 @@ def daily_embed() -> discord.Embed:
         ),
         color=0xFFD700,
     )
+
     return _footer(embed)
 
 
-def battle_embed(*, game_type: PlayableGameType, state: Dict[str, Any]) -> discord.Embed:
+def battle_embed(
+    *,
+    game_type: PlayableGameType,
+    state: Dict[str, Any],
+) -> discord.Embed:
     max_hp = int(state.get("max_hp", 1) or 1)
-    hp = max(0, int(state.get("hp", 0) or 0))
+    hp = max(
+        0,
+        int(state.get("hp", 0) or 0),
+    )
     alive = bool(state.get("alive", True))
     percent = int((hp / max_hp) * 100) if max_hp else 0
     bar_fill = max(0, min(10, percent // 10))
     bar = "█" * bar_fill + "░" * (10 - bar_fill)
+
     damage = state.get("damage") or {}
     title = GAME_PANEL_TITLES[game_type]
     name = state.get("name", "Unknown")
     emoji = state.get("emoji", "👹")
 
-    top = sorted(damage.items(), key=lambda x: int(x[1]), reverse=True)[:5]
-    lines = [f"<@{uid}> — **{int(dmg):,} dmg**" for uid, dmg in top]
+    top = sorted(
+        damage.items(),
+        key=lambda x: int(x[1]),
+        reverse=True,
+    )[:5]
+
+    lines = [
+        f"<@{uid}> — **{int(dmg):,} dmg**"
+        for uid, dmg in top
+    ]
 
     if hp <= 0 or not alive:
         auto_wait = (
@@ -167,7 +208,13 @@ def battle_embed(*, game_type: PlayableGameType, state: Dict[str, Any]) -> disco
             if game_type == "monster"
             else "A new enemy will appear automatically in **10 minutes**."
         )
-        body = f"## {emoji} {name}\n🏁 **Defeated!**\n\n{auto_wait}"
+
+        body = (
+            f"## {emoji} {name}\n"
+            "🏁 **Defeated!**\n\n"
+            f"{auto_wait}"
+        )
+
     else:
         body = (
             f"## {emoji} {name}\n"
@@ -181,5 +228,11 @@ def battle_embed(*, game_type: PlayableGameType, state: Dict[str, Any]) -> disco
         description=body,
         color=0xFFD700,
     )
-    embed.add_field(name="Top Damage", value="\n".join(lines) if lines else "No damage yet.", inline=False)
+
+    embed.add_field(
+        name="Top Damage",
+        value="\n".join(lines) if lines else "No damage yet.",
+        inline=False,
+    )
+
     return _footer(embed)
