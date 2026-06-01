@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
@@ -13,6 +14,7 @@ from app.domains.game_domain import (
     PlayableGameType,
 )
 from app.repositories.game_repo import GameRepository
+from app.repositories.item_repo import ItemRepository
 from app.repositories.leaderboard_repo import LeaderboardRepository
 from app.repositories.user_repo import UserRepository
 
@@ -20,6 +22,7 @@ from app.repositories.user_repo import UserRepository
 class GameService:
     def __init__(self) -> None:
         self.games = GameRepository()
+        self.items = ItemRepository()
         self.leaderboards = LeaderboardRepository()
         self.users = UserRepository()
 
@@ -87,15 +90,40 @@ class GameService:
 
         return f"{a} {op} {b}", answer
 
-    def scramble_word(self) -> Dict[str, str]:
-        answer = random.choice(SCRAMBLE_WORDS)
-        chars = list(answer)
+    def _clean_scramble_answer(self, value: str) -> str:
+        cleaned = re.sub(r"\s+", " ", value.strip().lower())
+        cleaned = re.sub(r"[^a-z0-9 ]", "", cleaned)
+        return cleaned
+
+    async def _scramble_pool(self) -> List[str]:
+        items = await self.items.get_all(limit=5000)
+
+        words = [
+            self._clean_scramble_answer(str(item.get("item_name", "")))
+            for item in items
+        ]
+
+        words = [
+            word
+            for word in words
+            if len(word.replace(" ", "")) >= 4
+        ]
+
+        if words:
+            return words
+
+        return list(SCRAMBLE_WORDS)
+
+    async def scramble_word(self) -> Dict[str, str]:
+        pool = await self._scramble_pool()
+        answer = random.choice(pool)
+        chars = list(answer.replace(" ", ""))
 
         while True:
             random.shuffle(chars)
             scrambled = "".join(chars)
 
-            if scrambled.lower() != answer.lower():
+            if scrambled.lower() != answer.replace(" ", "").lower():
                 break
 
         return {
@@ -149,6 +177,17 @@ class GameService:
             ("Stone Golem", "🗿", 1200),
             ("Shadow Wolf", "🐺", 1000),
             ("Crystal Slime", "🟦", 900),
+            ("Cursed Bat", "🦇", 750),
+            ("Wild Boar", "🐗", 950),
+            ("Venom Spider", "🕷️", 850),
+            ("Forest Troll", "🧌", 1400),
+            ("Flame Imp", "🔥", 1000),
+            ("Ice Wraith", "❄️", 1100),
+            ("Bone Knight", "💀", 1300),
+            ("Mushroom Beast", "🍄", 900),
+            ("Thunder Lizard", "🦎", 1250),
+            ("Dark Mimic", "🎁", 1150),
+            ("Rogue Sentinel", "🛡️", 1500),
         ]
 
         name, emoji, hp = random.choice(monsters)
@@ -167,6 +206,15 @@ class GameService:
             ("Ancient Dragon", "🐉", 25000),
             ("Starlight Leviathan", "🐲", 30000),
             ("Astral Behemoth", "🦖", 28000),
+            ("Void Reaper", "☠️", 32000),
+            ("Celestial Hydra", "🐍", 35000),
+            ("Infernal Titan", "🔥", 34000),
+            ("Frost Colossus", "❄️", 31000),
+            ("Eclipse Serpent", "🌑", 33000),
+            ("Obsidian Golem", "🗿", 29000),
+            ("Storm Phoenix", "🦅", 30000),
+            ("Abyss Kraken", "🐙", 36000),
+            ("Lunar Chimera", "🌙", 31500),
         ]
 
         name, emoji, hp = random.choice(bosses)

@@ -131,7 +131,7 @@ class GameRuntimeService:
         return state
 
     async def reset_scramble(self) -> Dict[str, Any]:
-        state = self.game_serv.scramble_word()
+        state = await self.game_serv.scramble_word()
 
         await self.games.upsert_state(
             game_type="scramble",
@@ -151,13 +151,27 @@ class GameRuntimeService:
         return state
 
     async def cancel_reaction_auto_reset(self) -> None:
-        if self._reaction_auto_reset_task is not None and not self._reaction_auto_reset_task.done():
+        current = asyncio.current_task()
+
+        if (
+            self._reaction_auto_reset_task is not None
+            and not self._reaction_auto_reset_task.done()
+            and self._reaction_auto_reset_task is not current
+        ):
             self._reaction_auto_reset_task.cancel()
 
         self._reaction_auto_reset_task = None
 
-    async def start_reaction_new_round(self) -> None:
-        await self.cancel_reaction_auto_reset()
+    async def start_reaction_new_round(
+        self,
+        *,
+        cancel_existing: bool = True,
+    ) -> None:
+        if cancel_existing:
+            await self.cancel_reaction_auto_reset()
+        else:
+            self._reaction_auto_reset_task = None
+
         await self.reset_reaction()
 
         await self.edit_game_panel(
@@ -179,7 +193,9 @@ class GameRuntimeService:
                     max(0, delay_seconds),
                 )
 
-                await self.start_reaction_new_round()
+                await self.start_reaction_new_round(
+                    cancel_existing=False,
+                )
 
             except asyncio.CancelledError:
                 raise
@@ -261,9 +277,10 @@ class GameRuntimeService:
         if game_type not in BATTLE_GAME_TYPES:
             return
 
+        current = asyncio.current_task()
         task = self._battle_auto_reset_tasks.get(game_type)
 
-        if task is not None and not task.done():
+        if task is not None and not task.done() and task is not current:
             task.cancel()
 
         self._battle_auto_reset_tasks[game_type] = None
@@ -271,11 +288,16 @@ class GameRuntimeService:
     async def start_battle_new_enemy(
         self,
         game_type: PlayableGameType,
+        *,
+        cancel_existing: bool = True,
     ) -> Dict[str, Any]:
         if game_type not in BATTLE_GAME_TYPES:
             raise ValueError("Invalid battle game type")
 
-        await self.cancel_battle_auto_reset(game_type)
+        if cancel_existing:
+            await self.cancel_battle_auto_reset(game_type)
+        else:
+            self._battle_auto_reset_tasks[game_type] = None
 
         state = await self.reset_enemy(
             game_type=game_type,
@@ -309,7 +331,10 @@ class GameRuntimeService:
                     max(0, delay_seconds),
                 )
 
-                await self.start_battle_new_enemy(game_type)
+                await self.start_battle_new_enemy(
+                    game_type,
+                    cancel_existing=False,
+                )
 
             except asyncio.CancelledError:
                 raise
@@ -482,6 +507,15 @@ class GameRuntimeService:
                 game_type=game_type,
             )
 
+            await self.edit_game_panel(
+                game_type=game_type,
+                embed=battle_embed(
+                    game_type=game_type,
+                    state=state,
+                ),
+                view=BattleGameView(game_type=game_type),
+            )
+
         hp = int(state.get("hp", 0) or 0)
 
         if hp <= 0 or not state.get("alive", True):
@@ -494,6 +528,15 @@ class GameRuntimeService:
                     if seconds >= 60
                     else f"in **{seconds} seconds**"
                 )
+
+            await self.edit_game_panel(
+                game_type=game_type,
+                embed=battle_embed(
+                    game_type=game_type,
+                    state=state,
+                ),
+                view=BattleGameView(game_type=game_type),
+            )
 
             return {
                 "state": state,
@@ -535,6 +578,15 @@ class GameRuntimeService:
             fresh = await self.state(game_type) or state
             hp_now = int(fresh.get("hp", 0) or 0)
 
+            await self.edit_game_panel(
+                game_type=game_type,
+                embed=battle_embed(
+                    game_type=game_type,
+                    state=fresh,
+                ),
+                view=BattleGameView(game_type=game_type),
+            )
+
             if hp_now <= 0 or not fresh.get("alive", True):
                 wait = "soon"
 
@@ -555,7 +607,7 @@ class GameRuntimeService:
                 }
 
             return {
-                "state": state,
+                "state": fresh,
                 "message": "❌ Attack failed due to conflict. Please try again.",
             }
 
@@ -595,6 +647,15 @@ class GameRuntimeService:
                     game_type=game_type,
                     delay_seconds=delay,
                 )
+
+        await self.edit_game_panel(
+            game_type=game_type,
+            embed=battle_embed(
+                game_type=game_type,
+                state=new_state,
+            ),
+            view=BattleGameView(game_type=game_type),
+        )
 
         return {
             "state": new_state,

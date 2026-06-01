@@ -652,15 +652,6 @@ class BattleGameView(_BaseGameView):
             user_id=str(interaction.user.id),
         )
 
-        await safe_edit_message(
-            interaction,
-            embed=battle_embed(
-                game_type=self.game_type,
-                state=result["state"],
-            ),
-            view=self,
-        )
-
         await safe_respond(
             interaction,
             content=result["message"],
