@@ -66,7 +66,7 @@ def _get_item_image_url(item_image: str, item_category: str) -> str:
     """Generate image URL dari GitHub raw content."""
     if not item_image or not item_category:
         return ""
-    return f"https://github.com/{settings.GITHUB_USER}/{settings.GITHUB_REPO}/raw/refs/heads/{settings.GITHUB_BRANCH}/assets/images/{item_category.replace(' ', '%20')}/{item_image}"
+    return f"https://github.com/{settings.GITHUB_USER}/{settings.GITHUB_REPO}/raw/refs/heads/{settings.GITHUB_BRANCH}/assets/images/items/{item_category.replace(' ', '%20')}/{item_image}"
 
 
 def order_embed(*, order: Dict[str, Any], worker_role_id: int, guild: discord.Guild) -> Tuple[str, discord.Embed]:

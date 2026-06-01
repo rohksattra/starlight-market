@@ -170,7 +170,10 @@ class Game(commands.Cog):
 
         elif game_type == "scramble":
             state = await self.runtime.state("scramble") or await self.runtime.reset_scramble()
-            embed = scramble_embed(scrambled=str(state["scrambled"]))
+            embed = scramble_embed(
+                scrambled=str(state["scrambled"]),
+                hint_image_url=str(state.get("hint_image_url", "")),
+            )
             view = ScrambleGameView()
 
         elif game_type == "daily":
@@ -476,7 +479,10 @@ class Game(commands.Cog):
 
         await self.runtime.edit_game_panel(
             game_type="scramble",
-            embed=scramble_embed(scrambled=state["scrambled"]),
+            embed=scramble_embed(
+                scrambled=state["scrambled"],
+                hint_image_url=state.get("hint_image_url", ""),
+            ),
             view=ScrambleGameView(),
         )
 

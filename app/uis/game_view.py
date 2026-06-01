@@ -304,7 +304,10 @@ class ScrambleGameView(_BaseGameView):
 
             await safe_edit_message(
                 interaction,
-                embed=scramble_embed(scrambled=state["scrambled"]),
+                embed=scramble_embed(
+                    scrambled=state["scrambled"],
+                    hint_image_url=state.get("hint_image_url", ""),
+                ),
                 view=self,
             )
 

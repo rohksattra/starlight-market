@@ -128,17 +128,25 @@ def reaction_embed(*, claimed_count: int = 0) -> discord.Embed:
     return _footer(embed)
 
 
-def scramble_embed(*, scrambled: str) -> discord.Embed:
+def scramble_embed(
+    *,
+    scrambled: str,
+    hint_image_url: str = "",
+) -> discord.Embed:
     embed = discord.Embed(
         title=GAME_PANEL_TITLES["scramble"],
         description=(
             "Unscramble the word and send the answer in this channel.\n\n"
             f"## `{scrambled}`\n\n"
+            "🖼️ The thumbnail is a hint.\n\n"
             "✅ Correct: **+2 Scramble Score** and **+10 SP**.\n\n"
             "Use 🔄 only if the panel does not update."
         ),
         color=0xFFD700,
     )
+
+    if hint_image_url:
+        embed.set_thumbnail(url=hint_image_url)
 
     return _footer(embed)
 

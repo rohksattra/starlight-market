@@ -7,6 +7,7 @@ from typing import Any, Dict, List
 
 import discord
 
+from core.config import settings
 from app.domains.game_domain import (
     SCRAMBLE_WORDS,
     WORDCHAIN_SEEDS,
@@ -16,6 +17,7 @@ from app.domains.game_domain import (
 from app.repositories.game_repo import GameRepository
 from app.repositories.item_repo import ItemRepository
 from app.repositories.leaderboard_repo import LeaderboardRepository
+from app.repositories.monster_repo import MonsterRepository
 from app.repositories.user_repo import UserRepository
 
 
@@ -23,6 +25,7 @@ class GameService:
     def __init__(self) -> None:
         self.games = GameRepository()
         self.items = ItemRepository()
+        self.monsters = MonsterRepository()
         self.leaderboards = LeaderboardRepository()
         self.users = UserRepository()
 
@@ -95,28 +98,91 @@ class GameService:
         cleaned = re.sub(r"[^a-z0-9 ]", "", cleaned)
         return cleaned
 
-    async def _scramble_pool(self) -> List[str]:
+    def _item_image_url(
+        self,
+        *,
+        item_image: str,
+        item_category: str,
+    ) -> str:
+        if not item_image or not item_category:
+            return ""
+
+        return (
+            f"https://github.com/{settings.GITHUB_USER}/{settings.GITHUB_REPO}"
+            f"/raw/refs/heads/{settings.GITHUB_BRANCH}"
+            f"/assets/images/items/{item_category.replace(' ', '%20')}/{item_image}"
+        )
+
+    def _monster_image_url(
+        self,
+        *,
+        monster_image: str,
+    ) -> str:
+        if not monster_image:
+            return ""
+
+        return (
+            f"https://github.com/{settings.GITHUB_USER}/{settings.GITHUB_REPO}"
+            f"/raw/refs/heads/{settings.GITHUB_BRANCH}"
+            f"/assets/images/monsters/{monster_image}"
+        )
+
+    async def _scramble_pool(self) -> List[Dict[str, str]]:
+        rows: List[Dict[str, str]] = []
+
         items = await self.items.get_all(limit=5000)
 
-        words = [
-            self._clean_scramble_answer(str(item.get("item_name", "")))
-            for item in items
+        for item in items:
+            answer = self._clean_scramble_answer(
+                str(item.get("item_name", ""))
+            )
+
+            if len(answer.replace(" ", "")) < 4:
+                continue
+
+            rows.append({
+                "answer": answer,
+                "hint_image_url": self._item_image_url(
+                    item_image=str(item.get("item_image", "")),
+                    item_category=str(item.get("item_category", "")),
+                ),
+                "source": "item",
+            })
+
+        monsters = await self.monsters.get_all(limit=5000)
+
+        for monster in monsters:
+            answer = self._clean_scramble_answer(
+                str(monster.get("monster_name", ""))
+            )
+
+            if len(answer.replace(" ", "")) < 4:
+                continue
+
+            rows.append({
+                "answer": answer,
+                "hint_image_url": self._monster_image_url(
+                    monster_image=str(monster.get("monster_image", "")),
+                ),
+                "source": "monster",
+            })
+
+        if rows:
+            return rows
+
+        return [
+            {
+                "answer": word,
+                "hint_image_url": "",
+                "source": "fallback",
+            }
+            for word in SCRAMBLE_WORDS
         ]
-
-        words = [
-            word
-            for word in words
-            if len(word.replace(" ", "")) >= 4
-        ]
-
-        if words:
-            return words
-
-        return list(SCRAMBLE_WORDS)
 
     async def scramble_word(self) -> Dict[str, str]:
         pool = await self._scramble_pool()
-        answer = random.choice(pool)
+        picked = random.choice(pool)
+        answer = picked["answer"]
         chars = list(answer.replace(" ", ""))
 
         while True:
@@ -129,6 +195,8 @@ class GameService:
         return {
             "scrambled": scrambled.upper(),
             "answer": answer.lower(),
+            "hint_image_url": picked.get("hint_image_url", ""),
+            "source": picked.get("source", "unknown"),
         }
 
     def wordchain_seed(self) -> str:
