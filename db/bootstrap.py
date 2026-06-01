@@ -6,7 +6,7 @@ from bson.int64 import Int64
 
 from db.indexes import ensure_indexes
 from db.mongo import get_db, ping
-from db.seed import seed_items
+from db.seed import seed_items, seed_monsters
 
 
 log = logging.getLogger("db.bootstrap")
@@ -52,5 +52,6 @@ async def bootstrap_database() -> None:
     await ensure_order_number_counter()
 
     await seed_items()
+    await seed_monsters()
 
     log.info("Database bootstrap completed")
