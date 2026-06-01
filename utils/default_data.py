@@ -182,7 +182,7 @@ DEFAULT_ITEMS = {
         {"item_name": "Accuracy Potion", "item_price": 5000, "item_image": "Accuracy_Potion_m.png", "item_emoji": "<:Accuracy_Potion_m:1492788204527550587>"},
         {"item_name": "Deflection Potion", "item_price": 6500, "item_image": "Deflection_Potion_m.png", "item_emoji": "<:Deflection_Potion_m:1492788210718216253>"},
         {"item_name": "Strength Potion", "item_price": 5000, "item_image": "Strength_Potion_m.png", "item_emoji": "<:Strength_Potion_m:1492788220222771410>"},
-        {"item_name": "Defense Potion", "item_price": 5000, "item_image": "Defence_Potion_m.png", "item_emoji": "<:Defence_Potion_m:1492788208721989702>"},
+        {"item_name": "Defence Potion", "item_price": 5000, "item_image": "Defence_Potion_m.png", "item_emoji": "<:Defence_Potion_m:1492788208721989702>"},
         {"item_name": "Rejuvenation Potion", "item_price": 5000, "item_image": "Rejuvenation_Potion_m.png", "item_emoji": "<:Rejuvenation_Potion_m:1492788218599309332>"},
         {"item_name": "Vitality Potion", "item_price": 3500, "item_image": "Vitality_Potion_m.png", "item_emoji": "<:Vitality_Potion_m:1492788222101819412>"},
         {"item_name": "Clarity Potion", "item_price": 6500, "item_image": "Clarity_Potion_m.png", "item_emoji": "<:Clarity_Potion_m:1492788206251278398>"},
