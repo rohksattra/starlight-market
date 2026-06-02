@@ -151,7 +151,7 @@ DEFAULT_ITEMS = {
         {"item_name": "Forest Fiend Eye", "item_price": 10000, "item_image": "Forest_Fiend_Eye_m.png", "item_emoji": "<:Forest_Fiend_Eye_m:1492786145950695444>"},
         {"item_name": "Desert Raptor Claw", "item_price": 11000, "item_image": "Desert_Raptor_Claw_m.png", "item_emoji": "<:Desert_Raptor_Claw_m:1492786142045536256>"},
         {"item_name": "Rock Fiend Eye", "item_price": 11000, "item_image": "Rock_Fiend_Eye_m.png", "item_emoji": "<:Rock_Fiend_Eye_m:1492786158546063511>"},
-        {"item_name": "Hornet Antenna", "item_price": 11000, "item_image": "Hornet_Antenna_m", "item_emoji": "<:Hornet_Antenna_m:1492786148551037018>"},
+        {"item_name": "Hornet Antenna", "item_price": 11000, "item_image": "Hornet_Antenna_m.png", "item_emoji": "<:Hornet_Antenna_m:1492786148551037018>"},
         {"item_name": "Luminant Gelatin", "item_price": 11000, "item_image": "Luminant_Gelatin_m.png", "item_emoji": "<:Luminant_Gelatin_m:1492786154536304660>"},
         {"item_name": "Juvenile Eye", "item_price": 10000, "item_image": "Juvenile_Eye_m.png", "item_emoji": "<:Juvenile_Eye_m:1492786152556597279>"},
         {"item_name": "Ancient Bat Eye", "item_price": 10000, "item_image": "Ancient_Bat_Eye_m.png", "item_emoji": "<:Ancient_Bat_Eye_m:1492786134256844951>"},
