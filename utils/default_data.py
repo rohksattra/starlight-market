@@ -121,12 +121,12 @@ DEFAULT_ITEMS = {
         {"item_name": "Cooked Giant Squid", "item_price": 10000, "item_image": "cooked-giant-squid.png", "item_emoji": "<:Cooked_Giant_Squid_m:1492431521888604241>"},
     ],
     "Spellbinding (Tomes)": [
-        {"item_name": "Magic Essence", "item_price": 600, "item_image": "magic-essence.png", "item_emoji": "<:Magic_Essence_m:1492432455402258512>"},
-        {"item_name": "Book", "item_price": 1500, "item_image": "book.png", "item_emoji": "<:Book_m:1492432447529418772>"},
-        {"item_name": "Inferno Tome", "item_price": 90, "item_image": "inferno-tome.png", "item_emoji": "<:Inferno_Tome_m:1492432453380476998>"},
-        {"item_name": "Consume Tome", "item_price": 120, "item_image": "consume-tome.png", "item_emoji": "<:Consume_Tome_m:1492432450406711327>"},
-        {"item_name": "Blizzard Tome", "item_price": 100, "item_image": "blizzard-tome.png", "item_emoji": "<:Blizzard_Tome_m:1492432444945858700>"},
-        {"item_name": "Torture Tome", "item_price": 250, "item_image": "torture-tome.png", "item_emoji": "<:Torture_Tome_m:1492432458065510461>"},
+        {"item_name": "Magic Essence", "item_price": 600, "item_image": "magic-essence.png", "item_emoji": "<:magicessence:1512491100953251920>"},
+        {"item_name": "Book", "item_price": 1500, "item_image": "book.png", "item_emoji": "<:book:1512491093038727328>"},
+        {"item_name": "Inferno Tome", "item_price": 90, "item_image": "inferno-tome.png", "item_emoji": "<:infernotome:1512491098352652288>"},
+        {"item_name": "Consume Tome", "item_price": 120, "item_image": "consume-tome.png", "item_emoji": "<:consumetome:1512491095144267849>"},
+        {"item_name": "Blizzard Tome", "item_price": 100, "item_image": "blizzard-tome.png", "item_emoji": "<:blizzardtome:1512491089825628392>"},
+        {"item_name": "Torture Tome", "item_price": 250, "item_image": "torture-tome.png", "item_emoji": "<:torturetome:1512491103318839516>"},
     ],
     "Alchemy Materials T1": [
         {"item_name": "Pink Gelatin", "item_price": 5000, "item_image": "pink-gelatin.png", "item_emoji": "<:Pink_Gelatin_m:1492432733279092816>"},
