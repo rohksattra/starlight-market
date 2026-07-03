@@ -3,12 +3,14 @@ from typing import List, Dict, Any
 
 from app.repositories.order_repo import OrderRepository
 from app.repositories.user_repo import UserRepository
+from app.services.tier_limits_service import TierLimitsService
 
 
 class ProfileService:
     def __init__(self) -> None:
         self.users = UserRepository()
         self.orders = OrderRepository()
+        self.tier_limits = TierLimitsService()
 
     async def get_profile_data(self, *, user_id: str) -> Dict[str, Any]:
         worker_orders: List[str] = []
@@ -41,6 +43,7 @@ class ProfileService:
             donor_rank = await self.users.get_rank_donor(user_id)
         else:
             donor_rank = None
+        limits = await self.tier_limits.get_profile_limits(user_id=user_id)
         return {
             "worker_orders": worker_orders,
             "customer_orders": customer_orders,
@@ -52,4 +55,5 @@ class ProfileService:
             "donation_given": donation_given,
             "worker_rating_avg": round(rating_avg, 2),
             "worker_rating_count": rating_count,
+            "limits": limits,
         }

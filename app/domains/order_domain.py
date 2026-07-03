@@ -29,6 +29,7 @@ class OrderCreate(TypedDict):
     worker_claims: Dict[str, int]
     order_claims: OrderClaims
     order_status: OrderStatus
+    coupon_applied: bool
 
 
 class Order(OrderCreate):

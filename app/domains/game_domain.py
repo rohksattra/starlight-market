@@ -78,6 +78,7 @@ GAME_SCORE_FIELDS: Final[dict[GameType, str]] = {
     "boss": "boss_score",
     "reaction": "reaction_score",
     "scramble": "scramble_score",
+    "daily": "daily_score",
     "monster": "monster_score",
 }
 

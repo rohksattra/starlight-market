@@ -20,7 +20,6 @@ from utils.cooldown import check_cooldown
 
 
 ClaimAction = Literal["claim", "unclaim", "force_claim", "force_unclaim"]
-MAX_ACTIVE_CLAIM = 6
 
 
 class OrderActions(commands.Cog):
@@ -32,9 +31,6 @@ class OrderActions(commands.Cog):
 
     async def _get_order(self, channel: discord.TextChannel) -> dict | None:
         return await self.order_serv.get_by_channel_id(str(channel.id))
-
-    async def _active_claim_count(self, worker_id: str) -> int:
-        return await self.order_serv.count_active_by_worker(worker_id)
 
     async def _sync_category(self, *, channel: discord.TextChannel, order: dict) -> None:
         guild = channel.guild
@@ -111,12 +107,6 @@ class OrderActions(commands.Cog):
             return
 
         if action == "claim":
-            already_claimed = order.get("worker_claims", {}).get(worker_id, 0) > 0
-            if not already_claimed:
-                active = await self._active_claim_count(worker_id)
-                if active >= MAX_ACTIVE_CLAIM:
-                    await safe_respond(interaction, content=f"❌ Claim limit reached (**{active}/{MAX_ACTIVE_CLAIM}**).", ephemeral=True)
-                    return
             try:
                 updated = await self.order_claim_serv.claim(order_id=order["order_id"], worker_id=worker_id, qty=quantity)
             except ValueError as exc:

@@ -10,7 +10,7 @@ from app.services.item_service import ItemService
 from app.services.order_service import OrderService
 from app.uis.order_category_view import OrderCategoryView
 from app.uis.order_confirm_view import OrderConfirmView
-from app.uis.order_embed import order_embed
+from app.uis.order_embed import order_embed, customer_total_price
 from app.uis.order_entry_embed import order_entry_embed
 from app.uis.embed_footer import button_notice_content_suffix
 from app.uis.order_entry_view import OrderEntryView
@@ -98,23 +98,43 @@ class OrderEntry(commands.Cog):
 
                         safe_name = (f"{order['item_quantity']}-{order['item_name']}".lower().replace(" ", "-"))[:90]
 
-                        channel = await guild.create_text_channel(
-                            name=f"【{order['order_number']}-📦】{safe_name}",
-                            category=category_channel,
-                        )
+                        try:
+                            channel = await guild.create_text_channel(
+                                name=f"【{order['order_number']}-📦】{safe_name}",
+                                category=category_channel,
+                            )
 
-                        content, embed = order_embed(
-                            order=order,
-                            worker_role_id=settings.WORKER_ROLE_ID,
-                            guild=guild,
-                        )
+                            content, embed = order_embed(
+                                order=order,
+                                worker_role_id=settings.WORKER_ROLE_ID,
+                                guild=guild,
+                            )
 
-                        msg = await channel.send(content=content, embed=embed, view=OrderClaimView())
+                            msg = await channel.send(content=content, embed=embed, view=OrderClaimView())
 
-                        await self.order_serv.set_channel_and_message(
-                            order_id=order["order_id"],
-                            channel_id=str(channel.id),
-                            message_id=msg.id,
+                            await self.order_serv.set_channel_and_message(
+                                order_id=order["order_id"],
+                                channel_id=str(channel.id),
+                                message_id=msg.id,
+                            )
+                        except Exception:
+                            await self.order_serv.cancel_order(order=order)
+                            await safe_respond(
+                                inter4,
+                                content=(
+                                    "❌ **Failed to create order channel.**\n"
+                                    "Order has been canceled automatically.\n"
+                                    "You can make it again."
+                                ),
+                                ephemeral=True,
+                            )
+                            return
+
+                        total_display = customer_total_price(order)
+                        coupon_note = (
+                            f"\n🎟 Donor coupon applied — saved 🪙 ***{(order['item_price'] * order['item_quantity']) - total_display:,}***"
+                            if order.get("coupon_applied")
+                            else ""
                         )
 
                         await safe_respond(
@@ -123,7 +143,8 @@ class OrderEntry(commands.Cog):
                                 "✅ **Order Created**\n\n"
                                 f"📦 Item: ***{item_emoji} {order['item_name']}***\n"
                                 f"🔢 Quantity: 🏷 ***{order['item_quantity']:,}***\n"
-                                f"💰 Total: 🪙 ***{order['item_price'] * order['item_quantity']:,}***\n\n"
+                                f"💰 Total: 🪙 ***{total_display:,}***"
+                                f"{coupon_note}\n\n"
                                 f"📍 Channel: ***{channel.mention}***"
                             ),
                             ephemeral=True,

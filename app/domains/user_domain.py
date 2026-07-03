@@ -24,4 +24,6 @@ class User(TypedDict):
     scramble_score: int
     daily_score: int
     monster_score: int
+    coupons_used_month: int
+    coupons_used_count: int
     updated_at: datetime

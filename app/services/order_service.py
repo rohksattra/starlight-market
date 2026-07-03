@@ -11,13 +11,13 @@ from app.repositories.item_repo import ItemRepository
 from app.repositories.order_repo import OrderRepository
 from app.repositories.statistic_repo import StatisticRepository
 from app.repositories.user_repo import UserRepository
+from app.services.tier_limits_service import TierLimitsService
+from core.tier_limits import donor_limits_for_total
 
 
 OrderData = Order
 OrderDraft = OrderCreate
 log = logging.getLogger("services.order_service")
-
-MAX_ACTIVE_ORDERS = 12
 
 
 class OrderService:
@@ -26,17 +26,13 @@ class OrderService:
         self.items = ItemRepository()
         self.orders = OrderRepository()
         self.statistics = StatisticRepository()
+        self.tier_limits = TierLimitsService()
 
-    async def _validate_active_order(self, customer_id: str) -> None:
-        active = await self.orders.count_active_by_customer(customer_id)
-
-        if active >= MAX_ACTIVE_ORDERS:
-            log.warning(
-                "Create order denied | active_limit | customer=%s active=%s",
-                customer_id,
-                active,
-            )
-            raise ValueError("Active order limit reached")
+    async def _validate_active_order(self, customer_id: str, quantity: int) -> None:
+        await self.tier_limits.validate_customer_order(
+            customer_id=customer_id,
+            quantity=quantity,
+        )
 
     async def get_by_channel_id(self, channel_id: str) -> OrderData | None:
         return await self.orders.get_by_channel_id(channel_id)
@@ -60,7 +56,7 @@ class OrderService:
         if quantity <= 0:
             raise ValueError("Quantity must be > 0")
 
-        await self._validate_active_order(customer_id)
+        await self._validate_active_order(customer_id, quantity)
 
         item = await self.items.get_by_id(item_id)
         if not item:
@@ -95,17 +91,28 @@ class OrderService:
                 "order_claimable": quantity,
             },
             "order_status": OrderStatus.NEW,
+            "coupon_applied": False,
         }
 
-        await self._persist_new_order(order, customer_id)
+        user = await self.users.get_user(customer_id)
+        donation = int(user.get("donation_given", 0) or 0) if user else 0
+        max_coupons = donor_limits_for_total(donation).max_coupons
+
+        await self._persist_new_order(
+            order,
+            customer_id,
+            try_coupon=max_coupons > 0,
+            max_coupons=max_coupons,
+        )
 
         log.info(
-            "Order created | order_id=%s order_number=%s customer=%s item_id=%s qty=%s",
+            "Order created | order_id=%s order_number=%s customer=%s item_id=%s qty=%s coupon=%s",
             order_id,
             order_number,
             customer_id,
             item_id,
             quantity,
+            order.get("coupon_applied", False),
         )
 
         return order
@@ -124,7 +131,7 @@ class OrderService:
         if item_price <= 0:
             raise ValueError("Price must be > 0")
 
-        await self._validate_active_order(customer_id)
+        await self._validate_active_order(customer_id, item_quantity)
 
         order_number = await self.orders.next_order_number()
         order_id = str(uuid4())
@@ -150,23 +157,48 @@ class OrderService:
                 "order_claimable": item_quantity,
             },
             "order_status": OrderStatus.NEW,
+            "coupon_applied": False,
         }
 
-        await self._persist_new_order(order, customer_id)
+        user = await self.users.get_user(customer_id)
+        donation = int(user.get("donation_given", 0) or 0) if user else 0
+        max_coupons = donor_limits_for_total(donation).max_coupons
+
+        await self._persist_new_order(
+            order,
+            customer_id,
+            try_coupon=max_coupons > 0,
+            max_coupons=max_coupons,
+        )
 
         log.info(
-            "Custom order created | order_id=%s order_number=%s customer=%s qty=%s price=%s",
+            "Custom order created | order_id=%s order_number=%s customer=%s qty=%s price=%s coupon=%s",
             order_id,
             order_number,
             customer_id,
             item_quantity,
             item_price,
+            order.get("coupon_applied", False),
         )
 
         return order
 
-    async def _persist_new_order(self, order: OrderDraft, customer_id: str) -> None:
+    async def _persist_new_order(
+        self,
+        order: OrderDraft,
+        customer_id: str,
+        *,
+        try_coupon: bool = False,
+        max_coupons: int = 0,
+    ) -> None:
         async def work(session: object) -> None:
+            if try_coupon:
+                coupon_applied = await self.users.try_consume_coupon(
+                    user_id=customer_id,
+                    max_coupons=max_coupons,
+                    session=session,
+                )
+                order["coupon_applied"] = coupon_applied
             await self.orders.create_order(order, session=session)
             await self.users.ensure_user(customer_id, session=session)
             await self.users.inc_customer_order(user_id=customer_id, session=session)
@@ -227,6 +259,13 @@ class OrderService:
             )
             raise ValueError(f"Quantity must be ≥ {min_required}")
 
+        qty_delta = new_quantity - order["item_quantity"]
+        if qty_delta > 0:
+            await self.tier_limits.validate_customer_order(
+                customer_id=order["customer_id"],
+                quantity=qty_delta,
+            )
+
         updated = await self.orders.update_fields(
             order_id=order["order_id"],
             fields={
@@ -282,7 +321,7 @@ class OrderService:
             OrderStatus.COMPLETED,
             OrderStatus.DELIVERED,
         }:
-            await self._validate_active_order(new_customer_id)
+            await self._validate_active_order(new_customer_id, order["item_quantity"])
 
         async def work(session: object) -> OrderData:
             updated = await self.orders.update_fields(
@@ -330,6 +369,9 @@ class OrderService:
             fields={"order_status": OrderStatus.CANCELED},
         ):
             raise ValueError("Order not found")
+
+        if order.get("coupon_applied"):
+            await self.users.refund_coupon(user_id=order["customer_id"])
 
         await self.statistics.inc_canceled_order()
 

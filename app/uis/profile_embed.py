@@ -5,6 +5,8 @@ from typing import List
 import discord
 
 from core.config import settings
+from core.tier_limits import format_limit_remaining
+from app.services.tier_limits_service import ProfileLimitInfo
 from app.services.tier_role_service import (
     customer_tier_role_for_spent,
     donor_role_for_total,
@@ -41,6 +43,10 @@ def _display_donor_role_id(total_donated: int) -> int | None:
     return donor_role_for_total(total_donated)
 
 
+def _limit_line(*, label: str, remaining: int, maximum: int | None) -> str:
+    return f"{label}: ***{format_limit_remaining(remaining=remaining, maximum=maximum)}***"
+
+
 def profile_embed(
     *,
     member: discord.Member,
@@ -54,6 +60,7 @@ def profile_embed(
     donation_given: int,
     worker_rating_avg: float = 0.0,
     worker_rating_count: int = 0,
+    limits: ProfileLimitInfo | None = None,
 ) -> discord.Embed:
     color = 0xFFD700
     rating_text = worker_rating_summary(average=worker_rating_avg, count=worker_rating_count)
@@ -83,6 +90,26 @@ def profile_embed(
     )
     worker_role_line = _role_mention(member.guild, _display_worker_role_id(income_i))
     customer_role_line = _role_mention(member.guild, _display_customer_role_id(spent_i))
+
+    worker_limit_lines = ""
+    customer_limit_lines = ""
+    donor_limit_lines = ""
+    if limits is not None:
+        worker_limit_lines = (
+            f"{_limit_line(label='Claim Order Remaining', remaining=limits.claim_order_remaining, maximum=limits.claim_order_max)}\n"
+            f"{_limit_line(label='Claim Capacity Remaining', remaining=limits.claim_capacity_remaining or 0, maximum=limits.claim_capacity_max)}\n"
+        )
+        customer_limit_lines = (
+            f"{_limit_line(label='Active Order Remaining', remaining=limits.active_order_remaining, maximum=limits.active_order_max)}\n"
+            f"{_limit_line(label='Order Capacity Remaining', remaining=limits.order_capacity_remaining or 0, maximum=limits.order_capacity_max)}\n"
+        )
+        if limits.coupon_max > 0:
+            donor_limit_lines = (
+                f"{_limit_line(label='Coupon Remaining', remaining=limits.coupon_remaining, maximum=limits.coupon_max)}\n"
+            )
+        else:
+            donor_limit_lines = "Coupon Remaining: ***No donor tier***\n"
+
     embed = discord.Embed(
         title=f"🪧 {member.display_name}'s Profile",
         color=color,
@@ -90,6 +117,7 @@ def profile_embed(
     embed.description = (
         f"### 💪 As {worker_role_line}\n"
         f"Active Claimed Orders: ***{len(worker_orders)}***\n"
+        f"{worker_limit_lines}"
         f"{chr(10).join(worker_orders) if worker_orders else '- No active claimed orders'}\n\n"
         f"Top Worker: 🥇 ***{worker_rank_text}***\n"
         f"Gold Income: 🪙 ***{income_i:,}***\n\n"
@@ -97,10 +125,12 @@ def profile_embed(
         f"{rating_text}\n\n"
         f"### 🛒 As {customer_role_line}\n"
         f"Active Orders Placed: ***{len(customer_orders)}***\n"
+        f"{customer_limit_lines}"
         f"{chr(10).join(customer_orders) if customer_orders else '- No active orders'}\n\n"
         f"Top Customer: 🥇 ***{customer_rank_text}***\n"
         f"Gold Spent: 🪙 ***{spent_i:,}***\n\n"
         f"### 🎁 As {donor_tier_line}\n"
+        f"{donor_limit_lines}"
         f"Top Donor: 🥇 ***{donor_rank_text}***\n"
         f"Gold Donated: 🪙 ***{donation_i:,}***"
     )

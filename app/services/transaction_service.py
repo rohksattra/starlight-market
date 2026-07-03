@@ -4,7 +4,7 @@ import logging
 from typing import Any, Dict, Literal
 from uuid import uuid4
 
-from core.constants import WORKER_FEE_RATE
+from core.constants import WORKER_FEE_RATE, DONOR_COUPON_DISCOUNT_RATE
 from app.domains.enums.order_status_enum import OrderStatus
 from app.domains.enums.role_enum import ServerRole
 
@@ -80,6 +80,8 @@ class TransactionService:
             raise ValueError("Quantity exceeds completed items")
         price = updated["item_price"]
         total_price = price * quantity
+        if updated.get("coupon_applied"):
+            total_price = int(total_price * (1 - DONOR_COUPON_DISCOUNT_RATE))
         ok = await self.transactions.create_transaction({
             "transaction_id": transaction_id,
             "order_id": order["order_id"],

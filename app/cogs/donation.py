@@ -15,6 +15,7 @@ from app.uis.donation_embed import donation_embed
 from utils.interaction_safe import safe_defer, safe_respond
 from utils.cooldown import check_cooldown
 from utils.autocomplete import user_autocomplete
+from utils.confirm_view import ConfirmView
 
 
 log = logging.getLogger("cogs.donation")
@@ -70,6 +71,28 @@ class DonationCog(commands.Cog):
 
         if len(description) > 2000:
             await safe_respond(interaction, content="❌ Description is too long (max 2000 characters).", ephemeral=True)
+            return
+
+        donor_label = donor_member.display_name if donor_member else f"User [{user}]"
+
+        confirm_embed = discord.Embed(
+            title="Confirm Donation",
+            description=(
+                "Please review the details below.\n"
+                "Click **Confirm** to record the donation, or **Cancel**."
+            ),
+            color=0xFFD700,
+        )
+        confirm_embed.add_field(name="Donor", value=donor_label, inline=True)
+        confirm_embed.add_field(name="Gold", value=f"{gold:,}", inline=True)
+        confirm_embed.add_field(name="Description", value=description.strip()[:1000], inline=False)
+
+        view = ConfirmView(author_id=interaction.user.id, timeout_seconds=30)
+        await safe_respond(interaction, embed=confirm_embed, view=view, ephemeral=True)
+
+        confirmed = await view.wait_result()
+        if not confirmed:
+            await safe_respond(interaction, content="❌ Donation cancelled.", ephemeral=True)
             return
 
         await self.users.ensure_user(user)

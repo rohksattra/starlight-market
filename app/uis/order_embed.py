@@ -6,11 +6,21 @@ import discord
 from discord import TextChannel
 
 from core.config import settings
+from core.constants import DONOR_COUPON_DISCOUNT_RATE
 from app.uis.embed_footer import set_starlight_footer
 
 
 def fmt(value: int) -> str:
     return f"{value:,}"
+
+
+def customer_total_price(order: Dict[str, Any]) -> int:
+    item_price = int(order.get("item_price", 0))
+    quantity = int(order.get("item_quantity", 0))
+    total = item_price * quantity
+    if order.get("coupon_applied"):
+        total = int(total * (1 - DONOR_COUPON_DISCOUNT_RATE))
+    return total
 
 
 def order_description(order: Dict[str, Any]) -> str:
@@ -24,6 +34,9 @@ def order_description(order: Dict[str, Any]) -> str:
     claimable = int(order_claims.get("order_claimable", 0))
     worker_claims: Dict[str, int] = {wid: int(qty) for wid, qty in order.get("worker_claims", {}).items() if int(qty) > 0}
     claimed_total = sum(worker_claims.values())
+    total_line = f"- 🪙 ***{fmt(customer_total_price(order))}***"
+    if order.get("coupon_applied"):
+        total_line += f" *(0.5% donor coupon applied)*"
     claimed_lines = (
         "\n".join(
             f"🏷 ***{fmt(qty)}*** by <@{worker_id}>"
@@ -42,7 +55,7 @@ def order_description(order: Dict[str, Any]) -> str:
         f"**Price**\n"
         f"- 🪙 ***{fmt(item_price)} each***\n"
         f"**Estimated Total**\n"
-        f"- 🪙 ***{fmt(item_price * quantity)}***\n\n"
+        f"{total_line}\n\n"
         f"**__Delivered__**\n"
         f"-# Items delivered to the customer\n"
         f"🏷 ***{fmt(delivered)}***\n\n"

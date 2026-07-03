@@ -197,6 +197,43 @@ class OrderRepository:
 
         return [doc async for doc in cursor]
 
+    async def sum_active_quantity_by_customer(self, customer_id: str) -> int:
+        cursor = self.orders.find(
+            {
+                "customer_id": customer_id,
+                "order_status": {
+                    "$in": [
+                        OrderStatus.NEW,
+                        OrderStatus.CLAIMED,
+                        OrderStatus.COMPLETED,
+                    ]
+                },
+            },
+            {"item_quantity": 1, "_id": 0},
+        )
+        total = 0
+        async for doc in cursor:
+            total += int(doc.get("item_quantity", 0))
+        return total
+
+    async def sum_active_claim_quantity_by_worker(self, worker_id: str) -> int:
+        cursor = self.orders.find(
+            {
+                f"worker_claims.{worker_id}": {"$gt": 0},
+                "order_status": {
+                    "$in": [
+                        OrderStatus.NEW,
+                        OrderStatus.CLAIMED,
+                    ]
+                },
+            },
+            {"worker_claims": 1, "_id": 0},
+        )
+        total = 0
+        async for doc in cursor:
+            total += int(doc.get("worker_claims", {}).get(worker_id, 0) or 0)
+        return total
+
     async def inc_claim(
         self,
         *,

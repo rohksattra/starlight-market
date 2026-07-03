@@ -18,13 +18,10 @@ from app.uis.calculate_worker_payment_view import CalcWorkerPaymentView
 from app.uis.claim_embed import claim_log_embed
 from app.uis.order_embed import update_order_embed
 from app.uis.order_update_embed import order_update_embed
-from utils.autocomplete import user_autocomplete
+from utils.autocomplete import fallback_user_label, user_autocomplete
 from utils.cooldown import check_cooldown
 from utils.interaction_safe import safe_defer, safe_respond
 from app.uis.order_close_view import OrderCloseConfirmView
-
-
-MAX_ACTIVE_CLAIM = 6
 
 
 async def worker_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
@@ -40,16 +37,16 @@ async def worker_autocomplete(interaction: discord.Interaction, current: str) ->
 
     choices: list[app_commands.Choice[str]] = []
 
-    for member in worker_role.members:
+    for member in sorted(worker_role.members, key=lambda m: m.display_name.lower()):
         if member.bot:
             continue
 
-        if current_lower not in member.display_name.lower():
+        if current_lower and current_lower not in member.display_name.lower() and current_lower not in member.name.lower():
             continue
 
         choices.append(
             app_commands.Choice(
-                name=f"{member.display_name} ({member.name})",
+                name=f"{member.display_name} ({member.name})"[:100],
                 value=str(member.id),
             )
         )
@@ -77,20 +74,22 @@ async def claimed_worker_autocomplete(interaction: discord.Interaction, current:
 
     choices: list[app_commands.Choice[str]] = []
 
-    for wid, qty in order.get("worker_claims", {}).items():
+    for wid, qty in sorted(order.get("worker_claims", {}).items(), key=lambda item: item[0]):
         if qty <= 0:
             continue
 
         member = guild.get_member(int(wid))
-        if not member:
-            continue
+        if member:
+            label = f"{member.display_name} ({member.name}) — qty {qty}"
+        else:
+            label = f"{fallback_user_label(wid)} — qty {qty}"
 
-        if current_lower not in member.display_name.lower():
+        if current_lower and current_lower not in label.lower() and current_lower not in wid:
             continue
 
         choices.append(
             app_commands.Choice(
-                name=f"{member.display_name} ({member.name})",
+                name=label[:100],
                 value=str(wid),
             )
         )
@@ -125,9 +124,6 @@ class OrderManagement(commands.Cog):
             )
 
         self.bot.tree.add_command(self.calc_worker_ctx)
-
-    async def _active_claim_count(self, worker_id: str) -> int:
-        return await self.order_serv.count_active_by_worker(worker_id)
 
     async def _confirm(self, ctx: commands.Context, *, question: str) -> bool:
         await ctx.send(
@@ -380,18 +376,6 @@ class OrderManagement(commands.Cog):
         if order["customer_id"] == worker_id:
             await safe_respond(interaction, content="❌ Worker cannot claim his/her own order.", ephemeral=True)
             return
-
-        already_claimed = order.get("worker_claims", {}).get(worker_id, 0) > 0
-        if not already_claimed:
-            active = await self._active_claim_count(worker_id)
-
-            if active >= MAX_ACTIVE_CLAIM:
-                await safe_respond(
-                    interaction,
-                    content=f"❌ Claim limit reached (**{active}/{MAX_ACTIVE_CLAIM}**).",
-                    ephemeral=True,
-                )
-                return
 
         try:
             updated = await self.order_claim_serv.force_claim(

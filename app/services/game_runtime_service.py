@@ -107,6 +107,7 @@ class GameRuntimeService:
         state = {
             "word": word,
             "used_words": [word],
+            "used_count": 1,
             "last_user_id": None,
         }
 

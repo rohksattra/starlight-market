@@ -9,6 +9,7 @@ from bson.int64 import Int64
 from db.mongo import get_db
 from db.user_defaults import new_user_fields
 from app.domains.user_domain import User
+from core.tier_limits import current_coupon_month_key
 
 
 UserData = User
@@ -381,3 +382,80 @@ class UserRepository:
                 out[str(uid)] = doc
 
         return out
+
+    async def get_coupons_used(self, user_id: str) -> int:
+        doc = await self.get_user(user_id)
+        if not doc:
+            return 0
+        month_key = current_coupon_month_key()
+        stored_month = int(doc.get("coupons_used_month", 0) or 0)
+        if stored_month != month_key:
+            return 0
+        return int(doc.get("coupons_used_count", 0) or 0)
+
+    async def try_consume_coupon(
+        self,
+        *,
+        user_id: str,
+        max_coupons: int,
+        session: Session | None = None,
+    ) -> bool:
+        if max_coupons <= 0:
+            return False
+
+        month_key = current_coupon_month_key()
+        doc = await self.users.find_one(
+            {"user_id": user_id},
+            {"coupons_used_month": 1, "coupons_used_count": 1},
+            **self._session_kw(session),
+        )
+        used = 0
+        if doc and int(doc.get("coupons_used_month", 0) or 0) == month_key:
+            used = int(doc.get("coupons_used_count", 0) or 0)
+        if used >= max_coupons:
+            return False
+
+        await self.users.update_one(
+            {"user_id": user_id},
+            {
+                "$set": {
+                    "coupons_used_month": Int64(month_key),
+                    "coupons_used_count": Int64(used + 1),
+                    "updated_at": datetime.utcnow(),
+                }
+            },
+            upsert=True,
+            **self._session_kw(session),
+        )
+        return True
+
+    async def refund_coupon(
+        self,
+        *,
+        user_id: str,
+        session: Session | None = None,
+    ) -> None:
+        month_key = current_coupon_month_key()
+        doc = await self.users.find_one(
+            {"user_id": user_id},
+            {"coupons_used_month": 1, "coupons_used_count": 1},
+            **self._session_kw(session),
+        )
+        if not doc:
+            return
+        if int(doc.get("coupons_used_month", 0) or 0) != month_key:
+            return
+        used = int(doc.get("coupons_used_count", 0) or 0)
+        if used <= 0:
+            return
+
+        await self.users.update_one(
+            {"user_id": user_id},
+            {
+                "$set": {
+                    "coupons_used_count": Int64(used - 1),
+                    "updated_at": datetime.utcnow(),
+                }
+            },
+            **self._session_kw(session),
+        )

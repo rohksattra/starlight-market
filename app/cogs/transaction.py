@@ -25,6 +25,7 @@ from app.uis.worker_rating_embed import worker_rating_embed
 from utils.interaction_safe import safe_defer, safe_respond
 from utils.cooldown import check_cooldown
 from utils.discord_publish import publish_news
+from utils.autocomplete import fallback_user_label
 
 
 IncomeTarget = Literal["worker", "customer"]
@@ -78,41 +79,49 @@ class Income(commands.Cog):
             None,
         )
 
+        current_lower = current.lower()
         results: List[app_commands.Choice[str]] = []
 
         if target == "worker":
-            for wid in cast(
-                Dict[str, int],
-                order.get("worker_claims", {}),
+            for wid, qty in sorted(
+                cast(Dict[str, int], order.get("worker_claims", {})).items(),
+                key=lambda item: item[0],
             ):
-                member = interaction.guild.get_member(
-                    int(wid),
-                )
+                if qty <= 0:
+                    continue
 
-                if (
-                    member
-                    and current.lower() in member.display_name.lower()
-                ):
-                    results.append(
-                        app_commands.Choice(
-                            name=f"{member.display_name} ({member.name})",
-                            value=str(member.id),
-                        )
+                member = interaction.guild.get_member(int(wid))
+                if member:
+                    label = f"{member.display_name} ({member.name})"
+                else:
+                    label = fallback_user_label(wid)
+
+                if current_lower and current_lower not in label.lower() and current_lower not in wid:
+                    continue
+
+                results.append(
+                    app_commands.Choice(
+                        name=label[:100],
+                        value=str(wid),
                     )
+                )
 
         elif target == "customer":
             cid = order.get("customer_id")
 
             if cid:
-                member = interaction.guild.get_member(
-                    int(cid),
-                )
+                member = interaction.guild.get_member(int(cid))
 
                 if member:
+                    label = f"{member.display_name} ({member.name})"
+                else:
+                    label = fallback_user_label(str(cid))
+
+                if not current_lower or current_lower in label.lower() or current_lower in str(cid):
                     results.append(
                         app_commands.Choice(
-                            name=f"{member.display_name} ({member.name})",
-                            value=str(member.id),
+                            name=label[:100],
+                            value=str(cid),
                         )
                     )
 

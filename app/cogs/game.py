@@ -149,7 +149,7 @@ class Game(commands.Cog):
             state = await self.runtime.state("wordchain") or await self.runtime.reset_wordchain()
             embed = wordchain_embed(
                 word=str(state["word"]),
-                used_count=len(state.get("used_words", [])),
+                used_count=int(state.get("used_count", len(state.get("used_words", []))) or 0),
             )
             view = WordChainGameView()
 
@@ -359,6 +359,7 @@ class Game(commands.Cog):
         state = await self.runtime.state("wordchain") or await self.runtime.reset_wordchain()
         current = str(state.get("word", ""))
         used = [str(w).lower() for w in state.get("used_words", [])]
+        used_count = int(state.get("used_count", len(used)) or len(used))
         last_user_id = state.get("last_user_id")
 
         if str(message.author.id) == str(last_user_id):
@@ -370,10 +371,12 @@ class Game(commands.Cog):
             return
 
         used.append(word)
+        used_count += 1
 
         state = {
             "word": word,
-            "used_words": used[-500:],
+            "used_words": used,
+            "used_count": used_count,
             "last_user_id": str(message.author.id),
         }
 
@@ -395,7 +398,7 @@ class Game(commands.Cog):
             game_type="wordchain",
             embed=wordchain_embed(
                 word=word,
-                used_count=len(used),
+                used_count=used_count,
             ),
             view=WordChainGameView(),
         )

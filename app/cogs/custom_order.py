@@ -9,7 +9,7 @@ from core.role_map import has_any_role
 from app.domains.enums.role_enum import ORDER_MANAGEMENT_ROLES
 from app.services.order_service import OrderService
 from app.uis.order_confirm_view import OrderConfirmView
-from app.uis.order_embed import order_embed
+from app.uis.order_embed import order_embed, customer_total_price
 from app.uis.order_claim_view import OrderClaimView
 from utils.interaction_safe import safe_defer, safe_respond
 from utils.cooldown import check_cooldown
@@ -121,6 +121,13 @@ class CustomOrder(commands.Cog):
                 )
                 return
 
+            total_display = customer_total_price(order)
+            coupon_note = (
+                f"\n🎟 Donor coupon applied — saved 🪙 ***{total_price - total_display:,}***"
+                if order.get("coupon_applied")
+                else ""
+            )
+
             await safe_respond(
                 inter,
                 content=(
@@ -128,7 +135,8 @@ class CustomOrder(commands.Cog):
                     f"👤 Customer: ***{member.mention}***\n"
                     f"📦 Item: ***{item_emoji} {order['item_name']}***\n"
                     f"🔢 Quantity: 🏷 ***{order['item_quantity']:,}***\n"
-                    f"💰 Total: 🪙 ***{total_price:,}***\n\n"
+                    f"💰 Total: 🪙 ***{total_display:,}***"
+                    f"{coupon_note}\n\n"
                     f"📍 Channel: ***{channel.mention}***"
                 ),
                 ephemeral=True,

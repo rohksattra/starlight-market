@@ -15,7 +15,8 @@ from app.repositories.item_repo import ItemRepository
 
 from utils.interaction_safe import safe_defer, safe_respond
 from utils.cooldown import check_cooldown
-from utils.autocomplete import user_autocomplete
+from utils.autocomplete import fallback_user_label, user_autocomplete
+from utils.confirm_view import ConfirmView
 
 
 class ManualIncome(commands.Cog):
@@ -67,6 +68,35 @@ class ManualIncome(commands.Cog):
             await safe_respond(interaction, content=f"⏳ {exc}", ephemeral=True)
             return
 
+        item_doc = await self.items.get_by_id(item)
+        if not item_doc:
+            await safe_respond(interaction, content="❌ Item not found.", ephemeral=True)
+            return
+
+        member = interaction.guild.get_member(int(user)) if user.isdigit() else None
+        user_label = member.display_name if member else fallback_user_label(user)
+        item_name = item_doc.get("item_name", item)
+
+        confirm_embed = discord.Embed(
+            title="Confirm Paid",
+            description=(
+                "Please review the details below.\n"
+                "Click **Confirm** to record worker income, or **Cancel**."
+            ),
+            color=0xFFD700,
+        )
+        confirm_embed.add_field(name="Worker", value=user_label, inline=True)
+        confirm_embed.add_field(name="Item", value=item_name, inline=True)
+        confirm_embed.add_field(name="Quantity", value=str(quantity), inline=True)
+
+        view = ConfirmView(author_id=interaction.user.id, timeout_seconds=30)
+        await safe_respond(interaction, embed=confirm_embed, view=view, ephemeral=True)
+
+        confirmed = await view.wait_result()
+        if not confirmed:
+            await safe_respond(interaction, content="❌ Paid cancelled.", ephemeral=True)
+            return
+
         try:
             result = await self.service.paid_worker(
                 user_id=user,
@@ -108,6 +138,35 @@ class ManualIncome(commands.Cog):
             check_cooldown(user_id=interaction.user.id, key="spent", seconds=3)
         except ValueError as exc:
             await safe_respond(interaction, content=f"⏳ {exc}", ephemeral=True)
+            return
+
+        item_doc = await self.items.get_by_id(item)
+        if not item_doc:
+            await safe_respond(interaction, content="❌ Item not found.", ephemeral=True)
+            return
+
+        member = interaction.guild.get_member(int(user)) if user.isdigit() else None
+        user_label = member.display_name if member else fallback_user_label(user)
+        item_name = item_doc.get("item_name", item)
+
+        confirm_embed = discord.Embed(
+            title="Confirm Spent",
+            description=(
+                "Please review the details below.\n"
+                "Click **Confirm** to record customer spending, or **Cancel**."
+            ),
+            color=0xFFD700,
+        )
+        confirm_embed.add_field(name="Customer", value=user_label, inline=True)
+        confirm_embed.add_field(name="Item", value=item_name, inline=True)
+        confirm_embed.add_field(name="Quantity", value=str(quantity), inline=True)
+
+        view = ConfirmView(author_id=interaction.user.id, timeout_seconds=30)
+        await safe_respond(interaction, embed=confirm_embed, view=view, ephemeral=True)
+
+        confirmed = await view.wait_result()
+        if not confirmed:
+            await safe_respond(interaction, content="❌ Spent cancelled.", ephemeral=True)
             return
 
         try:

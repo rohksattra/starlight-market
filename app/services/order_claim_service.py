@@ -5,6 +5,7 @@ from typing import Any, Dict
 
 from app.domains.enums.order_status_enum import OrderStatus
 from app.repositories.order_repo import OrderRepository
+from app.services.tier_limits_service import TierLimitsService
 
 
 log = logging.getLogger("services.order_claim_service")
@@ -13,6 +14,7 @@ log = logging.getLogger("services.order_claim_service")
 class OrderClaimService:
     def __init__(self) -> None:
         self.orders = OrderRepository()
+        self.tier_limits = TierLimitsService()
 
     def _validate_qty(self, qty: int, *, action: str) -> None:
         if qty <= 0:
@@ -57,12 +59,22 @@ class OrderClaimService:
         return order
 
     async def claim(self, *, order_id: str, worker_id: str, qty: int) -> Dict[str, Any]:
+        await self.tier_limits.validate_worker_claim(
+            worker_id=worker_id,
+            order_id=order_id,
+            quantity=qty,
+        )
         return await self._claim_base(order_id=order_id, worker_id=worker_id, qty=qty, action="Claim")
 
     async def unclaim(self, *, order_id: str, worker_id: str, qty: int) -> Dict[str, Any]:
         return await self._unclaim_base(order_id=order_id, worker_id=worker_id, qty=qty, action="Unclaim")
 
     async def force_claim(self, *, order_id: str, worker_id: str, qty: int) -> Dict[str, Any]:
+        await self.tier_limits.validate_worker_claim(
+            worker_id=worker_id,
+            order_id=order_id,
+            quantity=qty,
+        )
         return await self._claim_base(order_id=order_id, worker_id=worker_id, qty=qty, action="Force claim")
 
     async def force_unclaim(self, *, order_id: str, worker_id: str, qty: int) -> Dict[str, Any]:

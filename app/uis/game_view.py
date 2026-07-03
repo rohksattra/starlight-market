@@ -181,7 +181,7 @@ class WordChainGameView(_BaseGameView):
                 interaction,
                 embed=wordchain_embed(
                     word=state["word"],
-                    used_count=len(state.get("used_words", [])),
+                    used_count=int(state.get("used_count", len(state.get("used_words", []))) or 0),
                 ),
                 view=self,
             )
