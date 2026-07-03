@@ -23,4 +23,6 @@ def new_user_fields(*, user_id: str) -> dict:
         "scramble_score": Int64(0),
         "daily_score": Int64(0),
         "monster_score": Int64(0),
+        "coupons_used_month": Int64(0),
+        "coupons_used_count": Int64(0),
     }
