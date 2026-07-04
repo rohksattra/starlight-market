@@ -43,10 +43,10 @@ WORKER_TIER_LIMITS: tuple[tuple[int, WorkerLimits], ...] = (
 
 CUSTOMER_TIER_LIMITS: tuple[tuple[int, CustomerLimits], ...] = (
     (100_000_000_000, CustomerLimits(max_active_orders=12, order_capacity=None)),
-    (25_000_000_000, CustomerLimits(max_active_orders=10, order_capacity=100_000)),
-    (5_000_000_000, CustomerLimits(max_active_orders=8, order_capacity=75_000)),
-    (1_000_000_000, CustomerLimits(max_active_orders=7, order_capacity=50_000)),
-    (250_000_000, CustomerLimits(max_active_orders=6, order_capacity=35_000)),
+    (25_000_000_000, CustomerLimits(max_active_orders=10, order_capacity=500_000)),
+    (5_000_000_000, CustomerLimits(max_active_orders=8, order_capacity=250_000)),
+    (1_000_000_000, CustomerLimits(max_active_orders=7, order_capacity=100_000)),
+    (250_000_000, CustomerLimits(max_active_orders=6, order_capacity=50_000)),
     (50_000_000, CustomerLimits(max_active_orders=5, order_capacity=20_000)),
     (10_000_000, CustomerLimits(max_active_orders=4, order_capacity=10_000)),
 )
