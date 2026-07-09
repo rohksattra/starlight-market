@@ -141,3 +141,6 @@ class ItemService:
             raise ValueError("Item not found")
 
         log.info("Item price updated | item_id=%s new_price=%s", item_id, new_price)
+
+    async def update_item_price(self, *, item_id: str, new_price: int) -> None:
+        await self.update_price(item_id=item_id, new_price=new_price)
