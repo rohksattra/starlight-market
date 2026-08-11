@@ -84,5 +84,4 @@ assets:
   github_user: rohksattra
   github_repo: starlight-market
   github_branch: main
-  # Matches local/repo folder: assets/curseofaros/{items,monsters}/...
   base_path: assets/curseofaros

@@ -1,85 +1,79 @@
 # games/eop/config.yaml
-# Empire of Praxia tenant
-#
-# ONBOARDING CHECKLIST
-# 1. Create Discord server + roles/channels matching CoA layout
-# 2. Fill guild_id + all channel/role IDs below (0 = inactive / skip)
-# 3. Fill games/eop/seed/items.py (+ monsters.py for scramble hints)
-# 4. Seed DB:  cd starlight_v2 && python -m database.seed_cli --game eop
-# 5. Set assets.github_* (+ base_path assets/empireoffraxia) if images are hosted
-# 6. Restart bot — tenant loads when guild_id != 0
-#
-# Set guild_id to 0 to skip this tenant until the EoP server is ready.
+# Full configuration for game: Empire of Praxia
 
-guild_id: 0
+guild_id: 1536776417399017512
 database: empireoffraxia
 
 channels:
-  place_order: 0
-  new_orders_category: 0
-  claimed_orders_category: 0
-  completed_orders_category: 0
-  price: 0
-  market_statistic: 0
-  user_profile: 0
-  claim_log: 0
-  activity_log: 0
-  worker_transaction: 0
-  customer_transaction: 0
-  top_earning_worker: 0
-  top_spending_customer: 0
-  top_item: 0
-  top_donor: 0
-  top_rated_worker: 0
-  rating_message: 0
-  donation: 0
-  giveaway: 0
-  welcome: 0
-  farewell: 0
-  role_claim: 0
-  game_leaderboard: 0
-  counting: 0
-  word_chain: 0
-  scramble_word: 0
-  boss_battle: 0
-  monster_hunt: 0
+  place_order: 1536776418049138775
+  new_orders_category: 1536776418627682359
+  claimed_orders_category: 1536776418627682361
+  completed_orders_category: 1536776418896126041
+  price: 1536776418049138776
+  market_statistic: 1536776418279690331
+  user_profile: 1536776418279690332
+  claim_log: 1536776418627682355
+  activity_log: 1536776418405388379
+  worker_transaction: 1536789762101350461
+  customer_transaction: 1536789426896900137
+  top_earning_worker: 1536776418627682356
+  top_spending_customer: 1536776418405388384
+  top_item: 1536776418279690330
+  top_donor: 1536776418279690334
+  top_rated_worker: 1536776418627682357
+  rating_message: 1536776418405388383
+  donation: 1536776418279690333
+  giveaway: 1536776418279690335
+  welcome: 1536776417436762146
+  farewell: 1536776417436762147
+  role_claim: 1536776417876901903
+  game_leaderboard: 1536776420318253158
+  # Community mini-game channels
+  counting: 1536776419776925854
+  word_chain: 1536776419776925855
+  scramble_word: 1536776419776925856
+  boss_battle: 1536776420318253157
+  monster_hunt: 1536776420318253156
 
 roles:
-  bot_developer: 0
-  bank_manager: 0
-  moderator: 0
-  worker: 0
-  customer: 0
-  announcement: 0
-  giveaway: 0
-  content_notification: 0
+  bot_developer: 1536776417424056428
+  bank_manager: 1536776417424056426
+  moderator: 1536776417424056424
+  worker: 1536776417399017517
+  customer: 1536776417399017516
+  announcement: 1536776417399017515
+  giveaway: 1536776417399017514
+  content_notification: 1536776417399017513
 
+  # Donor tiers (gold threshold → role ID)
   donor_tiers:
-    relic: 0
-    oracle: 0
-    sanctum: 0
-    aether: 0
-    zenith: 0
-    elysium: 0
-    astralis: 0
+    relic: 1536776417399017520         # 5M
+    oracle: 1536776417407148044        # 20M
+    sanctum: 1536776417407148047       # 50M
+    aether: 1536776417407148050        # 100M
+    zenith: 1536776417415663767        # 250M
+    elysium: 1536776417415663770       # 500M
+    astralis: 1536776417415663773      # 1B
 
+  # Worker tiers (income threshold → role ID)
   worker_tiers:
-    explorer: 0
-    ranger: 0
-    astral: 0
-    nova: 0
-    eclipse: 0
-    infinity: 0
-    genesis: 0
+    explorer: 1536776417399017519      # 10M
+    ranger: 1536776417407148043        # 50M
+    astral: 1536776417407148046        # 250M
+    nova: 1536776417407148049          # 1B
+    eclipse: 1536776417407148052       # 5B
+    infinity: 1536776417415663769      # 25B
+    genesis: 1536776417415663772       # 100B
 
+  # Customer tiers (spent threshold → role ID)
   customer_tiers:
-    wanderer: 0
-    voyager: 0
-    stellar: 0
-    nebula: 0
-    galactic: 0
-    cosmic: 0
-    celestial: 0
+    wanderer: 1536776417399017518      # 10M
+    voyager: 1536776417399017521       # 50M
+    stellar: 1536776417407148045       # 250M
+    nebula: 1536776417407148048        # 1B
+    galactic: 1536776417407148051      # 5B
+    cosmic: 1536776417415663768        # 25B
+    celestial: 1536776417415663771     # 100B
 
 economy:
   worker_fee_rate: 0.01
@@ -87,7 +81,7 @@ economy:
   max_active_claims: 3
 
 assets:
-  github_user: ""
-  github_repo: ""
+  github_user: rohksattra
+  github_repo: starlight-market
   github_branch: main
   base_path: assets/empireoffraxia
