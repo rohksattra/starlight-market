@@ -1,0 +1,93 @@
+# games/eop/config.yaml
+# Empire of Praxia tenant
+#
+# ONBOARDING CHECKLIST
+# 1. Create Discord server + roles/channels matching CoA layout
+# 2. Fill guild_id + all channel/role IDs below (0 = inactive / skip)
+# 3. Fill games/eop/seed/items.py (+ monsters.py for scramble hints)
+# 4. Seed DB:  cd starlight_v2 && python -m database.seed_cli --game eop
+# 5. Set assets.github_* (+ base_path assets/empireoffraxia) if images are hosted
+# 6. Restart bot — tenant loads when guild_id != 0
+#
+# Set guild_id to 0 to skip this tenant until the EoP server is ready.
+
+guild_id: 0
+database: empireoffraxia
+
+channels:
+  place_order: 0
+  new_orders_category: 0
+  claimed_orders_category: 0
+  completed_orders_category: 0
+  price: 0
+  market_statistic: 0
+  user_profile: 0
+  claim_log: 0
+  activity_log: 0
+  worker_transaction: 0
+  customer_transaction: 0
+  top_earning_worker: 0
+  top_spending_customer: 0
+  top_item: 0
+  top_donor: 0
+  top_rated_worker: 0
+  rating_message: 0
+  donation: 0
+  giveaway: 0
+  welcome: 0
+  farewell: 0
+  role_claim: 0
+  game_leaderboard: 0
+  counting: 0
+  word_chain: 0
+  scramble_word: 0
+  boss_battle: 0
+  monster_hunt: 0
+
+roles:
+  bot_developer: 0
+  bank_manager: 0
+  moderator: 0
+  worker: 0
+  customer: 0
+  announcement: 0
+  giveaway: 0
+  content_notification: 0
+
+  donor_tiers:
+    relic: 0
+    oracle: 0
+    sanctum: 0
+    aether: 0
+    zenith: 0
+    elysium: 0
+    astralis: 0
+
+  worker_tiers:
+    explorer: 0
+    ranger: 0
+    astral: 0
+    nova: 0
+    eclipse: 0
+    infinity: 0
+    genesis: 0
+
+  customer_tiers:
+    wanderer: 0
+    voyager: 0
+    stellar: 0
+    nebula: 0
+    galactic: 0
+    cosmic: 0
+    celestial: 0
+
+economy:
+  worker_fee_rate: 0.01
+  max_active_orders: 3
+  max_active_claims: 3
+
+assets:
+  github_user: ""
+  github_repo: ""
+  github_branch: main
+  base_path: assets/empireoffraxia
