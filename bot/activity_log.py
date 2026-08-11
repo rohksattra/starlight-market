@@ -14,7 +14,7 @@ _NO_MENTIONS = discord.AllowedMentions.none()
 
 def format_actor(member: discord.abc.User | discord.Member) -> str:
     display = getattr(member, "display_name", None) or member.name
-    return f"```[{display}][{member.name}][{member.id}]```"
+    return f"[{display}][{member.name}][{member.id}]"
 
 
 async def log_activity(
@@ -36,7 +36,7 @@ async def log_activity(
     if not isinstance(channel, discord.TextChannel):
         return
 
-    text = f"{format_actor(member)} {action}".strip()
+    text = f"```{format_actor(member)} {action}```".strip()
     if not text:
         return
 
