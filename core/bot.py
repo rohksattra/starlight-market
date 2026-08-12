@@ -21,6 +21,7 @@ log = logging.getLogger("core.bot")
 EXTENSIONS: tuple[str, ...] = (
     "bot.events.members",
     "bot.events.messages",
+    "bot.events.activity",
     "bot.commands.orders",
     "bot.commands.market",
     "bot.commands.staff",

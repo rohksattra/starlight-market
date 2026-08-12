@@ -8,6 +8,7 @@ from typing import Any
 import discord
 from discord.ext import commands
 
+from bot.activity_log import schedule_game_answer
 from core.tenant import GameContext, get_context
 from models.games import (
     TYPED_ANSWER_GAME_TYPES,
@@ -240,6 +241,12 @@ class GameMessageHandler:
         if not raw.lstrip("-").isdigit():
             return
 
+        schedule_game_answer(
+            message=message,
+            ctx=ctx,
+            game_type="counting",
+            answer=raw,
+        )
         schedule_message_delete(message)
 
         state = await self.runtime.state(ctx, "counting")
@@ -285,6 +292,12 @@ class GameMessageHandler:
         if not word.isalpha() or len(word) < 2:
             return
 
+        schedule_game_answer(
+            message=message,
+            ctx=ctx,
+            game_type="wordchain",
+            answer=word,
+        )
         schedule_message_delete(message)
 
         state = await self.runtime.state(ctx, "wordchain") or await self.runtime.reset_wordchain(ctx)
@@ -341,6 +354,13 @@ class GameMessageHandler:
 
         submitted = _normalize_answer(message.content)
         answer = _normalize_answer(str(state.get("answer", "")))
+
+        schedule_game_answer(
+            message=message,
+            ctx=ctx,
+            game_type="scramble",
+            answer=submitted,
+        )
 
         if submitted != answer:
             await self._safe_react(message, "❌")
