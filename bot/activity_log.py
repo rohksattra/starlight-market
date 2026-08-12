@@ -9,7 +9,6 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 
-from bot.ui.shared import format_utc_timestamp
 from core.tenant import GameContext, get_context
 
 log = logging.getLogger("bot.activity_log")
@@ -60,6 +59,11 @@ _BUTTON_LABEL_ACTIONS = {
 }
 
 
+def format_timestamp(when: datetime | None = None) -> str:
+    moment = when or datetime.utcnow()
+    return moment.strftime("%d/%m/%Y %H:%M:%S")
+
+
 def format_actor(member: discord.abc.User | discord.Member) -> str:
     display = getattr(member, "display_name", None) or member.name
     return f"{display} [@{member.name} | {member.id}]"
@@ -72,8 +76,8 @@ def format_log_message(
     when: datetime | None = None,
 ) -> str:
     action_text = _clip(str(action or "").strip())
-    header = f"[{format_utc_timestamp(when)}] {format_actor(member)}"
-    return _safe_code_block(f"{header}\n{action_text}")
+    body = f"[{format_timestamp(when)}]\n{format_actor(member)}\n{action_text}"
+    return _safe_code_block(body)
 
 
 def _clip(value: str, limit: int = _MAX_ACTION) -> str:
