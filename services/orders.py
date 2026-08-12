@@ -48,6 +48,8 @@ class OrderService:
         item = await ItemRepo(self.ctx.db_name).get_by_id(item_id)
         if not item:
             raise ValueError("Item not found")
+        if int(item.get("item_price", 0) or 0) <= 0:
+            raise ValueError("This item is not available for order yet.")
 
         order_number = await self.orders.next_order_number()
         order_id = str(uuid4())

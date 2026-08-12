@@ -2,7 +2,7 @@
 # Full configuration for game: Empire of Praxia
 
 guild_id: 1536776417399017512
-database: empireoffraxia
+database: empireofpraxia
 
 channels:
   place_order: 1536776418049138775
@@ -84,4 +84,4 @@ assets:
   github_user: rohksattra
   github_repo: starlight-market
   github_branch: main
-  base_path: assets/empireoffraxia
+  base_path: assets/empireofpraxia

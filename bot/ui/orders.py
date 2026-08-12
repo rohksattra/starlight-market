@@ -440,11 +440,12 @@ class OrderItemView(discord.ui.View):
                     emoji = discord.PartialEmoji.from_str(raw)
                 except Exception:
                     emoji = None
+            price = int(it.get("item_price", 0) or 0)
             options.append(
                 discord.SelectOption(
                     label=name[:100],
                     value=str(it.get("item_id")),
-                    description=f"🪙 {int(it.get('item_price', 0)):,}",
+                    description="Unavailable" if price <= 0 else f"🪙 {price:,}",
                     emoji=emoji,
                 )
             )

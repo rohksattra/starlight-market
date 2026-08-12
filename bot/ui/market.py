@@ -204,8 +204,9 @@ def price_embed(
     for item in sliced:
         emoji = item.get("item_emoji") or "🌟"
         name = item.get("item_name", "Unknown Item")
-        price = int(item.get("item_price", 0))
-        lines.append(f"***{emoji} {name}*** — 🪙 ***{price:,}***")
+        price = int(item.get("item_price", 0) or 0)
+        price_text = "***Unavailable***" if price <= 0 else f"🪙 ***{price:,}***"
+        lines.append(f"***{emoji} {name}*** — {price_text}")
 
     embed = discord.Embed(
         title=f"📦 Price List — ***{category}***",

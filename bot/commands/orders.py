@@ -125,6 +125,14 @@ class OrderCommands(commands.Cog):
                     await safe_respond(inter2, content="❌ Item not found.", ephemeral=True)
                     return
 
+                if int(item.get("item_price", 0) or 0) <= 0:
+                    await safe_respond(
+                        inter2,
+                        content="❌ This item is not available for order yet.",
+                        ephemeral=True,
+                    )
+                    return
+
                 item_emoji = item.get("item_emoji", "🌟")
 
                 async def on_quantity(inter3: discord.Interaction, qty: int) -> None:
