@@ -83,10 +83,24 @@ def _option_bits(options: list[dict] | None) -> list[str]:
     return bits
 
 
-def _humanize_custom_id(custom_id: str) -> str:
+def _label_from_message(interaction: discord.Interaction, custom_id: str) -> str | None:
+    message = interaction.message
+    if message is None or not custom_id:
+        return None
+    for row in getattr(message, "components", None) or []:
+        for child in getattr(row, "children", None) or []:
+            if str(getattr(child, "custom_id", "") or "") != custom_id:
+                continue
+            label = getattr(child, "label", None)
+            if label:
+                return str(label).strip() or None
+    return None
+
+
+def _humanize_custom_id(custom_id: str) -> str | None:
     cid = (custom_id or "").strip()
     if not cid:
-        return "a button"
+        return None
 
     if cid == "order:entry:start":
         return "Start Order"
@@ -98,6 +112,10 @@ def _humanize_custom_id(custom_id: str) -> str:
         return "Refresh Claims"
     if cid == "orderclose:close":
         return "Close Order"
+    if cid == "orderclose:yes" or cid.startswith("orderclose:yes:"):
+        return "Yes to close order"
+    if cid == "orderclose:no" or cid.startswith("orderclose:no:"):
+        return "No to close order"
     if cid == "market_stat:refresh":
         return "Refresh Market Stats"
 
@@ -127,7 +145,15 @@ def _humanize_custom_id(custom_id: str) -> str:
         ]
         return f"{action} ({target})"
 
-    return cid.replace(":", " / ")
+    return None
+
+
+def _component_label(interaction: discord.Interaction, custom_id: str) -> str:
+    return (
+        _humanize_custom_id(custom_id)
+        or _label_from_message(interaction, custom_id)
+        or "a button"
+    )
 
 
 def describe_interaction(interaction: discord.Interaction) -> str:
@@ -144,7 +170,7 @@ def describe_interaction(interaction: discord.Interaction) -> str:
         return _clip(f"ran /{name}{suffix}")
 
     custom_id = str(data.get("custom_id") or "")
-    label = _humanize_custom_id(custom_id)
+    label = _component_label(interaction, custom_id)
     if itype == discord.InteractionType.component:
         values = data.get("values")
         if isinstance(values, list) and values:

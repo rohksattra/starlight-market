@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from typing import Awaitable, Callable, Literal
+from uuid import uuid4
 
 import discord
 from discord.errors import NotFound
@@ -687,9 +688,18 @@ class OrderCloseConfirmView(discord.ui.View):
     def __init__(self) -> None:
         super().__init__(timeout=CONFIRM_TIMEOUT_SECONDS)
         self.message: discord.Message | None = None
+        token = uuid4().hex[:8]
 
-        yes_btn = discord.ui.Button(label="Yes", style=discord.ButtonStyle.success)
-        no_btn = discord.ui.Button(label="No", style=discord.ButtonStyle.secondary)
+        yes_btn = discord.ui.Button(
+            label="Yes",
+            style=discord.ButtonStyle.success,
+            custom_id=f"orderclose:yes:{token}",
+        )
+        no_btn = discord.ui.Button(
+            label="No",
+            style=discord.ButtonStyle.secondary,
+            custom_id=f"orderclose:no:{token}",
+        )
         yes_btn.callback = self._yes
         no_btn.callback = self._no
         self.add_item(yes_btn)
