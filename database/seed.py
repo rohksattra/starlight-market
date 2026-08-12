@@ -1,7 +1,4 @@
-"""Tenant-aware catalog seeding (items + monsters).
-
-Safe upsert: never overwrites existing item_price on conflict.
-"""
+"""Tenant-aware catalog seeding (items + monsters)."""
 from __future__ import annotations
 
 import importlib.util
@@ -27,7 +24,6 @@ def _load_module(path: Path, module_name: str) -> Any:
 
 
 def load_game_catalog(game: str) -> tuple[dict[str, list[dict[str, Any]]], list[dict[str, Any]]]:
-    """Load DEFAULT_ITEMS / DEFAULT_MONSTERS from games/<game>/seed/."""
     seed_dir = GAMES_DIR / game / "seed"
     items_path = seed_dir / "items.py"
     monsters_path = seed_dir / "monsters.py"

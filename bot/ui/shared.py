@@ -1,6 +1,8 @@
 """Shared embed helpers, footer, colors."""
 from __future__ import annotations
 
+from datetime import datetime
+
 import discord
 
 STARLIGHT_BRAND = "🌟 Starlight Market"
@@ -9,6 +11,11 @@ BUTTON_PRESS_NOTICE = (
     "💡 Bot may sometimes be a bit slow due to its hosting location. "
     "Please don't press the button too many times — just press once and wait."
 )
+
+
+def format_utc_timestamp(when: datetime | None = None) -> str:
+    moment = when or datetime.utcnow()
+    return f"{moment:%b %d, %Y} at {moment:%H:%M UTC}"
 
 
 def starlight_footer_text(*, detail: str | None = None, include_button_notice: bool = True) -> str:

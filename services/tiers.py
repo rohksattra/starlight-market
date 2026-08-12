@@ -1,7 +1,4 @@
-"""
-Tier thresholds and limits — decoupled from Discord role IDs.
-Role mapping lives in games/<game>/config.yaml; this module uses tier names only.
-"""
+"""Tier thresholds and limits (role IDs live in each game config)."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -30,8 +27,6 @@ DEFAULT_CUSTOMER_LIMITS = CustomerLimits(max_active_orders=3, order_capacity=5_0
 NO_DONOR_LIMITS = DonorLimits(max_coupons=0)
 
 
-# ================= DONOR TIERS =================
-
 DONOR_TIER_THRESHOLDS: tuple[tuple[int, str], ...] = (
     (1_000_000_000, "astralis"),
     (500_000_000, "elysium"),
@@ -52,8 +47,6 @@ DONOR_TIER_LIMITS: tuple[tuple[int, DonorLimits], ...] = (
     (5_000_000, DonorLimits(max_coupons=1)),
 )
 
-# ================= WORKER TIERS =================
-
 WORKER_TIER_THRESHOLDS: tuple[tuple[int, str], ...] = (
     (100_000_000_000, "genesis"),
     (25_000_000_000, "infinity"),
@@ -73,8 +66,6 @@ WORKER_TIER_LIMITS: tuple[tuple[int, WorkerLimits], ...] = (
     (50_000_000, WorkerLimits(max_claim_orders=4, claim_capacity=20_000)),
     (10_000_000, WorkerLimits(max_claim_orders=3, claim_capacity=10_000)),
 )
-
-# ================= CUSTOMER TIERS =================
 
 CUSTOMER_TIER_THRESHOLDS: tuple[tuple[int, str], ...] = (
     (100_000_000_000, "celestial"),

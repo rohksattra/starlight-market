@@ -1,10 +1,4 @@
-"""CLI: seed items/monsters for a game tenant.
-
-Usage (from starlight_v2/):
-  python -m database.seed_cli --game coa
-  python -m database.seed_cli --game eop
-  python -m database.seed_cli --game eop --db empireoffraxia
-"""
+"""CLI to seed items and monsters for a game tenant."""
 from __future__ import annotations
 
 import argparse
@@ -13,7 +7,6 @@ import logging
 import sys
 from pathlib import Path
 
-# Ensure starlight_v2 is on sys.path when run as module
 _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
@@ -26,13 +19,11 @@ log = logging.getLogger("database.seed_cli")
 
 
 def _db_name_for_game(game: str) -> str | None:
-    # Prefer live tenant registry if guild is configured
     load_all_tenants()
     for ctx in all_contexts():
         if ctx.game == game:
             return ctx.db_name
 
-    # Fallback: read yaml even when guild_id == 0
     path = GAMES_DIR / game / "config.yaml"
     if not path.exists():
         return None

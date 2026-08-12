@@ -1,13 +1,4 @@
-"""Build GitHub raw URLs for per-game marketplace assets.
-
-Layout (matches repo `assets/` folder):
-  assets/<db_name>/items/{category}/{file}
-  assets/<db_name>/monsters/{file}
-
-Examples:
-  assets/curseofaros/items/Mining (Ores)/tin-ore.png
-  assets/empireoffraxia/monsters/example.png
-"""
+"""GitHub raw URLs for per-game marketplace assets."""
 from __future__ import annotations
 
 from urllib.parse import quote

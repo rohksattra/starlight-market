@@ -598,7 +598,7 @@ class MarketCommands(commands.Cog):
             guild=interaction.guild,
             ctx=ctx,
             member=interaction.user,
-            action=f"record donation of {gold:,} gold for user {user}",
+            action=f"Added donation of {gold:,} gold for user {user}",
         )
 
     @app_commands.command(name="paid", description="(Staff) Add manual worker income")
@@ -687,9 +687,9 @@ class MarketCommands(commands.Cog):
             ctx=ctx,
             member=interaction.user,
             action=(
-                f"record manual paid for user {user} "
+                f"Added manual worker income for user {user}: "
                 f"{result['quantity']:,}x {result['item_name']} "
-                f"(income {result['income']:,})"
+                f"({result['income']:,} gold)"
             ),
         )
 
@@ -779,9 +779,9 @@ class MarketCommands(commands.Cog):
             ctx=ctx,
             member=interaction.user,
             action=(
-                f"record manual spent for user {user} "
+                f"Added manual customer spending for user {user}: "
                 f"{result['quantity']:,}x {result['item_name']} "
-                f"(spent {result['spent']:,})"
+                f"({result['spent']:,} gold)"
             ),
         )
 

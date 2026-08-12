@@ -1,3 +1,4 @@
+"""Bot entrypoint, extension loading, and shutdown."""
 from __future__ import annotations
 
 import asyncio
@@ -17,7 +18,6 @@ from utils.logger import setup_logging
 
 log = logging.getLogger("core.bot")
 
-# Extensions loaded at bot startup
 EXTENSIONS: tuple[str, ...] = (
     "bot.events.members",
     "bot.events.messages",

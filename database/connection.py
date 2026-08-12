@@ -1,3 +1,4 @@
+"""Mongo client and database access."""
 from __future__ import annotations
 
 import logging
@@ -20,12 +21,10 @@ def _get_client() -> motor.motor_asyncio.AsyncIOMotorClient:
 
 
 def get_db(db_name: str) -> motor.motor_asyncio.AsyncIOMotorDatabase:
-    """Return database by name (curseofaros / empireoffraxia)."""
     return _get_client()[db_name]
 
 
 async def ping() -> None:
-    """Check connection to the Mongo cluster."""
     await _get_client().admin.command("ping")
     log.info("Mongo cluster ping OK")
 

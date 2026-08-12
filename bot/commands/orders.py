@@ -1,7 +1,4 @@
-"""
-Slash & prefix commands for order flow.
-Thin layer: validate input → call service → send UI.
-"""
+"""Slash and prefix commands for orders."""
 from __future__ import annotations
 
 import asyncio
@@ -204,8 +201,8 @@ class OrderCommands(commands.Cog):
                             ctx=ctx,
                             member=inter4.user,
                             action=(
-                                f"create an order of {order['item_quantity']:,}x "
-                                f"{order['item_name']} (#{channel.name})"
+                                f"Created order: {order['item_quantity']:,}x "
+                                f"{order['item_name']} in #{channel.name}"
                             ),
                         )
 
@@ -443,9 +440,8 @@ class OrderCommands(commands.Cog):
             ctx=ctx,
             member=interaction.user,
             action=(
-                f"record {target} income for {user} "
-                f"qty {quantity:,} of {order.get('item_name')} "
-                f"(#{interaction.channel.name})"
+                f"Recorded {target} income for {user}: "
+                f"{quantity:,}x {order.get('item_name')} in #{interaction.channel.name}"
             ),
         )
 
@@ -569,9 +565,8 @@ class OrderCommands(commands.Cog):
                 ctx=ctx,
                 member=interaction.user,
                 action=(
-                    f"create a custom order for {member.name} {member.id} "
-                    f"of {order['item_quantity']:,}x {order['item_name']} "
-                    f"(#{channel.name})"
+                    f"Created custom order for {member.name}: "
+                    f"{order['item_quantity']:,}x {order['item_name']} in #{channel.name}"
                 ),
             )
 
@@ -643,8 +638,8 @@ class OrderCommands(commands.Cog):
             ctx=ctx,
             member=interaction.user,
             action=(
-                f"update order price from {old_price:,} to {new_price:,} "
-                f"for {updated.get('item_name')} (#{interaction.channel.name})"
+                f"Changed order price from {old_price:,} to {new_price:,} gold "
+                f"for {updated.get('item_name')} in #{interaction.channel.name}"
             ),
         )
 
@@ -710,8 +705,8 @@ class OrderCommands(commands.Cog):
             ctx=ctx,
             member=interaction.user,
             action=(
-                f"update order quantity from {old_qty:,} to {new_quantity:,} "
-                f"for {updated.get('item_name')} (#{interaction.channel.name})"
+                f"Changed order quantity from {old_qty:,} to {new_quantity:,} "
+                f"for {updated.get('item_name')} in #{interaction.channel.name}"
             ),
         )
 
@@ -775,8 +770,8 @@ class OrderCommands(commands.Cog):
             ctx=ctx,
             member=interaction.user,
             action=(
-                f"update order customer from {old_customer_id} to {customer} "
-                f"for {updated.get('item_name')} (#{interaction.channel.name})"
+                f"Changed order customer from {old_customer_id} to {customer} "
+                f"for {updated.get('item_name')} in #{interaction.channel.name}"
             ),
         )
 
@@ -928,8 +923,8 @@ class OrderCommands(commands.Cog):
             ctx=ctx,
             member=interaction.user,
             action=(
-                f"force-claim {quantity:,}x {order['item_name']} "
-                f"to worker {worker_id} (#{interaction.channel.name})"
+                f"Force claimed {quantity:,}x {order['item_name']} "
+                f"for worker {worker_id} in #{interaction.channel.name}"
             ),
         )
 
@@ -1006,8 +1001,8 @@ class OrderCommands(commands.Cog):
             ctx=ctx,
             member=interaction.user,
             action=(
-                f"force-unclaim {quantity:,}x {order['item_name']} "
-                f"from worker {worker_id} (#{interaction.channel.name})"
+                f"Force unclaimed {quantity:,}x {order['item_name']} "
+                f"from worker {worker_id} in #{interaction.channel.name}"
             ),
         )
 
@@ -1072,8 +1067,8 @@ class OrderCommands(commands.Cog):
             ctx=tenant,
             member=ctx.author,
             action=(
-                f"cancel order #{order.get('order_number')} "
-                f"{order.get('item_name')} (#{ctx.channel.name})"
+                f"Cancelled order #{order.get('order_number')} "
+                f"({order.get('item_name')}) in #{ctx.channel.name}"
             ),
         )
         await ctx.send("❌ Order canceled. Channel will be deleted.")

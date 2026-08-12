@@ -1,7 +1,4 @@
-"""
-All services accept GameContext as the first parameter.
-No discord imports allowed in this layer.
-"""
+"""Order business logic (no Discord imports)."""
 from __future__ import annotations
 
 import logging

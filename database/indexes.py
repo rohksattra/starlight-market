@@ -1,3 +1,4 @@
+"""Mongo indexes for each game database."""
 from __future__ import annotations
 
 import logging
@@ -19,7 +20,6 @@ async def _has_index(collection, *, keys: Iterable[str]) -> bool:
 
 
 async def ensure_indexes(db_name: str) -> None:
-    """Ensure all required indexes exist for a game database."""
     db = get_db(db_name)
 
     if not await _has_index(db.system_flags, keys=["key"]):

@@ -288,12 +288,10 @@ class CommunityHandler:
     ) -> None:
         now = datetime.utcnow()
 
-        # Resolve tenant from explicit ctx, else from stored guild_id
         svc: GiveawayService | None = None
         if ctx is not None:
             svc = self._svc(ctx)
         else:
-            # Probe all tenants for the giveaway id
             for tenant in all_contexts():
                 candidate = self._svc(tenant)
                 doc_probe = await candidate.get_by_id(giveaway_id)
@@ -377,8 +375,6 @@ class CommunityHandler:
             )
 
         bot.add_view(self.winner_view_for_status(giveaway_id, "completed"))
-
-    # --- interaction handlers ---
 
     async def handle_join(self, interaction: discord.Interaction, giveaway_id: str) -> None:
         if interaction.guild is None or not isinstance(interaction.user, discord.Member):

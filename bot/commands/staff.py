@@ -150,7 +150,7 @@ class StaffCommands(commands.Cog):
             guild=interaction.guild,
             ctx=ctx,
             member=interaction.user,
-            action=f"rename category {category} to {new_category_name.strip()}",
+            action=f'Renamed category "{category}" to "{new_category_name.strip()}"',
         )
 
     @app_commands.command(name="update-item-name", description="(Staff) Update item name")
@@ -198,7 +198,7 @@ class StaffCommands(commands.Cog):
             guild=interaction.guild,
             ctx=ctx,
             member=interaction.user,
-            action=f"update item name for {item_id} to {new_name.strip()}",
+            action=f'Renamed item {item_id} to "{new_name.strip()}"',
         )
 
     @app_commands.command(name="update-item-price", description="(Staff) Update item price")
@@ -246,7 +246,7 @@ class StaffCommands(commands.Cog):
             guild=interaction.guild,
             ctx=ctx,
             member=interaction.user,
-            action=f"update item price for {item_id} to {new_price:,}",
+            action=f"Updated item {item_id} price to {new_price:,} gold",
         )
 
     @commands.command(name="cleanupdata")
@@ -313,10 +313,10 @@ class StaffCommands(commands.Cog):
             ctx=tenant,
             member=ctx.author,
             action=(
-                "run cleanupdata "
-                f"(orders {result['orders_deleted']}, "
-                f"transactions {result['transactions_deleted']}, "
-                f"ratings {result['ratings_deleted']})"
+                "Ran data cleanup "
+                f"(orders: {result['orders_deleted']}, "
+                f"transactions: {result['transactions_deleted']}, "
+                f"ratings: {result['ratings_deleted']})"
             ),
         )
         await result_msg.delete(delay=10)

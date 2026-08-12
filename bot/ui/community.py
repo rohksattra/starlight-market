@@ -19,8 +19,6 @@ MAX_EMBED_CHARS = 5500
 WinnerSelectMode = Literal["reroll", "claim"]
 
 
-# --- custom ids ---
-
 def giveaway_custom_join(giveaway_id: str) -> str:
     return f"sl_gv:{giveaway_id}:j"
 
@@ -53,8 +51,6 @@ def giveaway_custom_close(giveaway_id: str) -> str:
     return f"sl_gvw:{giveaway_id}:x"
 
 
-# --- gateway embeds ---
-
 def welcome_embed(member: discord.Member) -> discord.Embed:
     embed = discord.Embed(
         description=(
@@ -81,8 +77,6 @@ def farewell_embed(member: discord.Member) -> discord.Embed:
     embed.set_thumbnail(url=member.display_avatar.url)
     return embed
 
-
-# --- giveaway embeds ---
 
 def giveaway_panel_embed(*, doc: Giveaway, guild: discord.Guild | None) -> discord.Embed:
     host_id = doc.get("host_user_id", "")
@@ -206,8 +200,6 @@ def giveaway_winners_embed(
     return embed
 
 
-# --- slinfo embeds ---
-
 def _embed_char_count(embed: discord.Embed) -> int:
     total = len(embed.title or "") + len(embed.description or "")
     if embed.footer and embed.footer.text:
@@ -299,8 +291,6 @@ def slinfo_embeds(*, bot_user: discord.ClientUser | discord.User | None = None) 
 
     return embeds
 
-
-# --- giveaway views ---
 
 class GiveawayView(ui.View):
     def __init__(

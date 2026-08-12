@@ -249,8 +249,11 @@ class OrderHandler:
             ctx=ctx,
             member=interaction.user,
             action=(
-                f"{action} {quantity:,}x {updated['item_name']} "
-                f"(#{interaction.channel.name})"
+                f"Claimed {quantity:,}x {updated['item_name']} "
+                f"in #{interaction.channel.name}"
+                if action == "claim"
+                else f"Unclaimed {quantity:,}x {updated['item_name']} "
+                f"in #{interaction.channel.name}"
             ),
         )
 
@@ -326,7 +329,10 @@ class OrderHandler:
             guild=interaction.guild,
             ctx=ctx,
             member=interaction.user,
-            action=f"close order #{order.get('order_number')} {order.get('item_name')} (#{channel.name})",
+            action=(
+                f"Closed order #{order.get('order_number')} "
+                f"({order.get('item_name')}) in #{channel.name}"
+            ),
         )
         await channel.send("✅ Order closed. Channel will be deleted.")
         await asyncio.sleep(5)
@@ -374,7 +380,7 @@ class OrderHandler:
             guild=interaction.guild,
             ctx=ctx,
             member=interaction.user,
-            action=f"rate a worker {rating} star(s)",
+            action=f"Rated worker {rating} star{'s' if rating != 1 else ''}",
         )
 
     async def _disable_rating_buttons(self, interaction: discord.Interaction) -> None:

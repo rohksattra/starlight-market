@@ -1,7 +1,4 @@
-"""
-Run once at bot startup.
-Ensures Mongo indexes exist for every game database.
-"""
+"""Startup bootstrap: Mongo ping, indexes, and catalog checks."""
 from __future__ import annotations
 
 import logging
@@ -32,7 +29,6 @@ async def ensure_order_number_counter(db_name: str) -> None:
 
 
 async def warn_if_catalog_empty(db_name: str) -> None:
-    """Warn when a tenant DB has no items (orders/scramble will fail)."""
     db = get_db(db_name)
     item_count = await db.items.count_documents({})
     if item_count == 0:

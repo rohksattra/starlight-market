@@ -1,11 +1,4 @@
-"""
-Tenant = one game + one Discord server + one Mongo database.
-
-How it works:
-  guild_id  →  GameContext (game name, DB name, full config)
-
-Each game's config is read from games/<game>/config.yaml at bot startup.
-"""
+"""Per-game tenant config loaded from games/<game>/config.yaml."""
 from __future__ import annotations
 
 import logging
@@ -16,13 +9,11 @@ import yaml
 
 log = logging.getLogger("core.tenant")
 
-# Root folder for games/
 GAMES_DIR = Path(__file__).resolve().parent.parent / "games"
 
 
 @dataclass(frozen=True)
 class ChannelConfig:
-    # Main marketplace channels
     place_order: int
     new_orders_category: int
     claimed_orders_category: int
@@ -46,7 +37,6 @@ class ChannelConfig:
     farewell: int
     role_claim: int
     game_leaderboard: int
-    # Community mini-game channels (optional, default 0 = inactive)
     counting: int = 0
     word_chain: int = 0
     scramble_word: int = 0
@@ -56,7 +46,6 @@ class ChannelConfig:
 
 @dataclass(frozen=True)
 class RoleConfig:
-    # Base roles
     bot_developer: int
     bank_manager: int
     moderator: int
@@ -65,7 +54,6 @@ class RoleConfig:
     announcement: int
     giveaway: int
     content_notification: int
-    # Tiers as dict: tier_name → role_id
     donor_tiers: dict[str, int]
     worker_tiers: dict[str, int]
     customer_tiers: dict[str, int]
@@ -76,29 +64,27 @@ class AssetsConfig:
     github_user: str = ""
     github_repo: str = ""
     github_branch: str = "main"
-    # Repo-relative root, e.g. assets/curseofaros → .../assets/curseofaros/items/...
     base_path: str = ""
 
 
 @dataclass(frozen=True)
 class EconomyConfig:
-    worker_fee_rate: float  # e.g. 0.01 = 1% commission, worker receives 99%
-    max_active_orders: int  # default max active orders per customer
-    max_active_claims: int  # default max active claims per worker
+    worker_fee_rate: float
+    max_active_orders: int
+    max_active_claims: int
 
 
 @dataclass(frozen=True)
 class GameContext:
-    game: str  # "coa" | "eop"
+    game: str
     guild_id: int
-    db_name: str  # "curseofaros" | "empireoffraxia"
+    db_name: str
     channels: ChannelConfig
     roles: RoleConfig
     economy: EconomyConfig
     assets: AssetsConfig
 
 
-# Internal registry: guild_id → GameContext
 _registry: dict[int, GameContext] = {}
 
 
@@ -190,10 +176,6 @@ def _parse_context(game: str, data: dict) -> GameContext:
 
 
 def load_all_tenants() -> None:
-    """
-    Called at bot startup.
-    Reads all folders in games/ and registers each game as a tenant.
-    """
     _registry.clear()
 
     if not GAMES_DIR.exists():
@@ -214,8 +196,6 @@ def load_all_tenants() -> None:
         try:
             data = _load_yaml(config_path)
             guild_id = int(data.get("guild_id", 0))
-
-            # Skip if guild_id is not set (value 0)
             if guild_id == 0:
                 log.warning("Tenant skipped (guild_id not set) | game=%s", game)
                 continue
@@ -228,10 +208,8 @@ def load_all_tenants() -> None:
 
 
 def get_context(guild_id: int) -> GameContext | None:
-    """Return GameContext for the given Discord guild_id."""
     return _registry.get(guild_id)
 
 
 def all_contexts() -> list[GameContext]:
-    """Return all registered tenants."""
     return list(_registry.values())

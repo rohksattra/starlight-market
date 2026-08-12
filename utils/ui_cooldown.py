@@ -11,7 +11,6 @@ def begin_refresh_cooldown(
     *,
     seconds: int,
 ) -> int | None:
-    """Return remaining seconds if on cooldown; otherwise record use and return None."""
     now = time.time()
     last_used = cooldowns.get(user_id)
     if last_used is not None:
