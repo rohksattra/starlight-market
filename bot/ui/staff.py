@@ -27,7 +27,7 @@ _RULES_VIOLATION_NOTE = (
 
 
 def _rule_block(number: int, title: str, body: str) -> str:
-    return f"**{number}.** {title}\n{body}"
+    return f"**{number}.- {title}**\n*{body}*"
 
 
 def _role_mention(role_id: int, fallback: str) -> str:
@@ -39,24 +39,24 @@ def market_rules_embeds(ctx: GameContext) -> list[discord.Embed]:
     moderator = _role_mention(ctx.roles.moderator, "Moderator")
 
     intro = discord.Embed(
-        title=f"{ctx.brand.emoji} {ctx.brand.name}'s Rules",
         description=(
-            "**Welcome everyone!**\n"
-            "Please read these rules before using the Market. "
-            "There are three categories:\n\n"
-            "📜 **General Rules** — apply to everyone on this server\n"
-            "⚒️ **Worker Rules** — apply to all Workers\n"
-            "🛒 **Customer Rules** — apply to all Customers"
+            f"## {ctx.brand.emoji} {ctx.brand.name}'s Rules\n\n"
+            f"**{ctx.brand.emoji} Welcome Everyone!**\n"
+            "Here are our server rules. There are three categories of rules on this server:\n"
+            "**General Rules**\n"
+            "**Worker Rules**\n"
+            "**Customer Rules**\n\n"
+            "---"
         ),
         color=_RULES_COLOR,
     )
     set_starlight_footer(intro, ctx=ctx, include_button_notice=False)
 
     general = discord.Embed(
-        title="📜 General Rules",
         description="\n\n".join(
             [
-                "These rules apply to **everyone** on this server.",
+                "## 📜 General Rules",
+                "Welcome to the General Regulations! These rules apply to everyone on the server.",
                 _rule_block(
                     1,
                     "English Is the Main Language",
@@ -69,8 +69,10 @@ def market_rules_embeds(ctx: GameContext) -> list[discord.Embed]:
                 ),
                 _rule_block(
                     3,
-                    "No Unauthorized Self-Promotion",
-                    "Advertising services, servers, or products is prohibited unless specifically allowed by the Market.",
+                    "No Unauthorized Promotion",
+                    "Do not advertise services, servers, products, other communities, or streams "
+                    "unless the Market explicitly allows it. You may share your own content in the "
+                    "designated media channel if it is relevant and useful to the community.",
                 ),
                 _rule_block(
                     4,
@@ -97,13 +99,6 @@ def market_rules_embeds(ctx: GameContext) -> list[discord.Embed]:
                     "Do Not Share Personal Information",
                     "Do not share phone numbers, addresses, passwords, or other sensitive personal information.",
                 ),
-                _rule_block(
-                    9,
-                    "No Unauthorized Advertising",
-                    "Advertising other communities, services, or streams is not allowed. "
-                    "You may share your content in the designated media channel if it is relevant "
-                    "and provides value to the community.",
-                ),
                 _RULES_VIOLATION_NOTE,
             ]
         ),
@@ -111,10 +106,10 @@ def market_rules_embeds(ctx: GameContext) -> list[discord.Embed]:
     )
 
     worker = discord.Embed(
-        title="⚒️ Worker Rules",
         description="\n\n".join(
             [
-                "These rules apply to all **Workers**.",
+                "## ⚒️ Worker Rules",
+                "Welcome to the Worker Regulations! These rules apply to all Workers.",
                 _rule_block(
                     1,
                     "No Direct Trading with Customers",
@@ -156,10 +151,10 @@ def market_rules_embeds(ctx: GameContext) -> list[discord.Embed]:
     )
 
     customer = discord.Embed(
-        title="🛒 Customer Rules",
         description="\n\n".join(
             [
-                "These rules apply to all **Customers**.",
+                "## 🛒 Customer Rules",
+                "Welcome to the Customer Regulations! These rules apply to all Customers.",
                 _rule_block(
                     1,
                     "One Order at a Time",
