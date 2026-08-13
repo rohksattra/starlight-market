@@ -43,6 +43,7 @@ class ChannelConfig:
     boss_battle: int = 0
     monster_hunt: int = 0
     rules: int = 0
+    pickup: int = 0
 
 
 @dataclass(frozen=True)
@@ -82,6 +83,7 @@ class BrandConfig:
     audience: str = "players"
     points_name: str = "Starlight Points"
     points_short: str = "SP"
+    bank_ign: str = "StarlightBank"
 
     @property
     def label(self) -> str:
@@ -155,6 +157,7 @@ def _parse_context(game: str, data: dict) -> GameContext:
         boss_battle=int(channels_raw.get("boss_battle", 0)),
         monster_hunt=int(channels_raw.get("monster_hunt", 0)),
         rules=int(channels_raw.get("rules", 0)),
+        pickup=int(channels_raw.get("pickup", 0)),
     )
 
     roles = RoleConfig(
@@ -195,6 +198,7 @@ def _parse_context(game: str, data: dict) -> GameContext:
         audience=str(brand_raw.get("audience") or "players").strip() or "players",
         points_name=str(brand_raw.get("points_name") or "Starlight Points").strip() or "Starlight Points",
         points_short=str(brand_raw.get("points_short") or "SP").strip() or "SP",
+        bank_ign=str(brand_raw.get("bank_ign") or "StarlightBank").strip() or "StarlightBank",
     )
 
     return GameContext(

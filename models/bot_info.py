@@ -74,6 +74,7 @@ COMMAND_GROUPS: Final[list[CommandGroup]] = [
             {"name": "!mprice", "description": "Post price list panels"},
             {"name": "!mroles", "description": "Post role claim panel"},
             {"name": "!mrules", "description": "Post market rules panel"},
+            {"name": "!mpickup", "description": "Post worker pickup guide"},
             {"name": "!mstat", "description": "Post market statistics"},
             {"name": "!mclaimable", "description": "List claimable order items"},
             {"name": "!mcleanupdata", "description": "Delete old orders, transactions, ratings"},

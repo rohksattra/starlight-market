@@ -144,6 +144,7 @@ Residual Mongo data for those games was cleaned from `curseofaros` before go-liv
 | `!mprice` | OM | OK |
 | `!mroles` | OM | OK |
 | `!mrules` | OM | OK |
+| `!mpickup` | OM | OK |
 | `!mstat` | Public | OK |
 | `!mclaimable` | Public | OK |
 | `!mme` | Public | OK |
@@ -267,6 +268,7 @@ Tenant config and seed catalog are in place. Remaining operational steps:
 | Price boards | `!mprice` |
 | Role claim | `!mroles` |
 | Market rules | `!mrules` |
+| Worker pickup guide | `!mpickup` |
 | Market stats | `!mstat` |
 | All leaderboards | `/leaderboard-panel-all` |
 | One game panel | `/game-panel` |

@@ -10,6 +10,7 @@ brand:
   audience: Praxia players
   points_name: Praxia Points
   points_short: PP
+  bank_ign: PraxiaBank
 
 channels:
   place_order: 1536776418049138775
@@ -35,6 +36,7 @@ channels:
   farewell: 1536776417436762147
   role_claim: 1536776417876901903
   rules: 1536776417876901902
+  pickup: 1536776418627682358
   game_leaderboard: 1536776420318253158
   # Community mini-game channels
   counting: 1536776419776925854

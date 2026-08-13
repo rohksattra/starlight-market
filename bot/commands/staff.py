@@ -11,7 +11,7 @@ from discord.ext import commands
 
 from bot.activity_log import log_activity
 from bot.tier_sync import TierRoleService
-from bot.ui.staff import RoleClaimView, market_rules_embeds, role_claim_embed
+from bot.ui.staff import RoleClaimView, market_rules_embeds, pickup_guide_embed, role_claim_embed
 from core.tenant import get_context
 from models.enums import ORDER_MANAGEMENT_ROLES, STAFF_ROLES
 from services.items import ItemService
@@ -138,6 +138,46 @@ class StaffCommands(commands.Cog):
         except discord.HTTPException:
             log.exception("Failed to post market rules | guild=%s", ctx.guild.id)
             await ctx.send("❌ Failed to post market rules.", delete_after=8)
+            await failed(ctx)
+            return
+
+        await success(ctx)
+
+    @commands.command(name="mpickup")
+    async def mpickup(self, ctx: commands.Context) -> None:
+        if ctx.guild is None or not isinstance(ctx.author, discord.Member):
+            return
+
+        tenant = get_context(ctx.guild.id)
+        if tenant is None:
+            await ctx.send("❌ Unknown game server.", delete_after=8)
+            await failed(ctx)
+            return
+
+        if not has_any_role(ctx.author, tenant, ORDER_MANAGEMENT_ROLES):
+            await ctx.send("❌ Only Bot Developer / Bank Manager.", delete_after=8)
+            await failed(ctx)
+            return
+
+        channel = ctx.guild.get_channel(tenant.channels.pickup)
+        if not isinstance(channel, discord.TextChannel):
+            log.error("pickup channel invalid | guild=%s", ctx.guild.id)
+            await ctx.send("❌ Pickup channel is not configured correctly.", delete_after=8)
+            await failed(ctx)
+            return
+
+        try:
+            await channel.send(
+                embed=pickup_guide_embed(tenant),
+                allowed_mentions=discord.AllowedMentions.none(),
+            )
+        except discord.Forbidden:
+            await ctx.send("❌ Cannot send messages to the pickup channel.", delete_after=8)
+            await failed(ctx)
+            return
+        except discord.HTTPException:
+            log.exception("Failed to post pickup guide | guild=%s", ctx.guild.id)
+            await ctx.send("❌ Failed to post pickup guide.", delete_after=8)
             await failed(ctx)
             return
 

@@ -200,6 +200,36 @@ def market_rules_embeds(ctx: GameContext) -> list[discord.Embed]:
     return [intro, general, worker, customer]
 
 
+_CHEST_BANK_EMOJI = "<:ChestBank:1375467191675392131>"
+
+
+def pickup_guide_embed(ctx: GameContext) -> discord.Embed:
+    bank = _role_mention(ctx.roles.bank_manager, "Bank Manager")
+    worker = _role_mention(ctx.roles.worker, "Worker")
+    fee_rate = float(ctx.economy.worker_fee_rate)
+    keep_pct = int(round((1.0 - fee_rate) * 100))
+    fee_pct = int(round(fee_rate * 100))
+
+    embed = discord.Embed(
+        description=(
+            f"This chat room is dedicated for {bank} to pick up orders from {worker}\n\n"
+            "## 📝 Format for Workers\n"
+            "Workers must submit their orders using the following format or something similar:\n\n"
+            f"**Item Quantity, #order-channel, and ping {bank}**\n"
+            "Example:\n"
+            f"-# 1k #2000-magic-essence {bank}\n\n"
+            f"## {_CHEST_BANK_EMOJI} Bank Manager\n"
+            f"Our Bank Managers (IGN: **{ctx.brand.bank_ign}**) will ping you with the payment amount "
+            "and the pickup location once we are available to collect your order.\n\n"
+            f"{worker} will get paid **{keep_pct}%** from the total price "
+            f"(**{fee_pct}%** market commission)."
+        ),
+        color=_RULES_COLOR,
+    )
+    set_starlight_footer(embed, ctx=ctx, include_button_notice=False)
+    return embed
+
+
 def role_claim_embed(ctx: GameContext) -> discord.Embed:
     embed = discord.Embed(
         title="🎭 Role Panel",
