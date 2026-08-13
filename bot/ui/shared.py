@@ -5,7 +5,11 @@ from datetime import datetime
 
 import discord
 
-STARLIGHT_BRAND = "🌟 Starlight Market"
+from core.tenant import GameContext, get_context
+
+DEFAULT_BRAND_NAME = "Starlight Market"
+DEFAULT_BRAND_EMOJI = "🌟"
+DEFAULT_BRAND_LABEL = f"{DEFAULT_BRAND_EMOJI} {DEFAULT_BRAND_NAME}"
 
 BUTTON_PRESS_NOTICE = (
     "💡 Bot may sometimes be a bit slow due to its hosting location. "
@@ -18,8 +22,36 @@ def format_utc_timestamp(when: datetime | None = None) -> str:
     return f"{moment:%b %d, %Y} at {moment:%H:%M UTC}"
 
 
-def starlight_footer_text(*, detail: str | None = None, include_button_notice: bool = True) -> str:
-    head = STARLIGHT_BRAND if not detail else f"{STARLIGHT_BRAND} • {detail}"
+def market_brand_name(ctx: GameContext | None = None) -> str:
+    if ctx is None:
+        return DEFAULT_BRAND_NAME
+    return ctx.brand.name
+
+
+def market_brand_label(ctx: GameContext | None = None) -> str:
+    if ctx is None:
+        return DEFAULT_BRAND_LABEL
+    return ctx.brand_label
+
+
+def ctx_from_guild(guild: discord.Guild | None) -> GameContext | None:
+    if guild is None:
+        return None
+    return get_context(guild.id)
+
+
+def ctx_from_interaction(interaction: discord.Interaction) -> GameContext | None:
+    return ctx_from_guild(interaction.guild)
+
+
+def starlight_footer_text(
+    *,
+    ctx: GameContext | None = None,
+    detail: str | None = None,
+    include_button_notice: bool = True,
+) -> str:
+    brand = market_brand_label(ctx)
+    head = brand if not detail else f"{brand} • {detail}"
     if not include_button_notice:
         return head
     return f"{head}\n{BUTTON_PRESS_NOTICE}"
@@ -28,11 +60,13 @@ def starlight_footer_text(*, detail: str | None = None, include_button_notice: b
 def set_starlight_footer(
     embed: discord.Embed,
     *,
+    ctx: GameContext | None = None,
     detail: str | None = None,
     include_button_notice: bool = True,
 ) -> discord.Embed:
     embed.set_footer(
         text=starlight_footer_text(
+            ctx=ctx,
             detail=detail,
             include_button_notice=include_button_notice,
         )

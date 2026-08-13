@@ -9,8 +9,8 @@ from typing import Any, Dict, cast
 import discord
 from discord.ext import commands
 
-from bot.ui.shared import set_starlight_footer
-from core.tenant import get_context
+from bot.ui.shared import ctx_from_interaction, set_starlight_footer
+from core.tenant import GameContext, get_context
 from models.games import (
     GAME_PANEL_TITLES,
     GAME_TITLES,
@@ -34,7 +34,7 @@ def _require_ctx(interaction: discord.Interaction):
     return get_context(interaction.guild.id)
 
 
-def counting_embed(*, question: str) -> discord.Embed:
+def counting_embed(*, question: str, ctx: GameContext | None = None) -> discord.Embed:
     embed = discord.Embed(
         title=GAME_PANEL_TITLES["counting"],
         description=(
@@ -50,11 +50,12 @@ def counting_embed(*, question: str) -> discord.Embed:
     )
     return set_starlight_footer(
         embed,
+        ctx=ctx,
         detail=f"Last refresh: {datetime.utcnow():%b %d, %Y} at {datetime.utcnow():%H:%M UTC}",
     )
 
 
-def wordchain_embed(*, word: str, used_count: int = 0) -> discord.Embed:
+def wordchain_embed(*, word: str, used_count: int = 0, ctx: GameContext | None = None) -> discord.Embed:
     last = word[-1].upper() if word else "?"
     embed = discord.Embed(
         title=GAME_PANEL_TITLES["wordchain"],
@@ -71,11 +72,12 @@ def wordchain_embed(*, word: str, used_count: int = 0) -> discord.Embed:
     embed.add_field(name="Used Words", value=f"{used_count:,}", inline=True)
     return set_starlight_footer(
         embed,
+        ctx=ctx,
         detail=f"Last refresh: {datetime.utcnow():%b %d, %Y} at {datetime.utcnow():%H:%M UTC}",
     )
 
 
-def scramble_embed(*, scrambled: str, hint_image_url: str = "") -> discord.Embed:
+def scramble_embed(*, scrambled: str, hint_image_url: str = "", ctx: GameContext | None = None) -> discord.Embed:
     embed = discord.Embed(
         title=GAME_PANEL_TITLES["scramble"],
         description=(
@@ -91,6 +93,7 @@ def scramble_embed(*, scrambled: str, hint_image_url: str = "") -> discord.Embed
         embed.set_thumbnail(url=hint_image_url)
     return set_starlight_footer(
         embed,
+        ctx=ctx,
         detail=f"Last refresh: {datetime.utcnow():%b %d, %Y} at {datetime.utcnow():%H:%M UTC}",
     )
 
@@ -99,6 +102,7 @@ def battle_embed(
     *,
     game_type: PlayableGameType,
     state: Dict[str, Any],
+    ctx: GameContext | None = None,
 ) -> discord.Embed:
     max_hp = int(state.get("max_hp", 1) or 1)
     hp = max(0, int(state.get("hp", 0) or 0))
@@ -139,6 +143,7 @@ def battle_embed(
     )
     return set_starlight_footer(
         embed,
+        ctx=ctx,
         detail=f"Last refresh: {datetime.utcnow():%b %d, %Y} at {datetime.utcnow():%H:%M UTC}",
     )
 
@@ -149,6 +154,7 @@ def game_leaderboard_embed(
     entries: list[dict[str, Any]],
     page: int,
     page_size: int,
+    ctx: GameContext | None = None,
     refreshed_at: datetime | None = None,
 ) -> discord.Embed:
     start = page * page_size
@@ -170,6 +176,7 @@ def game_leaderboard_embed(
         refreshed_at = datetime.utcnow()
     set_starlight_footer(
         embed,
+        ctx=ctx,
         detail=(
             f"Page {page + 1}/{total_pages} • "
             f"Last refresh: {refreshed_at:%b %d, %Y} "
@@ -241,7 +248,7 @@ class CountingGameView(_BaseGameView):
             state = await runtime.state(ctx, "counting") or await runtime.reset_counting(ctx)
             await safe_edit_message(
                 interaction,
-                embed=counting_embed(question=state["question"]),
+                embed=counting_embed(question=state["question"], ctx=ctx),
                 view=self,
             )
             await safe_respond(interaction, content="✅ Counting panel refreshed.", ephemeral=True)
@@ -290,6 +297,7 @@ class WordChainGameView(_BaseGameView):
                     used_count=int(
                         state.get("used_count", len(state.get("used_words", []))) or 0
                     ),
+                    ctx=ctx,
                 ),
                 view=self,
             )
@@ -339,6 +347,7 @@ class ScrambleGameView(_BaseGameView):
                 embed=scramble_embed(
                     scrambled=state["scrambled"],
                     hint_image_url=state.get("hint_image_url", ""),
+                    ctx=ctx,
                 ),
                 view=self,
             )
@@ -423,7 +432,7 @@ class BattleGameView(_BaseGameView):
 
             await safe_edit_message(
                 interaction,
-                embed=battle_embed(game_type=self.game_type, state=state),
+                embed=battle_embed(game_type=self.game_type, state=state, ctx=ctx),
                 view=self,
             )
             await safe_respond(interaction, content="✅ Battle panel refreshed.", ephemeral=True)
@@ -544,6 +553,7 @@ class GameLeaderboardPaginationView(discord.ui.View):
                     entries=entries,
                     page=self.page,
                     page_size=PAGE_SIZE,
+                    ctx=ctx_from_interaction(interaction),
                 ),
                 view=self,
             )
@@ -574,6 +584,7 @@ class GameLeaderboardPaginationView(discord.ui.View):
                 entries=entries,
                 page=self.page,
                 page_size=PAGE_SIZE,
+                ctx=ctx_from_interaction(interaction),
             ),
             view=self,
         )

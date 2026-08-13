@@ -11,7 +11,7 @@ from discord.ext import commands
 
 from bot.activity_log import log_activity
 from bot.tier_sync import TierRoleService
-from bot.ui.staff import RoleClaimView, role_claim_embed
+from bot.ui.staff import RoleClaimView, market_rules_embeds, role_claim_embed
 from core.tenant import get_context
 from models.enums import ORDER_MANAGEMENT_ROLES, STAFF_ROLES
 from services.items import ItemService
@@ -71,7 +71,7 @@ class StaffCommands(commands.Cog):
             if query in str(i["item_name"]).lower()
         ][:25]
 
-    @commands.command(name="roles")
+    @commands.command(name="mroles")
     async def roles_command(self, ctx: commands.Context) -> None:
         if ctx.guild is None or not isinstance(ctx.author, discord.Member):
             return
@@ -95,9 +95,49 @@ class StaffCommands(commands.Cog):
             return
 
         try:
-            await channel.send(embed=role_claim_embed(), view=RoleClaimView())
+            await channel.send(embed=role_claim_embed(tenant), view=RoleClaimView())
         except discord.Forbidden:
             await ctx.send("❌ Cannot send messages to the role claim channel.", delete_after=8)
+            await failed(ctx)
+            return
+
+        await success(ctx)
+
+    @commands.command(name="mrules")
+    async def mrules(self, ctx: commands.Context) -> None:
+        if ctx.guild is None or not isinstance(ctx.author, discord.Member):
+            return
+
+        tenant = get_context(ctx.guild.id)
+        if tenant is None:
+            await ctx.send("❌ Unknown game server.", delete_after=8)
+            await failed(ctx)
+            return
+
+        if not has_any_role(ctx.author, tenant, ORDER_MANAGEMENT_ROLES):
+            await ctx.send("❌ Only Bot Developer / Bank Manager.", delete_after=8)
+            await failed(ctx)
+            return
+
+        channel = ctx.guild.get_channel(tenant.channels.rules)
+        if not isinstance(channel, discord.TextChannel):
+            log.error("rules channel invalid | guild=%s", ctx.guild.id)
+            await ctx.send("❌ Rules channel is not configured correctly.", delete_after=8)
+            await failed(ctx)
+            return
+
+        try:
+            await channel.send(
+                embeds=market_rules_embeds(tenant),
+                allowed_mentions=discord.AllowedMentions.none(),
+            )
+        except discord.Forbidden:
+            await ctx.send("❌ Cannot send messages to the rules channel.", delete_after=8)
+            await failed(ctx)
+            return
+        except discord.HTTPException:
+            log.exception("Failed to post market rules | guild=%s", ctx.guild.id)
+            await ctx.send("❌ Failed to post market rules.", delete_after=8)
             await failed(ctx)
             return
 
@@ -249,7 +289,7 @@ class StaffCommands(commands.Cog):
             action=f"Updated item {item_id} price to {new_price:,} gold",
         )
 
-    @commands.command(name="cleanupdata")
+    @commands.command(name="mcleanupdata")
     async def cleanupdata(self, ctx: commands.Context) -> None:
         if ctx.guild is None or not isinstance(ctx.author, discord.Member):
             return

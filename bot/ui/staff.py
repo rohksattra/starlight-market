@@ -7,7 +7,7 @@ import discord
 from discord import ui
 
 from bot.ui.shared import set_starlight_footer
-from core.tenant import get_context
+from core.tenant import GameContext, get_context
 
 log = logging.getLogger("bot.ui.staff")
 
@@ -19,7 +19,193 @@ CID_GIVEAWAY = "sl_rc:giveaway"
 CID_CONTENT = "sl_rc:content"
 
 
-def role_claim_embed() -> discord.Embed:
+_RULES_COLOR = 0xFFD700
+_RULES_VIOLATION_NOTE = (
+    "-# Failure to follow these rules may result in a mute, kick, or ban, "
+    "depending on the severity of the violation."
+)
+
+
+def _rule_block(number: int, title: str, body: str) -> str:
+    return f"**{number}.** {title}\n{body}"
+
+
+def _role_mention(role_id: int, fallback: str) -> str:
+    return f"<@&{role_id}>" if role_id else fallback
+
+
+def market_rules_embeds(ctx: GameContext) -> list[discord.Embed]:
+    bank_manager = _role_mention(ctx.roles.bank_manager, "Bank Manager")
+    moderator = _role_mention(ctx.roles.moderator, "Moderator")
+
+    intro = discord.Embed(
+        title=f"{ctx.brand.emoji} {ctx.brand.name}'s Rules",
+        description=(
+            "**Welcome everyone!**\n"
+            "Please read these rules before using the Market. "
+            "There are three categories:\n\n"
+            "📜 **General Rules** — apply to everyone on this server\n"
+            "⚒️ **Worker Rules** — apply to all Workers\n"
+            "🛒 **Customer Rules** — apply to all Customers"
+        ),
+        color=_RULES_COLOR,
+    )
+    set_starlight_footer(intro, ctx=ctx, include_button_notice=False)
+
+    general = discord.Embed(
+        title="📜 General Rules",
+        description="\n\n".join(
+            [
+                "These rules apply to **everyone** on this server.",
+                _rule_block(
+                    1,
+                    "English Is the Main Language",
+                    "All communication must be in English.",
+                ),
+                _rule_block(
+                    2,
+                    "Respect Others",
+                    "No harassment, racism, NSFW/gore content, excessive toxicity, or spamming.",
+                ),
+                _rule_block(
+                    3,
+                    "No Unauthorized Self-Promotion",
+                    "Advertising services, servers, or products is prohibited unless specifically allowed by the Market.",
+                ),
+                _rule_block(
+                    4,
+                    "Follow Procedures",
+                    "Use the appropriate channels and read the instructions before asking questions.",
+                ),
+                _rule_block(
+                    5,
+                    "Respect the Staff",
+                    "Staff are here to help and manage the Market, but they are not your personal assistants.",
+                ),
+                _rule_block(
+                    6,
+                    "No Off-Topic Messages in Service Channels",
+                    "Keep Market channels focused on orders, claims, deliveries, and other relevant activities.",
+                ),
+                _rule_block(
+                    7,
+                    "Report Issues Privately",
+                    "If you have an issue with a transaction or another user, report it to the staff through a ticket or DM.",
+                ),
+                _rule_block(
+                    8,
+                    "Do Not Share Personal Information",
+                    "Do not share phone numbers, addresses, passwords, or other sensitive personal information.",
+                ),
+                _rule_block(
+                    9,
+                    "No Unauthorized Advertising",
+                    "Advertising other communities, services, or streams is not allowed. "
+                    "You may share your content in the designated media channel if it is relevant "
+                    "and provides value to the community.",
+                ),
+                _RULES_VIOLATION_NOTE,
+            ]
+        ),
+        color=_RULES_COLOR,
+    )
+
+    worker = discord.Embed(
+        title="⚒️ Worker Rules",
+        description="\n\n".join(
+            [
+                "These rules apply to all **Workers**.",
+                _rule_block(
+                    1,
+                    "No Direct Trading with Customers",
+                    f"All trades must go through the {ctx.brand.name} system. "
+                    "Bypassing the Market to trade directly with Customers is strictly forbidden and may result in a ban.",
+                ),
+                _rule_block(
+                    2,
+                    "Use the Dedicated Channel for Deliveries",
+                    "Once your claim is ready, notify the Bank Managers in the appropriate channel so they can arrange the pickup.",
+                ),
+                _rule_block(
+                    3,
+                    "Workers Can Place Orders",
+                    "Workers may also use the Market as Customers. However, regular Customers will always have priority.",
+                ),
+                _rule_block(
+                    4,
+                    "No Stockpiling Unrequested Items",
+                    "Only gather items that are listed in an active order or specifically requested by the Market.",
+                ),
+                _rule_block(
+                    5,
+                    "Quality Control Matters",
+                    "Do not mix item types or deliver incorrect materials. "
+                    "Repeated mistakes may result in a suspension from working with the Market.",
+                ),
+                _rule_block(
+                    6,
+                    "Faster Is Better",
+                    "You have approximately 3 days to complete or update your claim. "
+                    "Staff will check the progress from time to time, so make sure you claim a reasonable amount "
+                    "that you can complete within the timeframe.",
+                ),
+                _RULES_VIOLATION_NOTE,
+            ]
+        ),
+        color=_RULES_COLOR,
+    )
+
+    customer = discord.Embed(
+        title="🛒 Customer Rules",
+        description="\n\n".join(
+            [
+                "These rules apply to all **Customers**.",
+                _rule_block(
+                    1,
+                    "One Order at a Time",
+                    "Please place only one resource order at a time.",
+                ),
+                _rule_block(
+                    2,
+                    "No Order Size Limit",
+                    "There is currently no maximum order size. However, please don't go overboard with unreasonable quantities. "
+                    "The Market uses a tiered system to determine each Customer's order capacity. "
+                    "Start small and work your way up to unlimited capacity.",
+                ),
+                _rule_block(
+                    3,
+                    "No Cancellation Abuse",
+                    "Repeatedly cancelling orders without a valid reason may result in a temporary ban from the Market.",
+                ),
+                _rule_block(
+                    4,
+                    "Prices Follow the Market",
+                    "Market prices are based on current market conditions and may change from time to time.",
+                ),
+                _rule_block(
+                    5,
+                    "Be Precise When Ordering",
+                    "Only order the items and quantities you actually need. "
+                    "Make sure you have enough gold to pay for the entire order.",
+                ),
+                _rule_block(
+                    6,
+                    "No Editing Orders",
+                    f"If you make a mistake, please ping a {bank_manager} or {moderator} for assistance.",
+                ),
+                _RULES_VIOLATION_NOTE,
+            ]
+        ),
+        color=_RULES_COLOR,
+    )
+
+    for embed in (general, worker, customer):
+        set_starlight_footer(embed, ctx=ctx, include_button_notice=False)
+
+    return [intro, general, worker, customer]
+
+
+def role_claim_embed(ctx: GameContext) -> discord.Embed:
     embed = discord.Embed(
         title="🎭 Role Panel",
         color=0xFFD700,
@@ -37,7 +223,7 @@ def role_claim_embed() -> discord.Embed:
         "### 🔔 Content\n"
         "Notifications for new community content."
     )
-    set_starlight_footer(embed)
+    set_starlight_footer(embed, ctx=ctx)
     return embed
 
 

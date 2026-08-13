@@ -1,4 +1,4 @@
-"""Static bot intro and command catalog for !slinfo."""
+"""Static bot intro and command catalog for !minfo."""
 from __future__ import annotations
 
 from typing import Final, TypedDict
@@ -14,32 +14,33 @@ class CommandGroup(TypedDict):
     commands: list[CommandEntry]
 
 
-BOT_INTRO: Final[str] = (
-    "## Hello, CoA players! 👋\n"
-    "Are you tired of grinding and wasting time shouting in chat just to find items?\n"
-    "Come to ***Starlight Market*** ✨ — place an order and become our ***Customer***!\n\n"
-    "Do you love grinding, farming, or selling the items you get to earn gold?\n"
-    "Come to ***Starlight Market*** 💰 — take an order and become our ***Worker***!\n\n"
-    "🌌 What is ***Starlight Market***?\n"
-    "Starlight Market is a player-driven ***marketplace*** where ***customers*** can safely "
-    "***place orders*** and ***workers complete them*** for gold.\n\n"
-    "### 🌟 Features\n"
-    "🤖 ***Automated***, bot-based order system for customers\n"
-    "💸 Only 1% gold commission per completed order — ***workers keep 99% gold***\n"
-    "🛒 Competitive prices and ***great deals*** for everyone\n"
-    "♾️ ***Unlimited*** item ***quantities*** — anytime, anything\n"
-    "📩 ***Custom orders*** available\n"
-    "🌍 ***Safe, friendly, and great environment***\n"
-    "🛡️ ***Trusted*** by the community — including mods and guards\n"
-    "✨ And much more!"
-)
+def bot_intro(*, market_name: str, audience: str, emoji: str) -> str:
+    return (
+        f"## Hello, {audience}! 👋\n"
+        "Are you tired of grinding and wasting time shouting in chat just to find items?\n"
+        f"Come to ***{market_name}*** ✨ — place an order and become our ***Customer***!\n\n"
+        "Do you love grinding, farming, or selling the items you get to earn gold?\n"
+        f"Come to ***{market_name}*** 💰 — take an order and become our ***Worker***!\n\n"
+        f"🌌 What is ***{market_name}***?\n"
+        f"{market_name} is a player-driven ***marketplace*** where ***customers*** can safely "
+        "***place orders*** and ***workers complete them*** for gold.\n\n"
+        f"### {emoji} Features\n"
+        "🤖 ***Automated***, bot-based order system for customers\n"
+        "💸 Only 1% gold commission per completed order — ***workers keep 99% gold***\n"
+        "🛒 Competitive prices and ***great deals*** for everyone\n"
+        "♾️ ***Unlimited*** item ***quantities*** — anytime, anything\n"
+        "📩 ***Custom orders*** available\n"
+        "🌍 ***Safe, friendly, and great environment***\n"
+        "🛡️ ***Trusted*** by the community — including mods and guards\n"
+        "✨ And much more!"
+    )
 
 COMMAND_GROUPS: Final[list[CommandGroup]] = [
     {
         "title": "👤 Member",
         "commands": [
-            {"name": "!slinfo", "description": "Bot info and available commands"},
-            {"name": "!me", "description": "View your profile"},
+            {"name": "!minfo", "description": "Bot info and available commands"},
+            {"name": "!mme", "description": "View your profile"},
             {"name": "/profile", "description": "View a member profile"},
         ],
     },
@@ -52,7 +53,7 @@ COMMAND_GROUPS: Final[list[CommandGroup]] = [
     {
         "title": "🏦 Bank Manager (+ 👤 Member)",
         "commands": [
-            {"name": "!cancel", "description": "Cancel the current order channel"},
+            {"name": "!mcancel", "description": "Cancel the current order channel"},
             {"name": "/custom-order", "description": "Create a custom/manual order"},
             {"name": "/order-item-price-update", "description": "Update order item price"},
             {"name": "/order-item-quantity-update", "description": "Update order item quantity"},
@@ -69,12 +70,13 @@ COMMAND_GROUPS: Final[list[CommandGroup]] = [
     {
         "title": "💻 Bot Developer (all commands)",
         "commands": [
-            {"name": "!order", "description": "Post order entry panel"},
-            {"name": "!price", "description": "Post price list panels"},
-            {"name": "!roles", "description": "Post role claim panel"},
+            {"name": "!morder", "description": "Post order entry panel"},
+            {"name": "!mprice", "description": "Post price list panels"},
+            {"name": "!mroles", "description": "Post role claim panel"},
+            {"name": "!mrules", "description": "Post market rules panel"},
             {"name": "!mstat", "description": "Post market statistics"},
-            {"name": "!claimable", "description": "List claimable order items"},
-            {"name": "!cleanupdata", "description": "Delete old orders, transactions, ratings"},
+            {"name": "!mclaimable", "description": "List claimable order items"},
+            {"name": "!mcleanupdata", "description": "Delete old orders, transactions, ratings"},
             {"name": "/leaderboard-panel", "description": "Post a leaderboard panel"},
             {"name": "/leaderboard-panel-all", "description": "Post all leaderboard panels"},
             {"name": "/game-panel", "description": "Post a game panel"},

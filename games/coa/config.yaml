@@ -4,6 +4,11 @@
 guild_id: 1367090559122149427
 database: curseofaros
 
+brand:
+  name: Starlight Market
+  emoji: "🌟"
+  audience: CoA players
+
 channels:
   place_order: 1398760905558196464
   new_orders_category: 1368100919379759124
@@ -27,6 +32,7 @@ channels:
   welcome: 1367115062921396346
   farewell: 1367122098828349483
   role_claim: 1504139307810820147
+  rules: 1367122446645198890
   game_leaderboard: 1499402044157460551
   # Community mini-game channels
   counting: 1510572791508897943

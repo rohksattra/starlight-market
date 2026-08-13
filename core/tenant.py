@@ -42,6 +42,7 @@ class ChannelConfig:
     scramble_word: int = 0
     boss_battle: int = 0
     monster_hunt: int = 0
+    rules: int = 0
 
 
 @dataclass(frozen=True)
@@ -75,6 +76,21 @@ class EconomyConfig:
 
 
 @dataclass(frozen=True)
+class BrandConfig:
+    name: str = "Starlight Market"
+    emoji: str = "🌟"
+    audience: str = "players"
+
+    @property
+    def label(self) -> str:
+        emoji = self.emoji.strip()
+        name = self.name.strip()
+        if emoji and name:
+            return f"{emoji} {name}"
+        return name or emoji or "Starlight Market"
+
+
+@dataclass(frozen=True)
 class GameContext:
     game: str
     guild_id: int
@@ -83,6 +99,11 @@ class GameContext:
     roles: RoleConfig
     economy: EconomyConfig
     assets: AssetsConfig
+    brand: BrandConfig = BrandConfig()
+
+    @property
+    def brand_label(self) -> str:
+        return self.brand.label
 
 
 _registry: dict[int, GameContext] = {}
@@ -100,6 +121,7 @@ def _parse_context(game: str, data: dict) -> GameContext:
     roles_raw = data.get("roles", {})
     economy_raw = data.get("economy", {})
     assets_raw = data.get("assets", {})
+    brand_raw = data.get("brand") or {}
 
     channels = ChannelConfig(
         place_order=int(channels_raw.get("place_order", 0)),
@@ -130,6 +152,7 @@ def _parse_context(game: str, data: dict) -> GameContext:
         scramble_word=int(channels_raw.get("scramble_word", 0)),
         boss_battle=int(channels_raw.get("boss_battle", 0)),
         monster_hunt=int(channels_raw.get("monster_hunt", 0)),
+        rules=int(channels_raw.get("rules", 0)),
     )
 
     roles = RoleConfig(
@@ -164,6 +187,12 @@ def _parse_context(game: str, data: dict) -> GameContext:
         base_path=raw_base,
     )
 
+    brand = BrandConfig(
+        name=str(brand_raw.get("name") or "Starlight Market").strip() or "Starlight Market",
+        emoji=str(brand_raw.get("emoji") or "🌟").strip() or "🌟",
+        audience=str(brand_raw.get("audience") or "players").strip() or "players",
+    )
+
     return GameContext(
         game=game,
         guild_id=int(data["guild_id"]),
@@ -172,6 +201,7 @@ def _parse_context(game: str, data: dict) -> GameContext:
         roles=roles,
         economy=economy,
         assets=assets,
+        brand=brand,
     )
 
 

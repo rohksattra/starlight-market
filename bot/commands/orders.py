@@ -256,7 +256,7 @@ class OrderCommands(commands.Cog):
             ephemeral=True,
         )
 
-    @commands.command(name="order")
+    @commands.command(name="morder")
     async def order_entry_panel(self, ctx: commands.Context) -> None:
         if not isinstance(ctx.author, discord.Member) or ctx.guild is None:
             return
@@ -289,7 +289,7 @@ class OrderCommands(commands.Cog):
         role_mention = role.mention if role else "@Bank Manager"
 
         await channel.send(
-            embed=order_entry_embed(role_mention),
+            embed=order_entry_embed(role_mention, tenant),
             view=OrderEntryView(self.start_order),
         )
         await success(ctx)
@@ -638,6 +638,7 @@ class OrderCommands(commands.Cog):
             old_value=old_price,
             new_value=new_price,
             worker_role=worker_role,
+            ctx=ctx,
         )
         await interaction.channel.send(content=content, embed=embed)
         await safe_respond(interaction, content="✅ Order item price updated.", ephemeral=True)
@@ -705,6 +706,7 @@ class OrderCommands(commands.Cog):
             old_value=old_qty,
             new_value=new_quantity,
             worker_role=worker_role,
+            ctx=ctx,
         )
         await interaction.channel.send(content=content, embed=embed)
         await safe_respond(interaction, content="✅ Order item quantity updated.", ephemeral=True)
@@ -770,6 +772,7 @@ class OrderCommands(commands.Cog):
             old_value=old_customer_id,
             new_value=customer,
             worker_role=worker_role,
+            ctx=ctx,
         )
         await interaction.channel.send(content=content, embed=embed)
         await safe_respond(interaction, content="✅ Order customer updated.", ephemeral=True)
@@ -922,6 +925,7 @@ class OrderCommands(commands.Cog):
                     channel=interaction.channel,
                     action="force_claim",
                     staff=interaction.user,
+                    ctx=ctx,
                 )
             )
 
@@ -1000,6 +1004,7 @@ class OrderCommands(commands.Cog):
                     channel=interaction.channel,
                     action="force_unclaim",
                     staff=interaction.user,
+                    ctx=ctx,
                 )
             )
 
@@ -1014,7 +1019,7 @@ class OrderCommands(commands.Cog):
             ),
         )
 
-    @commands.command(name="cancel")
+    @commands.command(name="mcancel")
     async def cancel_order(self, ctx: commands.Context) -> None:
         if not isinstance(ctx.author, discord.Member) or ctx.guild is None:
             return

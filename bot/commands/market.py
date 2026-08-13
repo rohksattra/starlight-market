@@ -116,7 +116,7 @@ class MarketCommands(commands.Cog):
                 break
         return results
 
-    @commands.command(name="me")
+    @commands.command(name="mme")
     async def me(self, ctx: commands.Context) -> None:
         if ctx.guild is None or not isinstance(ctx.author, discord.Member):
             return
@@ -186,7 +186,7 @@ class MarketCommands(commands.Cog):
 
         await ctx_or_interaction.followup.send(embed=embed)
 
-    @commands.command(name="price")
+    @commands.command(name="mprice")
     async def price(self, ctx: commands.Context) -> None:
         if ctx.guild is None or not isinstance(ctx.author, discord.Member):
             return
@@ -229,7 +229,7 @@ class MarketCommands(commands.Cog):
             view = PricePaginationView(category=category)
             view.set_initial_state(total_items=len(items))
             await price_channel.send(
-                embed=price_embed(category=category, items=items, page=0),
+                embed=price_embed(category=category, items=items, page=0, ctx=tenant),
                 view=view,
             )
 
@@ -257,7 +257,7 @@ class MarketCommands(commands.Cog):
         await target.send(embed=embed, view=MarketStatisticRefreshView())
         await success(ctx)
 
-    @commands.command(name="claimable")
+    @commands.command(name="mclaimable")
     async def claimable(self, ctx: commands.Context) -> None:
         if ctx.guild is None:
             return
@@ -279,7 +279,7 @@ class MarketCommands(commands.Cog):
         view = ClaimablePaginationView()
         view.set_initial_state(total_items=len(entries))
         await ctx.send(
-            embed=claimable_embed(entries=entries, page=0, page_size=PAGE_SIZE),
+            embed=claimable_embed(entries=entries, page=0, page_size=PAGE_SIZE, ctx=tenant),
             view=view,
         )
         await success(ctx)
@@ -338,6 +338,7 @@ class MarketCommands(commands.Cog):
                     entries=entries,
                     page=0,
                     page_size=PAGE_SIZE,
+                    ctx=get_context(channel.guild.id),
                 ),
                 view=view,
             )
@@ -354,6 +355,7 @@ class MarketCommands(commands.Cog):
                 lb_type=cast(Literal["worker", "customer", "item", "donor"], lb_type),
                 page=0,
                 page_size=PAGE_SIZE,
+                ctx=get_context(channel.guild.id),
             ),
             view=view,
         )
@@ -583,6 +585,7 @@ class MarketCommands(commands.Cog):
                 gold=gold,
                 description=description,
                 donor_tier_role_id=donor_tier_role_id,
+                ctx=ctx,
             )
             try:
                 await ch.send(embed=embed)

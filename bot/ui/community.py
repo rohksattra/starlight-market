@@ -7,8 +7,9 @@ from typing import List, Literal
 import discord
 from discord import ui
 
-from bot.ui.shared import set_starlight_footer
-from models.bot_info import BOT_INTRO, COMMAND_GROUPS, CommandEntry, CommandGroup
+from bot.ui.shared import ctx_from_guild, set_starlight_footer
+from core.tenant import GameContext
+from models.bot_info import COMMAND_GROUPS, CommandEntry, CommandGroup, bot_intro
 from models.giveaway import Giveaway, giveaway_effective_status
 
 EMBED_COLOR = 0xFFD700
@@ -52,6 +53,7 @@ def giveaway_custom_close(giveaway_id: str) -> str:
 
 
 def welcome_embed(member: discord.Member) -> discord.Embed:
+    ctx = ctx_from_guild(member.guild)
     embed = discord.Embed(
         description=(
             f"Hello, {member.mention}!\n"
@@ -60,12 +62,13 @@ def welcome_embed(member: discord.Member) -> discord.Embed:
         ),
         color=EMBED_COLOR,
     )
-    embed.set_footer(text="🌟 Starlight Market")
+    set_starlight_footer(embed, ctx=ctx, include_button_notice=False)
     embed.set_thumbnail(url=member.display_avatar.url)
     return embed
 
 
 def farewell_embed(member: discord.Member) -> discord.Embed:
+    ctx = ctx_from_guild(member.guild)
     embed = discord.Embed(
         description=(
             f"**{member.mention}** has left the server.\n"
@@ -73,7 +76,7 @@ def farewell_embed(member: discord.Member) -> discord.Embed:
         ),
         color=EMBED_COLOR,
     )
-    embed.set_footer(text="🌟 Starlight Market")
+    set_starlight_footer(embed, ctx=ctx, include_button_notice=False)
     embed.set_thumbnail(url=member.display_avatar.url)
     return embed
 
@@ -119,7 +122,7 @@ def giveaway_panel_embed(*, doc: Giveaway, guild: discord.Guild | None) -> disco
     embed.add_field(name="Participants", value=f"**{participant_count}**", inline=True)
     embed.add_field(name="Ends", value=discord.utils.format_dt(ends_at, style="F"), inline=False)
     embed.add_field(name="Status", value=status_line, inline=False)
-    set_starlight_footer(embed)
+    set_starlight_footer(embed, ctx=ctx_from_guild(guild))
     return embed
 
 
@@ -196,7 +199,7 @@ def giveaway_winners_embed(
             inline=False,
         )
 
-    set_starlight_footer(embed)
+    set_starlight_footer(embed, ctx=ctx_from_guild(guild))
     return embed
 
 
@@ -212,6 +215,7 @@ def _embed_char_count(embed: discord.Embed) -> int:
 def _new_slinfo_embed(
     *,
     title: str,
+    ctx: GameContext | None = None,
     description: str | None = None,
     bot_user: discord.ClientUser | discord.User | None = None,
     with_thumbnail: bool = False,
@@ -223,7 +227,7 @@ def _new_slinfo_embed(
     )
     if with_thumbnail and bot_user is not None:
         embed.set_thumbnail(url=bot_user.display_avatar.url)
-    set_starlight_footer(embed, include_button_notice=False)
+    set_starlight_footer(embed, ctx=ctx, include_button_notice=False)
     return embed
 
 
@@ -257,34 +261,52 @@ def _chunk_command_value(commands: list[CommandEntry]) -> list[str]:
     return chunks
 
 
-def _add_group_fields(embeds: list[discord.Embed], group: CommandGroup, *, page_title: str) -> None:
+def _add_group_fields(
+    embeds: list[discord.Embed],
+    group: CommandGroup,
+    *,
+    page_title: str,
+    ctx: GameContext | None = None,
+) -> None:
     chunks = _chunk_command_value(group["commands"])
     for index, value in enumerate(chunks):
         name = group["title"] if index == 0 else f"{group['title']} (cont.)"
         if not embeds or not _can_add_field(embeds[-1], name=name, value=value):
-            embeds.append(_new_slinfo_embed(title=page_title))
+            embeds.append(_new_slinfo_embed(title=page_title, ctx=ctx))
         embeds[-1].add_field(name=name, value=value, inline=False)
 
 
-def slinfo_embeds(*, bot_user: discord.ClientUser | discord.User | None = None) -> list[discord.Embed]:
-    intro = BOT_INTRO if len(BOT_INTRO) <= MAX_DESCRIPTION else BOT_INTRO[: MAX_DESCRIPTION - 1] + "…"
+def slinfo_embeds(
+    *,
+    ctx: GameContext,
+    bot_user: discord.ClientUser | discord.User | None = None,
+) -> list[discord.Embed]:
+    intro_text = bot_intro(
+        market_name=ctx.brand.name,
+        audience=ctx.brand.audience,
+        emoji=ctx.brand.emoji,
+    )
+    intro = intro_text if len(intro_text) <= MAX_DESCRIPTION else intro_text[: MAX_DESCRIPTION - 1] + "…"
+    brand = ctx.brand_label
     embeds: list[discord.Embed] = [
         _new_slinfo_embed(
-            title="🌟 Starlight Market — Bot Info",
+            title=f"{brand} — Bot Info",
             description=intro,
             bot_user=bot_user,
             with_thumbnail=True,
+            ctx=ctx,
         )
     ]
 
     for group in COMMAND_GROUPS:
-        _add_group_fields(embeds, group, page_title="🌟 Starlight Market — Commands")
+        _add_group_fields(embeds, group, page_title=f"{brand} — Commands", ctx=ctx)
 
     if len(embeds) > 1:
         total = len(embeds)
         for index, embed in enumerate(embeds, start=1):
             set_starlight_footer(
                 embed,
+                ctx=ctx,
                 detail=f"Page {index}/{total}",
                 include_button_notice=False,
             )

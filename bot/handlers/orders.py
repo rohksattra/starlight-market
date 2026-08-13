@@ -117,6 +117,7 @@ async def after_income_recorded(
                     item_emoji=item_emoji,
                     item_quantity=quantity,
                     order_channel=order_channel,
+                    ctx=ctx,
                 )
                 msg = await rating_channel.send(
                     content=content,
@@ -145,12 +146,13 @@ async def after_income_recorded(
                 item_price=int(order["item_price"]),
                 quantity=completed_qty,
                 coupon_applied=bool(order.get("coupon_applied")),
+                ctx=ctx,
             )
             await order_channel.send(content=content, embed=embed)
 
     if target == "customer" and result.get("delivered"):
         await order_channel.send(
-            embed=close_embed(bank_manager_role_id=ctx.roles.bank_manager),
+            embed=close_embed(bank_manager_role_id=ctx.roles.bank_manager, ctx=ctx),
             view=OrderCloseView(),
             allowed_mentions=discord.AllowedMentions(roles=True),
         )
@@ -239,6 +241,7 @@ class OrderHandler:
                 quantity=quantity,
                 channel=interaction.channel,
                 action=action,
+                ctx=ctx,
             )
             await log_channel.send(embed=embed)
 

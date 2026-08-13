@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Literal, Sequence, cast
 import discord
 
 from bot.ui.orders import worker_rating_summary
-from bot.ui.shared import set_starlight_footer
+from bot.ui.shared import ctx_from_interaction, set_starlight_footer
 from core.tenant import GameContext, get_context
 from services.tier_limits import ProfileLimitInfo
 from services.tiers import (
@@ -147,7 +147,7 @@ def profile_embed(
         f"Top Donor: 🥇 ***{donor_rank_text}***\n"
         f"Gold Donated: 🪙 ***{donation_i:,}***"
     )
-    set_starlight_footer(embed, include_button_notice=False)
+    set_starlight_footer(embed, ctx=ctx, include_button_notice=False)
     return embed
 
 
@@ -156,6 +156,7 @@ def donation_embed(
     user_id: str,
     gold: int,
     description: str,
+    ctx: GameContext,
     donor_tier_role_id: int | None = None,
 ) -> discord.Embed:
     raw = (description or "").strip()
@@ -184,7 +185,7 @@ def donation_embed(
         description=body,
         color=0xFFD700,
     )
-    set_starlight_footer(embed, include_button_notice=False)
+    set_starlight_footer(embed, ctx=ctx, include_button_notice=False)
     return embed
 
 
@@ -193,6 +194,7 @@ def price_embed(
     category: str,
     items: List[Dict[str, Any]],
     page: int,
+    ctx: GameContext | None = None,
     page_size: int = PAGE_SIZE,
     refreshed_at: datetime | None = None,
 ) -> discord.Embed:
@@ -220,6 +222,7 @@ def price_embed(
 
     set_starlight_footer(
         embed,
+        ctx=ctx,
         detail=(
             f"Page {page + 1}/{total_pages} • "
             f"Last refresh: {refreshed_at:%b %d, %Y} "
@@ -234,6 +237,7 @@ def claimable_embed(
     entries: List[Dict[str, Any]],
     page: int,
     page_size: int,
+    ctx: GameContext | None = None,
     refreshed_at: datetime | None = None,
 ) -> discord.Embed:
     start = page * page_size
@@ -260,6 +264,7 @@ def claimable_embed(
 
     set_starlight_footer(
         embed,
+        ctx=ctx,
         detail=(
             f"Page {page + 1}/{total_pages} • "
             f"Last refresh: {refreshed_at:%b %d, %Y} "
@@ -309,17 +314,19 @@ def market_statistic_embed(
     total_customers: int,
     refreshed_at: datetime | None = None,
 ) -> discord.Embed:
+    ctx = get_context(guild.id)
+    title = f"📊 {ctx.brand.name} Statistics" if ctx else "📊 Market Statistics"
     if not order or not gold:
         embed = discord.Embed(
-            title="📊 Starlight Market Statistics",
+            title=title,
             description="⚠️ **No data available.**",
             color=0xFFD700,
         )
-        set_starlight_footer(embed)
+        set_starlight_footer(embed, ctx=ctx)
         return embed
 
     completed = order.get("completed", 0)
-    embed = discord.Embed(title="📊 Starlight Market Statistics", color=0xFFD700)
+    embed = discord.Embed(title=title, color=0xFFD700)
     embed.description = (
         "### 🛒 Order Overview\n"
         f"- Total Orders: 🛒 ***{order.get('total', 0):,}***\n"
@@ -347,6 +354,7 @@ def market_statistic_embed(
 
     set_starlight_footer(
         embed,
+        ctx=ctx,
         detail=(
             f"Last refresh: {refreshed_at:%b %d, %Y} "
             f"at {refreshed_at:%H:%M UTC}"
@@ -362,6 +370,7 @@ def leaderboard_embed(
     lb_type: LBType,
     page: int,
     page_size: int,
+    ctx: GameContext | None = None,
     refreshed_at: datetime | None = None,
 ) -> discord.Embed:
     start = page * page_size
@@ -391,6 +400,7 @@ def leaderboard_embed(
 
     set_starlight_footer(
         embed,
+        ctx=ctx,
         detail=(
             f"Page {page + 1}/{total_pages} • "
             f"Last refresh: {refreshed_at:%b %d, %Y} "
@@ -406,6 +416,7 @@ def rated_leaderboard_embed(
     entries: List[Dict[str, Any]],
     page: int,
     page_size: int,
+    ctx: GameContext | None = None,
     refreshed_at: datetime | None = None,
 ) -> discord.Embed:
     start = page * page_size
@@ -431,6 +442,7 @@ def rated_leaderboard_embed(
 
     set_starlight_footer(
         embed,
+        ctx=ctx,
         detail=(
             f"Page {page + 1}/{total_pages} • "
             f"Last refresh: {refreshed_at:%b %d, %Y} "
@@ -503,6 +515,7 @@ class PricePaginationView(discord.ui.View):
                 items=items,
                 page=self.page,
                 page_size=PAGE_SIZE,
+                ctx=ctx_from_interaction(interaction),
             ),
             view=self,
         )
@@ -519,6 +532,7 @@ class PricePaginationView(discord.ui.View):
                 items=items,
                 page=self.page,
                 page_size=PAGE_SIZE,
+                ctx=ctx_from_interaction(interaction),
             ),
             view=self,
         )
@@ -550,6 +564,7 @@ class PricePaginationView(discord.ui.View):
                     items=items,
                     page=self.page,
                     page_size=PAGE_SIZE,
+                    ctx=ctx_from_interaction(interaction),
                 ),
                 view=self,
             )
@@ -613,7 +628,12 @@ class ClaimablePaginationView(discord.ui.View):
         entries = await self._fetch_entries(interaction)
         self._sync(len(entries))
         await interaction.response.edit_message(
-            embed=claimable_embed(entries=entries, page=self.page, page_size=PAGE_SIZE),
+            embed=claimable_embed(
+                entries=entries,
+                page=self.page,
+                page_size=PAGE_SIZE,
+                ctx=ctx_from_interaction(interaction),
+            ),
             view=self,
         )
 
@@ -624,7 +644,12 @@ class ClaimablePaginationView(discord.ui.View):
             self.page += 1
         self._sync(len(entries))
         await interaction.response.edit_message(
-            embed=claimable_embed(entries=entries, page=self.page, page_size=PAGE_SIZE),
+            embed=claimable_embed(
+                entries=entries,
+                page=self.page,
+                page_size=PAGE_SIZE,
+                ctx=ctx_from_interaction(interaction),
+            ),
             view=self,
         )
 
@@ -647,7 +672,12 @@ class ClaimablePaginationView(discord.ui.View):
         self._sync(len(entries))
         await safe_edit_message(
             interaction,
-            embed=claimable_embed(entries=entries, page=0, page_size=PAGE_SIZE),
+            embed=claimable_embed(
+                entries=entries,
+                page=0,
+                page_size=PAGE_SIZE,
+                ctx=ctx_from_interaction(interaction),
+            ),
             view=self,
         )
 
@@ -809,6 +839,7 @@ class LeaderboardPaginationView(discord.ui.View):
                     lb_type=cast(LBType, self.lb_type),
                     page=self.page,
                     page_size=PAGE_SIZE,
+                    ctx=ctx_from_interaction(interaction),
                 ),
                 view=self,
             )
@@ -828,6 +859,7 @@ class LeaderboardPaginationView(discord.ui.View):
                 lb_type=cast(LBType, self.lb_type),
                 page=self.page,
                 page_size=PAGE_SIZE,
+                ctx=ctx_from_interaction(interaction),
             ),
             view=self,
         )
@@ -924,6 +956,7 @@ class RatedLeaderboardPaginationView(discord.ui.View):
                     entries=entries,
                     page=self.page,
                     page_size=PAGE_SIZE,
+                    ctx=ctx_from_interaction(interaction),
                 ),
                 view=self,
             )
@@ -943,6 +976,7 @@ class RatedLeaderboardPaginationView(discord.ui.View):
                 entries=entries,
                 page=self.page,
                 page_size=PAGE_SIZE,
+                ctx=ctx_from_interaction(interaction),
             ),
             view=self,
         )

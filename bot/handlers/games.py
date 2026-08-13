@@ -109,6 +109,7 @@ class GameHandler:
                 entries=entries,
                 page=0,
                 page_size=PAGE_SIZE,
+                ctx=ctx,
             ),
             view=view,
         )
@@ -142,7 +143,7 @@ class GameHandler:
 
         if game_type == "counting":
             state = await runtime.state(ctx, "counting") or await runtime.reset_counting(ctx)
-            embed = counting_embed(question=str(state["question"]))
+            embed = counting_embed(question=str(state["question"]), ctx=ctx)
             view: discord.ui.View = CountingGameView()
 
         elif game_type == "wordchain":
@@ -152,6 +153,7 @@ class GameHandler:
                 used_count=int(
                     state.get("used_count", len(state.get("used_words", []))) or 0
                 ),
+                ctx=ctx,
             )
             view = WordChainGameView()
 
@@ -160,6 +162,7 @@ class GameHandler:
             embed = scramble_embed(
                 scrambled=str(state["scrambled"]),
                 hint_image_url=str(state.get("hint_image_url", "")),
+                ctx=ctx,
             )
             view = ScrambleGameView()
 
@@ -168,7 +171,7 @@ class GameHandler:
                 await runtime.state(ctx, game_type)
                 or await runtime.reset_enemy(ctx, game_type=game_type)
             )
-            embed = battle_embed(game_type=game_type, state=state)
+            embed = battle_embed(game_type=game_type, state=state, ctx=ctx)
             view = BattleGameView(game_type=game_type)
 
         else:
@@ -277,7 +280,7 @@ class GameMessageHandler:
         await self.runtime.edit_game_panel(
             ctx,
             game_type="counting",
-            embed=counting_embed(question=state["question"]),
+            embed=counting_embed(question=state["question"], ctx=ctx),
             view=CountingGameView(),
         )
 
@@ -335,7 +338,7 @@ class GameMessageHandler:
         await self.runtime.edit_game_panel(
             ctx,
             game_type="wordchain",
-            embed=wordchain_embed(word=word, used_count=used_count),
+            embed=wordchain_embed(word=word, used_count=used_count, ctx=ctx),
             view=WordChainGameView(),
         )
 
@@ -387,6 +390,7 @@ class GameMessageHandler:
             embed=scramble_embed(
                 scrambled=state["scrambled"],
                 hint_image_url=state.get("hint_image_url", ""),
+                ctx=ctx,
             ),
             view=ScrambleGameView(),
         )

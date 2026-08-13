@@ -163,7 +163,7 @@ class GameRuntimeService:
         await self.edit_game_panel(
             ctx,
             game_type=game_type,
-            embed=battle_embed(game_type=game_type, state=state),
+            embed=battle_embed(game_type=game_type, state=state, ctx=ctx),
             view=BattleGameView(game_type=game_type),
         )
         return state
@@ -265,7 +265,7 @@ class GameRuntimeService:
             await self.edit_game_panel(
                 ctx,
                 game_type=game_type,
-                embed=battle_embed(game_type=game_type, state=state),
+                embed=battle_embed(game_type=game_type, state=state, ctx=ctx),
                 view=BattleGameView(game_type=game_type),
             )
 
@@ -283,7 +283,7 @@ class GameRuntimeService:
             await self.edit_game_panel(
                 ctx,
                 game_type=game_type,
-                embed=battle_embed(game_type=game_type, state=state),
+                embed=battle_embed(game_type=game_type, state=state, ctx=ctx),
                 view=BattleGameView(game_type=game_type),
             )
             return {
@@ -328,7 +328,7 @@ class GameRuntimeService:
             await self.edit_game_panel(
                 ctx,
                 game_type=game_type,
-                embed=battle_embed(game_type=game_type, state=fresh),
+                embed=battle_embed(game_type=game_type, state=fresh, ctx=ctx),
                 view=BattleGameView(game_type=game_type),
             )
 
@@ -392,7 +392,7 @@ class GameRuntimeService:
         await self.edit_game_panel(
             ctx,
             game_type=game_type,
-            embed=battle_embed(game_type=game_type, state=new_state),
+            embed=battle_embed(game_type=game_type, state=new_state, ctx=ctx),
             view=BattleGameView(game_type=game_type),
         )
 

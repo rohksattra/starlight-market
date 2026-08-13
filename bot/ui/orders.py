@@ -112,7 +112,7 @@ def order_embed(
     image_url = _item_image_url(ctx, order.get("item_image", ""), order.get("item_category", ""))
     if image_url:
         embed.set_thumbnail(url=image_url)
-    set_starlight_footer(embed, detail="Good Luck 💪 & Have Fun 🙃")
+    set_starlight_footer(embed, ctx=ctx, detail="Good Luck 💪 & Have Fun 🙃")
     return f"🔊 {worker_mention}", embed
 
 
@@ -142,14 +142,14 @@ async def update_order_embed(
     image_url = _item_image_url(ctx, order.get("item_image", ""), order.get("item_category", ""))
     if image_url:
         embed.set_thumbnail(url=image_url)
-    set_starlight_footer(embed, detail="Good Luck 💪 & Have Fun 🙃")
+    set_starlight_footer(embed, ctx=ctx, detail="Good Luck 💪 & Have Fun 🙃")
     await msg.edit(content=f"🔊 {worker_mention}", embed=embed)
 
 
-def order_entry_embed(role_mention: str) -> discord.Embed:
+def order_entry_embed(role_mention: str, ctx: GameContext) -> discord.Embed:
     embed = discord.Embed(
         description=(
-            "Welcome to 🌟 **Starlight Market** 🛒\n\n"
+            f"Welcome to {ctx.brand.emoji} **{ctx.brand.name}** 🛒\n\n"
             "1️⃣ Click **Order Now**\n"
             "2️⃣ Select category & item\n"
             "3️⃣ Enter quantity\n"
@@ -158,7 +158,7 @@ def order_entry_embed(role_mention: str) -> discord.Embed:
         ),
         color=0xFFD700,
     )
-    set_starlight_footer(embed)
+    set_starlight_footer(embed, ctx=ctx)
     return embed
 
 
@@ -169,6 +169,7 @@ def claim_log_embed(
     quantity: int,
     channel: discord.TextChannel,
     action: str,
+    ctx: GameContext,
     item_emoji: str = "🌟",
     staff: discord.Member | None = None,
 ) -> discord.Embed:
@@ -195,7 +196,7 @@ def claim_log_embed(
         description=text,
         color=0xFFD700,
     )
-    embed.set_footer(text="🌟 Starlight Market")
+    set_starlight_footer(embed, ctx=ctx, include_button_notice=False)
     return embed
 
 
@@ -205,6 +206,7 @@ def order_update_embed(
     old_value: int | str,
     new_value: int | str,
     worker_role: discord.Role | None,
+    ctx: GameContext,
 ) -> tuple[str, discord.Embed]:
     role_mention = worker_role.mention if worker_role else "@Worker"
 
@@ -222,7 +224,7 @@ def order_update_embed(
         raise ValueError("Invalid field for order update embed")
 
     embed = discord.Embed(title="📌 Order Update", description=body, color=0xFFD700)
-    embed.set_footer(text="🌟 Starlight Market")
+    set_starlight_footer(embed, ctx=ctx, include_button_notice=False)
     return f"🔔 {role_mention}", embed
 
 
@@ -553,7 +555,7 @@ def transaction_embed(
     if role == "worker":
         amount = int(price * quantity * keep_rate)
         description = (
-            f"***Starlight Market*** paid 🪙 ***{fmt(amount)}*** to "
+            f"***{ctx.brand.name}*** paid 🪙 ***{fmt(amount)}*** to "
             f"{member.mention} for {qty_fmt} of ***{item_fmt}***."
         )
     else:
@@ -565,7 +567,7 @@ def transaction_embed(
         coupon_note = " *(0.5% donor coupon applied)*" if coupon_applied else ""
         description = (
             f"{member.mention} spent 🪙 ***{fmt(amount)}***{coupon_note} for "
-            f"{qty_fmt} of ***{item_fmt}*** at ***Starlight Market***."
+            f"{qty_fmt} of ***{item_fmt}*** at ***{ctx.brand.name}***."
         )
 
     embed = discord.Embed(
@@ -573,7 +575,7 @@ def transaction_embed(
         description=description,
         color=0xFFD700,
     )
-    set_starlight_footer(embed, include_button_notice=False)
+    set_starlight_footer(embed, ctx=ctx, include_button_notice=False)
     return embed
 
 
@@ -584,6 +586,7 @@ def pickup_embed(
     item_name: str,
     item_price: int,
     quantity: int,
+    ctx: GameContext,
     item_emoji: str = "🌟",
     coupon_applied: bool = False,
 ) -> tuple[str, discord.Embed]:
@@ -610,11 +613,11 @@ def pickup_embed(
         ),
         color=0xFFD700,
     )
-    set_starlight_footer(embed, include_button_notice=False)
+    set_starlight_footer(embed, ctx=ctx, include_button_notice=False)
     return f"🔔 {customer_mention}", embed
 
 
-def close_embed(*, bank_manager_role_id: int) -> discord.Embed:
+def close_embed(*, bank_manager_role_id: int, ctx: GameContext) -> discord.Embed:
     bank_manager_mention = f"<@&{bank_manager_role_id}>"
     embed = discord.Embed(
         title="✅ Order Ready to be Closed",
@@ -625,7 +628,7 @@ def close_embed(*, bank_manager_role_id: int) -> discord.Embed:
         ),
         color=0xFFD700,
     )
-    set_starlight_footer(embed, include_button_notice=False)
+    set_starlight_footer(embed, ctx=ctx, include_button_notice=False)
     return embed
 
 
@@ -653,6 +656,7 @@ def worker_rating_embed(
     item_name: str,
     item_quantity: int,
     order_channel: discord.TextChannel,
+    ctx: GameContext,
     item_emoji: str = "🌟",
 ) -> tuple[str, discord.Embed]:
     item_fmt = f"{item_emoji} {item_name}"
@@ -667,7 +671,7 @@ def worker_rating_embed(
         ),
         color=0xFFD700,
     )
-    set_starlight_footer(embed, include_button_notice=False)
+    set_starlight_footer(embed, ctx=ctx, include_button_notice=False)
     return f"🔔 {customer.mention}", embed
 
 

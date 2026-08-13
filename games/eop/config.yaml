@@ -4,6 +4,11 @@
 guild_id: 1536776417399017512
 database: empireofpraxia
 
+brand:
+  name: Praxia Market
+  emoji: "⚔️"
+  audience: Praxia players
+
 channels:
   place_order: 1536776418049138775
   new_orders_category: 1536776418627682359
@@ -27,6 +32,7 @@ channels:
   welcome: 1536776417436762146
   farewell: 1536776417436762147
   role_claim: 1536776417876901903
+  rules: 1536776417876901902
   game_leaderboard: 1536776420318253158
   # Community mini-game channels
   counting: 1536776419776925854

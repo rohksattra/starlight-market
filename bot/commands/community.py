@@ -1,4 +1,4 @@
-"""Slash & prefix commands for community features (giveaway, slinfo, games)."""
+"""Slash & prefix commands for community features (giveaway, minfo, games)."""
 from __future__ import annotations
 
 from typing import cast
@@ -123,24 +123,25 @@ class CommunityCommands(commands.Cog):
             ephemeral=True,
         )
 
-    @commands.command(name="slinfo")
-    async def slinfo(self, ctx: commands.Context) -> None:
+    @commands.command(name="minfo")
+    async def minfo(self, ctx: commands.Context) -> None:
         if ctx.guild is None or not isinstance(ctx.author, discord.Member):
             return
 
-        if get_context(ctx.guild.id) is None:
+        tenant = get_context(ctx.guild.id)
+        if tenant is None:
             await ctx.send("❌ Unknown game server.", delete_after=5)
             await failed(ctx)
             return
 
         try:
-            check_cooldown(user_id=ctx.author.id, key="slinfo", seconds=5)
+            check_cooldown(user_id=ctx.author.id, key="minfo", seconds=5)
         except ValueError as exc:
             await ctx.send(f"⏳ {exc}", delete_after=5)
             await failed(ctx)
             return
 
-        for embed in slinfo_embeds(bot_user=self.bot.user):
+        for embed in slinfo_embeds(ctx=tenant, bot_user=self.bot.user):
             await ctx.send(embed=embed, delete_after=SLINFO_DELETE_AFTER_SECONDS)
 
         await success(ctx)
