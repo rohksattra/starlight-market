@@ -356,14 +356,14 @@ class GameRuntimeService:
 
         message = (
             f"⚔️ You dealt **{dealt:,} damage** "
-            f"and gained **{sp} SP**."
+            f"and gained **{sp} {ctx.brand.points_short}**."
         )
 
         await self.game_serv(ctx).add_points(
             user_id=user_id,
             game_type=game_type,
             score_points=dealt,
-            starlight_points=sp,
+            market_points=sp,
         )
 
         if killed:
@@ -371,9 +371,9 @@ class GameRuntimeService:
                 user_id=user_id,
                 game_type=game_type,
                 score_points=0,
-                starlight_points=kill_bonus,
+                market_points=kill_bonus,
             )
-            message += f"\n🏆 Last hit bonus: **{kill_bonus} SP**."
+            message += f"\n🏆 Last hit bonus: **{kill_bonus} {ctx.brand.points_short}**."
 
             if game_type in BATTLE_AUTO_NEW_ENEMY_SECONDS:
                 delay = BATTLE_AUTO_NEW_ENEMY_SECONDS[game_type]

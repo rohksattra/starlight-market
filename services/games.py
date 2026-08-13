@@ -33,13 +33,13 @@ class GameService:
         user_id: str,
         game_type: PlayableGameType,
         score_points: int,
-        starlight_points: int,
+        market_points: int,
     ) -> None:
         await self.users.inc_game_score(
             user_id=user_id,
             game_type=game_type,
             score_points=score_points,
-            starlight_points=starlight_points,
+            market_points=market_points,
         )
 
     async def fetch_leaderboard(
@@ -84,6 +84,14 @@ class GameService:
     def _monster_image_url(self, *, monster_image: str) -> str:
         return monster_image_url(self.ctx, monster_image=monster_image)
 
+    def _brand_words(self) -> tuple[str, ...]:
+        words: list[str] = []
+        for part in self.ctx.brand.name.replace("-", " ").split():
+            cleaned = re.sub(r"[^a-z]", "", part.lower())
+            if len(cleaned) >= 4:
+                words.append(cleaned)
+        return tuple(words)
+
     async def _scramble_pool(self) -> list[dict[str, str]]:
         rows: list[dict[str, str]] = []
 
@@ -121,7 +129,7 @@ class GameService:
                 "hint_image_url": "",
                 "source": "fallback",
             }
-            for word in SCRAMBLE_WORDS
+            for word in (*SCRAMBLE_WORDS, *self._brand_words())
         ]
 
     async def scramble_word(self) -> dict[str, str]:
@@ -144,7 +152,8 @@ class GameService:
         }
 
     def wordchain_seed(self) -> str:
-        return random.choice(WORDCHAIN_SEEDS).lower()
+        pool = WORDCHAIN_SEEDS + self._brand_words()
+        return random.choice(pool).lower()
 
     def monster_state(self) -> dict[str, Any]:
         monsters = [
@@ -177,7 +186,7 @@ class GameService:
     def boss_state(self) -> dict[str, Any]:
         bosses = [
             ("Ancient Dragon", "🐉", 25000),
-            ("Starlight Leviathan", "🐲", 30000),
+            ("Abyssal Leviathan", "🐲", 30000),
             ("Astral Behemoth", "🦖", 28000),
             ("Void Reaper", "☠️", 32000),
             ("Celestial Hydra", "🐍", 35000),

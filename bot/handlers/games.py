@@ -272,7 +272,7 @@ class GameMessageHandler:
             user_id=str(message.author.id),
             game_type="counting",
             score_points=reward,
-            starlight_points=reward,
+            market_points=reward,
         )
         await self._safe_react(message, "✅")
 
@@ -331,7 +331,7 @@ class GameMessageHandler:
             user_id=str(message.author.id),
             game_type="wordchain",
             score_points=1,
-            starlight_points=1,
+            market_points=1,
         )
         await self._safe_react(message, "✅")
 
@@ -379,7 +379,7 @@ class GameMessageHandler:
             user_id=str(message.author.id),
             game_type="scramble",
             score_points=2,
-            starlight_points=10,
+            market_points=10,
         )
         await self._safe_react(message, "✅")
 

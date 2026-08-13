@@ -13,7 +13,7 @@ class User(TypedDict):
     total_worker_income: int
     count_worker_rating: int
     total_worker_star: int
-    starlight_points: int
+    market_points: int
     counting_score: int
     wordchain_score: int
     trivia_score: int

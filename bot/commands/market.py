@@ -9,7 +9,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.activity_log import log_activity
+from bot.activity_log import log_activity, person_name
 from bot.handlers.games import get_game_handler
 from bot.handlers.market import get_market_handler
 from bot.tier_sync import TierRoleService, schedule_member_tier_sync
@@ -30,7 +30,7 @@ from bot.ui.market import (
 )
 from core.tenant import GameContext, get_context
 from models.enums import ORDER_MANAGEMENT_ROLES, STAFF_ROLES
-from models.games import GAME_TITLES, LEADERBOARD_TYPES, GameType
+from models.games import GAME_TITLES, LEADERBOARD_TYPES, GameType, game_title
 from services.economy import EconomyService
 from services.items import ItemService
 from services.profile import ProfileService
@@ -315,9 +315,10 @@ class MarketCommands(commands.Cog):
             cast(MarketLeaderboardPanelType, lb_type),
         )
 
-    def _display_name(self, lb_type: str) -> str:
+    def _display_name(self, lb_type: str, tenant: GameContext | None = None) -> str:
         if _is_game_leaderboard(lb_type):
-            return GAME_TITLES[cast(GameType, lb_type)]
+            points_name = tenant.brand.points_name if tenant else None
+            return game_title(cast(GameType, lb_type), points_name=points_name)
         return MARKET_LEADERBOARD_TITLES[cast(MarketLeaderboardPanelType, lb_type)]
 
     async def _send_market_leaderboard_panel(
@@ -412,7 +413,7 @@ class MarketCommands(commands.Cog):
             await safe_respond(
                 interaction,
                 content=(
-                    f"❌ Channel for **{self._display_name(lb_type)}** "
+                    f"❌ Channel for **{self._display_name(lb_type, tenant)}** "
                     "is not configured or not found."
                 ),
                 ephemeral=True,
@@ -601,7 +602,7 @@ class MarketCommands(commands.Cog):
             guild=interaction.guild,
             ctx=ctx,
             member=interaction.user,
-            action=f"Added donation of {gold:,} gold for user {user}",
+            action=f"Added donation of {gold:,} gold for {donor_member.display_name}",
         )
 
     @app_commands.command(name="paid", description="(Staff) Add manual worker income")
@@ -690,7 +691,7 @@ class MarketCommands(commands.Cog):
             ctx=ctx,
             member=interaction.user,
             action=(
-                f"Added manual worker income for user {user}: "
+                f"Added manual worker income for {person_name(interaction.guild, user)}: "
                 f"{result['quantity']:,}x {result['item_name']} "
                 f"({result['income']:,} gold)"
             ),
@@ -782,7 +783,7 @@ class MarketCommands(commands.Cog):
             ctx=ctx,
             member=interaction.user,
             action=(
-                f"Added manual customer spending for user {user}: "
+                f"Added manual customer spending for {person_name(interaction.guild, user)}: "
                 f"{result['quantity']:,}x {result['item_name']} "
                 f"({result['spent']:,} gold)"
             ),

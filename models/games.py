@@ -58,7 +58,7 @@ LEADERBOARD_TYPES: Final[tuple[GameType, ...]] = (
 )
 
 GAME_SCORE_FIELDS: Final[dict[GameType, str]] = {
-    "global": "starlight_points",
+    "global": "market_points",
     "counting": "counting_score",
     "wordchain": "wordchain_score",
     "scramble": "scramble_score",
@@ -67,7 +67,7 @@ GAME_SCORE_FIELDS: Final[dict[GameType, str]] = {
 }
 
 GAME_TITLES: Final[dict[GameType, str]] = {
-    "global": "🏆 Starlight Points Leaderboard",
+    "global": "🏆 Points Leaderboard",
     "counting": "🔢 Counting Leaderboard",
     "wordchain": "📝 Word Chain Leaderboard",
     "scramble": "🔤 Scramble Word Leaderboard",
@@ -84,13 +84,26 @@ GAME_PANEL_TITLES: Final[dict[PlayableGameType, str]] = {
 }
 
 GAME_VALUE_LABELS: Final[dict[GameType, str]] = {
-    "global": "SP",
+    "global": "pts",
     "counting": "pts",
     "wordchain": "pts",
     "scramble": "pts",
     "monster": "pts",
     "boss": "pts",
 }
+
+
+def game_title(game_type: GameType, *, points_name: str | None = None) -> str:
+    if game_type == "global" and points_name:
+        return f"🏆 {points_name} Leaderboard"
+    return GAME_TITLES[game_type]
+
+
+def game_value_label(game_type: GameType, *, points_short: str | None = None) -> str:
+    if game_type == "global" and points_short:
+        return points_short
+    return GAME_VALUE_LABELS[game_type]
+
 
 BATTLE_AUTO_NEW_ENEMY_SECONDS: Final[dict[PlayableGameType, int]] = {
     "monster": 60,
@@ -99,7 +112,6 @@ BATTLE_AUTO_NEW_ENEMY_SECONDS: Final[dict[PlayableGameType, int]] = {
 
 SCRAMBLE_WORDS: Final[tuple[str, ...]] = (
     "market",
-    "starlight",
     "worker",
     "customer",
     "treasure",
@@ -114,7 +126,6 @@ WORDCHAIN_SEEDS: Final[tuple[str, ...]] = (
     "market",
     "treasure",
     "dragon",
-    "starlight",
     "monster",
     "worker",
     "customer",

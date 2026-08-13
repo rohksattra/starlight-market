@@ -14,7 +14,8 @@ from core.tenant import GameContext, get_context
 from models.games import (
     GAME_PANEL_TITLES,
     GAME_TITLES,
-    GAME_VALUE_LABELS,
+    game_title,
+    game_value_label,
     GameType,
     PlayableGameType,
 )
@@ -34,15 +35,22 @@ def _require_ctx(interaction: discord.Interaction):
     return get_context(interaction.guild.id)
 
 
+def _points_short(ctx: GameContext | None) -> str:
+    if ctx is None:
+        return "pts"
+    return ctx.brand.points_short
+
+
 def counting_embed(*, question: str, ctx: GameContext | None = None) -> discord.Embed:
+    sp = _points_short(ctx)
     embed = discord.Embed(
         title=GAME_PANEL_TITLES["counting"],
         description=(
             "Send the numeric answer in this channel.\n\n"
             f"## `{question}`\n\n"
             "✅ Correct:\n"
-            "• Addition/Subtraction: **+2 Counting Score** and **+2 SP**\n"
-            "• Multiplication/Division: **+5 Counting Score** and **+5 SP**\n"
+            f"• Addition/Subtraction: **+2 Counting Score** and **+2 {sp}**\n"
+            f"• Multiplication/Division: **+5 Counting Score** and **+5 {sp}**\n"
             "❌ Wrong: reaction only.\n\n"
             "Use 🔄 only if the panel does not update."
         ),
@@ -63,7 +71,7 @@ def wordchain_embed(*, word: str, used_count: int = 0, ctx: GameContext | None =
             "Continue the chain by sending a word in this channel.\n\n"
             f"Current word: **{word.title()}**\n"
             f"Next word must start with: **{last}**\n\n"
-            "✅ Valid word: **+1 Word Chain Score** and **+1 SP**.\n"
+            f"✅ Valid word: **+1 Word Chain Score** and **+1 {_points_short(ctx)}**.\n"
             "Rules: no repeated word and no same user twice in a row.\n\n"
             "Use 🔄 only if the panel does not update."
         ),
@@ -84,7 +92,7 @@ def scramble_embed(*, scrambled: str, hint_image_url: str = "", ctx: GameContext
             "Unscramble the word and send the answer in this channel.\n\n"
             f"## `{scrambled}`\n\n"
             "🖼️ The thumbnail is a hint.\n\n"
-            "✅ Correct: **+2 Scramble Score** and **+10 SP**.\n\n"
+            f"✅ Correct: **+2 Scramble Score** and **+10 {_points_short(ctx)}**.\n\n"
             "Use 🔄 only if the panel does not update."
         ),
         color=0xFFD700,
@@ -160,14 +168,14 @@ def game_leaderboard_embed(
     start = page * page_size
     end = start + page_size
     sliced = entries[start:end]
-    label = GAME_VALUE_LABELS[game_type]
+    label = game_value_label(game_type, points_short=_points_short(ctx))
     lines = [
         f"***{idx}. {entry.get('name', 'Unknown')}*** — ⭐ ***{int(entry.get('value', 0)):,} {label}***"
         for idx, entry in enumerate(sliced, start=start + 1)
     ]
 
     embed = discord.Embed(
-        title=GAME_TITLES[game_type],
+        title=game_title(game_type, points_name=ctx.brand.points_name if ctx else None),
         description="\n".join(lines) if lines else "⚠️ No data available.",
         color=0xFFD700,
     )

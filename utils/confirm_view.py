@@ -29,14 +29,14 @@ class ConfirmView(discord.ui.View):
     async def wait_result(self) -> bool:
         return await self._future
 
-    @discord.ui.button(label="✅ Confirm", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="✅ Confirm", style=discord.ButtonStyle.success, custom_id="prompt:confirm")
     async def confirm(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
         if not self._future.done():
             self._future.set_result(True)
         self._lock()
         await safe_edit_message(interaction, view=self)
 
-    @discord.ui.button(label="❌ Cancel", style=discord.ButtonStyle.danger)
+    @discord.ui.button(label="❌ Cancel", style=discord.ButtonStyle.danger, custom_id="prompt:cancel")
     async def cancel(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
         if not self._future.done():
             self._future.set_result(False)

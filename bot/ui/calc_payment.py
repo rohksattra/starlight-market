@@ -16,7 +16,13 @@ PAGE_SIZE = 20
 class OrderSelect(discord.ui.Select):
     def __init__(self, view: "CalcWorkerPaymentView") -> None:
         self.view_ref = view
-        super().__init__(placeholder="Select Order Channel", min_values=1, max_values=1, options=[])
+        super().__init__(
+            placeholder="Select Order Channel",
+            min_values=1,
+            max_values=1,
+            options=[],
+            custom_id="calc:select:order",
+        )
 
     async def load(self) -> None:
         guild = self.view_ref.guild
@@ -78,6 +84,7 @@ class WorkerSelect(discord.ui.Select):
             max_values=1,
             options=[discord.SelectOption(label="Select order first", value="__placeholder__")],
             disabled=True,
+            custom_id="calc:select:worker",
         )
 
     async def load(self, order: dict) -> None:
@@ -116,10 +123,10 @@ class WorkerSelect(discord.ui.Select):
 
 
 class QuantityModal(discord.ui.Modal, title="Set Quantity"):
-    quantity = discord.ui.TextInput(label="Quantity", required=True)
+    quantity = discord.ui.TextInput(label="Quantity", required=True, custom_id="quantity")
 
     def __init__(self, view: "CalcWorkerPaymentView") -> None:
-        super().__init__()
+        super().__init__(custom_id="calc:qty")
         self.view_ref = view
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
@@ -145,7 +152,11 @@ class QuantityModal(discord.ui.Modal, title="Set Quantity"):
 class QuantityButton(discord.ui.Button):
     def __init__(self, view: "CalcWorkerPaymentView") -> None:
         self.view_ref = view
-        super().__init__(label="Set Quantity", style=discord.ButtonStyle.secondary)
+        super().__init__(
+            label="Set Quantity",
+            style=discord.ButtonStyle.secondary,
+            custom_id="calc:qty:open",
+        )
 
     async def callback(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_modal(QuantityModal(self.view_ref))
@@ -154,7 +165,12 @@ class QuantityButton(discord.ui.Button):
 class SubmitButton(discord.ui.Button):
     def __init__(self, view: "CalcWorkerPaymentView") -> None:
         self.view_ref = view
-        super().__init__(label="Calculate", style=discord.ButtonStyle.success, disabled=True)
+        super().__init__(
+            label="Calculate",
+            style=discord.ButtonStyle.success,
+            disabled=True,
+            custom_id="calc:submit",
+        )
 
     async def callback(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
@@ -164,7 +180,7 @@ class SubmitButton(discord.ui.Button):
 class PrevPageButton(discord.ui.Button):
     def __init__(self, view: "CalcWorkerPaymentView") -> None:
         self.view_ref = view
-        super().__init__(label="◀", style=discord.ButtonStyle.secondary)
+        super().__init__(label="◀", style=discord.ButtonStyle.secondary, custom_id="calc:page:prev")
 
     async def callback(self, interaction: discord.Interaction) -> None:
         if self.disabled or self.view_ref.page <= 0:
@@ -177,7 +193,7 @@ class PrevPageButton(discord.ui.Button):
 class NextPageButton(discord.ui.Button):
     def __init__(self, view: "CalcWorkerPaymentView") -> None:
         self.view_ref = view
-        super().__init__(label="▶", style=discord.ButtonStyle.secondary)
+        super().__init__(label="▶", style=discord.ButtonStyle.secondary, custom_id="calc:page:next")
 
     async def callback(self, interaction: discord.Interaction) -> None:
         if self.disabled:

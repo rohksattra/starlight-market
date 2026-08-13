@@ -280,7 +280,7 @@ class OrderClaimView(discord.ui.View):
 
                 await safe_respond(inter2, content="❌ Failed to claim.", ephemeral=True)
 
-        await interaction.response.send_modal(QuantityModal(on_submit=on_submit))
+        await interaction.response.send_modal(QuantityModal(on_submit=on_submit, kind="claim"))
 
     async def unclaim(self, interaction: discord.Interaction) -> None:
         from bot.handlers.orders import get_order_handler
@@ -293,7 +293,7 @@ class OrderClaimView(discord.ui.View):
 
                 await safe_respond(inter2, content="❌ Failed to unclaim.", ephemeral=True)
 
-        await interaction.response.send_modal(QuantityModal(on_submit=on_submit))
+        await interaction.response.send_modal(QuantityModal(on_submit=on_submit, kind="unclaim"))
 
     async def refresh(self, interaction: discord.Interaction) -> None:
         from bot.handlers.orders import get_order_handler
@@ -312,10 +312,16 @@ class QuantityModal(discord.ui.Modal, title="Quantity"):
         label="Quantity",
         placeholder="Enter number",
         required=True,
+        custom_id="quantity",
     )
 
-    def __init__(self, on_submit: Callable[[discord.Interaction, int], Awaitable[None]]) -> None:
-        super().__init__()
+    def __init__(
+        self,
+        on_submit: Callable[[discord.Interaction, int], Awaitable[None]],
+        *,
+        kind: str = "place",
+    ) -> None:
+        super().__init__(custom_id=f"order:qty:{kind}")
         self._cb = on_submit
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
@@ -352,7 +358,12 @@ class OrderCategoryView(discord.ui.View):
         self.page = page
         self.page_size = page_size
         self.on_select = on_select
-        self.select = discord.ui.Select(placeholder="Select category", min_values=1, max_values=1)
+        self.select = discord.ui.Select(
+            placeholder="Select category",
+            min_values=1,
+            max_values=1,
+            custom_id="order:select:category",
+        )
         self.select.callback = self._handle
         self.add_item(self.select)
         self._render()
@@ -420,7 +431,12 @@ class OrderItemView(discord.ui.View):
         self.page = page
         self.page_size = page_size
         self.on_pick = on_pick
-        self.select = discord.ui.Select(placeholder="Select item", min_values=1, max_values=1)
+        self.select = discord.ui.Select(
+            placeholder="Select item",
+            min_values=1,
+            max_values=1,
+            custom_id="order:select:item",
+        )
         self.select.callback = self._handle
         self.add_item(self.select)
         self._render()
@@ -494,7 +510,7 @@ class OrderConfirmView(discord.ui.View):
         self.on_confirm = on_confirm
         self.message: discord.Message | None = None
 
-    @discord.ui.button(label="✅ Confirm", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="✅ Confirm", style=discord.ButtonStyle.success, custom_id="order:confirm")
     async def confirm(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
         from utils.discord_safe import safe_defer, safe_edit_message
 
@@ -506,7 +522,7 @@ class OrderConfirmView(discord.ui.View):
         await self.on_confirm(interaction)
         self.stop()
 
-    @discord.ui.button(label="❌ Cancel", style=discord.ButtonStyle.danger)
+    @discord.ui.button(label="❌ Cancel", style=discord.ButtonStyle.danger, custom_id="order:cancel")
     async def cancel(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
         from utils.discord_safe import safe_defer, safe_edit_message, safe_respond
 

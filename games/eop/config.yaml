@@ -8,6 +8,8 @@ brand:
   name: Praxia Market
   emoji: "⚔️"
   audience: Praxia players
+  points_name: Praxia Points
+  points_short: PP
 
 channels:
   place_order: 1536776418049138775

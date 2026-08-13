@@ -80,6 +80,8 @@ class BrandConfig:
     name: str = "Starlight Market"
     emoji: str = "🌟"
     audience: str = "players"
+    points_name: str = "Starlight Points"
+    points_short: str = "SP"
 
     @property
     def label(self) -> str:
@@ -191,6 +193,8 @@ def _parse_context(game: str, data: dict) -> GameContext:
         name=str(brand_raw.get("name") or "Starlight Market").strip() or "Starlight Market",
         emoji=str(brand_raw.get("emoji") or "🌟").strip() or "🌟",
         audience=str(brand_raw.get("audience") or "players").strip() or "players",
+        points_name=str(brand_raw.get("points_name") or "Starlight Points").strip() or "Starlight Points",
+        points_short=str(brand_raw.get("points_short") or "SP").strip() or "SP",
     )
 
     return GameContext(

@@ -32,7 +32,7 @@ async def ensure_indexes(db_name: str) -> None:
         "total_customer_spent",
         "total_worker_income",
         "counting_score",
-        "starlight_points",
+        "market_points",
         "wordchain_score",
         "boss_score",
         "scramble_score",

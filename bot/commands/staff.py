@@ -227,6 +227,8 @@ class StaffCommands(commands.Cog):
             await safe_respond(interaction, content="❌ Staff only.", ephemeral=True)
             return
 
+        item = await ItemService(ctx).get_by_id(item_id)
+        old_name = str((item or {}).get("item_name") or "item")
         try:
             await ItemService(ctx).update_item_name(item_id=item_id, new_name=new_name)
         except ValueError as exc:
@@ -238,7 +240,7 @@ class StaffCommands(commands.Cog):
             guild=interaction.guild,
             ctx=ctx,
             member=interaction.user,
-            action=f'Renamed item {item_id} to "{new_name.strip()}"',
+            action=f'Renamed item "{old_name}" to "{new_name.strip()}"',
         )
 
     @app_commands.command(name="update-item-price", description="(Staff) Update item price")
@@ -275,6 +277,8 @@ class StaffCommands(commands.Cog):
             await safe_respond(interaction, content="❌ Staff only.", ephemeral=True)
             return
 
+        item = await ItemService(ctx).get_by_id(item_id)
+        item_name = str((item or {}).get("item_name") or "item")
         try:
             await ItemService(ctx).update_item_price(item_id=item_id, new_price=new_price)
         except ValueError as exc:
@@ -286,7 +290,7 @@ class StaffCommands(commands.Cog):
             guild=interaction.guild,
             ctx=ctx,
             member=interaction.user,
-            action=f"Updated item {item_id} price to {new_price:,} gold",
+            action=f'Updated "{item_name}" price to {new_price:,} gold',
         )
 
     @commands.command(name="mcleanupdata")
@@ -358,6 +362,7 @@ class StaffCommands(commands.Cog):
                 f"transactions: {result['transactions_deleted']}, "
                 f"ratings: {result['ratings_deleted']})"
             ),
+            status="warning",
         )
         await result_msg.delete(delay=10)
         await confirm_msg.delete(delay=5)

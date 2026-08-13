@@ -8,6 +8,8 @@ brand:
   name: Starlight Market
   emoji: "🌟"
   audience: CoA players
+  points_name: Starlight Points
+  points_short: SP
 
 channels:
   place_order: 1398760905558196464

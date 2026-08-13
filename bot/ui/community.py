@@ -485,6 +485,7 @@ class GiveawayWinnerSelect(ui.Select):
             max_values=max(1, len(options)),
             options=options,
             row=0,
+            custom_id="giveaway:select:winners",
         )
 
     async def callback(self, interaction: discord.Interaction) -> None:

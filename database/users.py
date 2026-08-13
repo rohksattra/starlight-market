@@ -257,7 +257,7 @@ class UserRepo:
         user_id: str,
         game_type: str,
         score_points: int,
-        starlight_points: int,
+        market_points: int,
     ) -> None:
         from models.games import GAME_SCORE_FIELDS
 
@@ -271,7 +271,7 @@ class UserRepo:
             {
                 "$inc": {
                     field: Int64(score_points),
-                    "starlight_points": Int64(starlight_points),
+                    "market_points": Int64(market_points),
                 },
                 "$set": {"updated_at": datetime.utcnow()},
             },

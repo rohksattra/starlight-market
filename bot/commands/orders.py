@@ -8,7 +8,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.activity_log import log_activity
+from bot.activity_log import log_activity, person_name
 from bot.handlers.orders import (
     after_income_recorded,
     get_order_handler,
@@ -228,7 +228,7 @@ class OrderCommands(commands.Cog):
                         ephemeral=True,
                     )
 
-                await inter2.response.send_modal(QuantityModal(on_submit=on_quantity))
+                await inter2.response.send_modal(QuantityModal(on_submit=on_quantity, kind="place"))
 
             await safe_respond(
                 inter,
@@ -448,7 +448,7 @@ class OrderCommands(commands.Cog):
             ctx=ctx,
             member=interaction.user,
             action=(
-                f"Recorded {target} income for {user}: "
+                f"Recorded {target} income for {person_name(interaction.guild, user)}: "
                 f"{quantity:,}x {order.get('item_name')} in #{interaction.channel.name}"
             ),
         )
@@ -573,7 +573,7 @@ class OrderCommands(commands.Cog):
                 ctx=ctx,
                 member=interaction.user,
                 action=(
-                    f"Created custom order for {member.name}: "
+                    f"Created custom order for {member.display_name}: "
                     f"{order['item_quantity']:,}x {order['item_name']} in #{channel.name}"
                 ),
             )
@@ -781,7 +781,8 @@ class OrderCommands(commands.Cog):
             ctx=ctx,
             member=interaction.user,
             action=(
-                f"Changed order customer from {old_customer_id} to {customer} "
+                f"Changed order customer from {person_name(interaction.guild, old_customer_id)} "
+                f"to {person_name(interaction.guild, customer)} "
                 f"for {updated.get('item_name')} in #{interaction.channel.name}"
             ),
         )
@@ -936,8 +937,10 @@ class OrderCommands(commands.Cog):
             member=interaction.user,
             action=(
                 f"Force claimed {quantity:,}x {order['item_name']} "
-                f"for worker {worker_id} in #{interaction.channel.name}"
+                f"for {person_name(interaction.guild, worker_id)} "
+                f"in #{interaction.channel.name}"
             ),
+            status="warning",
         )
 
     @app_commands.command(name="force-unclaim", description="(Staff) Force unclaim to a worker")
@@ -1015,8 +1018,10 @@ class OrderCommands(commands.Cog):
             member=interaction.user,
             action=(
                 f"Force unclaimed {quantity:,}x {order['item_name']} "
-                f"from worker {worker_id} in #{interaction.channel.name}"
+                f"from {person_name(interaction.guild, worker_id)} "
+                f"in #{interaction.channel.name}"
             ),
+            status="warning",
         )
 
     @commands.command(name="mcancel")
@@ -1083,6 +1088,7 @@ class OrderCommands(commands.Cog):
                 f"Cancelled order #{order.get('order_number')} "
                 f"({order.get('item_name')}) in #{ctx.channel.name}"
             ),
+            status="cancelled",
         )
         await ctx.send("❌ Order canceled. Channel will be deleted.")
         await asyncio.sleep(5)
