@@ -45,6 +45,6 @@ Flow: command or event → handler → service → database. Resolve a guild wit
 - Mini-games: counting, word chain, scramble, monster hunt, boss battle
 - Persistent panels reconnect after restart
 
-Staff seed panels with `!morder`, `!mprice`, `!mroles`, `!mrules`, `!mpickup`, `!mstat`, `/game-panel`, and `/leaderboard-panel-all`. Use `!minfo` for the in-Discord command list.
+Staff seed panels with `!morder`, `!mprice`, `!mroles`, `!mrules`, `!mpickup`, `!mstat`, `/game-panel`, and `/leaderboard-panel`. Use `!minfo` for the in-Discord command list.
 
-Item and monster images are loaded from GitHub raw URLs set under `assets` in each game YAML (`base_path` defaults to `assets/<database_name>`). Catalog rows in `games/<game>/seed/` are inserted on boot if missing; existing prices are not overwritten. Set live prices with `/update-item-price`.
+Item and monster images are loaded from GitHub raw URLs set under `assets` in each game YAML (`base_path` defaults to `assets/<database_name>`). Catalog rows in `games/<game>/seed/` are inserted on boot if missing; existing prices are not overwritten. Set live prices with `/update-item-price` (`0` marks an item Unavailable).
