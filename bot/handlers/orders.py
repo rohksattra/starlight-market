@@ -66,6 +66,45 @@ async def publish_news(message: discord.Message) -> None:
         pass
 
 
+async def post_transaction_embed(
+    *,
+    guild: discord.Guild,
+    ctx: GameContext,
+    target: IncomeTarget,
+    member: discord.Member | None,
+    item_name: str,
+    item_price: int,
+    quantity: int,
+    item_emoji: str = "🌟",
+    coupon_applied: bool = False,
+) -> None:
+    if member is None:
+        return
+    channel_id = (
+        ctx.channels.worker_transaction
+        if target == "worker"
+        else ctx.channels.customer_transaction
+    )
+    tx_channel = guild.get_channel(channel_id)
+    if not isinstance(tx_channel, discord.TextChannel):
+        return
+    msg = await tx_channel.send(
+        embed=transaction_embed(
+            role=target,
+            member=member,
+            order={
+                "item_name": item_name,
+                "item_price": item_price,
+                "coupon_applied": coupon_applied,
+            },
+            quantity=quantity,
+            ctx=ctx,
+            item_emoji=item_emoji,
+        )
+    )
+    await publish_news(msg)
+
+
 async def after_income_recorded(
     *,
     guild: discord.Guild,
@@ -85,26 +124,17 @@ async def after_income_recorded(
     item_emoji = await item_serv.get_item_emoji(order["item_id"])
 
     await refresh_order_embed(channel=order_channel, order=order, ctx=ctx)
-
-    transaction_channel_id = (
-        ctx.channels.worker_transaction
-        if target == "worker"
-        else ctx.channels.customer_transaction
+    await post_transaction_embed(
+        guild=guild,
+        ctx=ctx,
+        target=target,
+        member=member,
+        item_name=str(order.get("item_name", "Item")),
+        item_price=int(order.get("item_price", 0)),
+        quantity=quantity,
+        item_emoji=item_emoji,
+        coupon_applied=bool(order.get("coupon_applied")),
     )
-    tx_channel = guild.get_channel(transaction_channel_id)
-
-    if isinstance(tx_channel, discord.TextChannel) and member:
-        msg = await tx_channel.send(
-            embed=transaction_embed(
-                role=target,
-                member=member,
-                order=order,
-                quantity=quantity,
-                ctx=ctx,
-                item_emoji=item_emoji,
-            )
-        )
-        await publish_news(msg)
 
     if target == "worker" and member:
         rating_channel = guild.get_channel(ctx.channels.rating_message)
@@ -800,7 +830,13 @@ class OrderHandler:
             ),
         )
 
-    async def handle_update_quantity(self, interaction: discord.Interaction, *, new_quantity: int) -> None:
+    async def handle_update_quantity(
+        self,
+        interaction: discord.Interaction,
+        *,
+        mode: Literal["set", "add", "reduce"],
+        quantity: int,
+    ) -> None:
         from bot.ui.orders import order_update_embed
 
         channel, ctx, order = await self._require_order_channel(interaction)
@@ -811,11 +847,16 @@ class OrderHandler:
 
         old_qty = order["item_quantity"]
         try:
-            updated = await OrderService(ctx).update_quantity(order=order, new_quantity=new_quantity)
+            updated = await OrderService(ctx).update_quantity(
+                order=order,
+                mode=mode,
+                quantity=quantity,
+            )
         except ValueError as exc:
             await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
             return
 
+        new_qty = updated["item_quantity"]
         await refresh_order_embed(channel=channel, order=updated, ctx=ctx)
 
         safe_name = (
@@ -829,20 +870,32 @@ class OrderHandler:
         content, embed = order_update_embed(
             field="quantity",
             old_value=old_qty,
-            new_value=new_quantity,
+            new_value=new_qty,
             worker_role=worker_role,
             ctx=ctx,
         )
         await channel.send(content=content, embed=embed)
         await safe_respond(interaction, content="✅ Order item quantity updated.", ephemeral=True)
+        if mode == "add":
+            action = (
+                f"Added {quantity:,} to order quantity ({old_qty:,} → {new_qty:,}) "
+                f"for {updated.get('item_name')} in #{channel.name}"
+            )
+        elif mode == "reduce":
+            action = (
+                f"Reduced order quantity by {quantity:,} ({old_qty:,} → {new_qty:,}) "
+                f"for {updated.get('item_name')} in #{channel.name}"
+            )
+        else:
+            action = (
+                f"Set order quantity from {old_qty:,} to {new_qty:,} "
+                f"for {updated.get('item_name')} in #{channel.name}"
+            )
         await log_activity(
             guild=interaction.guild,
             ctx=ctx,
             member=interaction.user,
-            action=(
-                f"Changed order quantity from {old_qty:,} to {new_quantity:,} "
-                f"for {updated.get('item_name')} in #{channel.name}"
-            ),
+            action=action,
         )
 
     async def handle_update_customer(self, interaction: discord.Interaction, *, customer: str) -> None:
@@ -1115,7 +1168,17 @@ class OrderHandler:
             category=category,
         )
         content, embed = order_embed(order=order, ctx=ctx, guild=guild)
-        msg = await channel.send(content=content, embed=embed, view=OrderClaimView())
+        worker_role = guild.get_role(ctx.roles.worker)
+        msg = await channel.send(
+            content=content,
+            embed=embed,
+            view=OrderClaimView(),
+            allowed_mentions=discord.AllowedMentions(
+                everyone=False,
+                users=False,
+                roles=[worker_role] if worker_role else False,
+            ),
+        )
         await order_serv.set_channel_and_message(
             order_id=order["order_id"],
             channel_id=str(channel.id),

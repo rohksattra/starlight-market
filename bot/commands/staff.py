@@ -287,7 +287,7 @@ class StaffCommands(commands.Cog):
     @app_commands.describe(
         category="Item category",
         item_id="Item to update",
-        new_price="New price (must be > 0)",
+        new_price="New price (0 = Unavailable)",
     )
     @app_commands.autocomplete(category=category_autocomplete, item_id=item_by_category_autocomplete)
     async def update_item_price(
@@ -325,12 +325,21 @@ class StaffCommands(commands.Cog):
             await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
             return
 
-        await safe_respond(interaction, content="✅ Item price updated.", ephemeral=True)
+        await safe_respond(
+            interaction,
+            content="✅ Item marked Unavailable." if new_price == 0 else "✅ Item price updated.",
+            ephemeral=True,
+        )
+        action = (
+            f'Marked "{item_name}" as Unavailable'
+            if new_price == 0
+            else f'Updated "{item_name}" price to {new_price:,} gold'
+        )
         await log_activity(
             guild=interaction.guild,
             ctx=ctx,
             member=interaction.user,
-            action=f'Updated "{item_name}" price to {new_price:,} gold',
+            action=action,
         )
 
     @commands.command(name="mcleanupdata")
@@ -363,7 +372,8 @@ class StaffCommands(commands.Cog):
             "This will permanently delete:\n"
             "- Orders (closed / canceled) > **365 days (1 year)**\n"
             "- Transactions > **365 days (1 year)**\n"
-            "- Worker ratings > **365 days (1 year)**\n\n"
+            "- Worker ratings > **365 days (1 year)**\n"
+            "- Donations > **365 days (1 year)**\n\n"
             "Click **Confirm** to proceed, or **Cancel**.",
             view=view,
         )
@@ -390,7 +400,8 @@ class StaffCommands(commands.Cog):
             "🧹 **Cleanup Completed**\n"
             f"📦 Orders: {result['orders_deleted']} | "
             f"💰 Transactions: {result['transactions_deleted']} | "
-            f"⭐ Ratings: {result['ratings_deleted']}"
+            f"⭐ Ratings: {result['ratings_deleted']} | "
+            f"🎁 Donations: {result['donations_deleted']}"
         )
         await log_activity(
             guild=ctx.guild,
@@ -496,7 +507,7 @@ class StaffCommands(commands.Cog):
         )
 
     @app_commands.command(
-        name="update-member-role",
+        name="sync-member-role",
         description="(Staff) Resync donor, worker, and customer tier roles for selected member",
     )
     @app_commands.describe(user_id="Select member from database")
@@ -513,7 +524,7 @@ class StaffCommands(commands.Cog):
             return
 
         try:
-            check_cooldown(user_id=interaction.user.id, key="update_member_role", seconds=5)
+            check_cooldown(user_id=interaction.user.id, key="sync_member_role", seconds=5)
         except ValueError as exc:
             await safe_respond(interaction, content=f"⏳ {exc}", ephemeral=True)
             return
@@ -557,7 +568,7 @@ class StaffCommands(commands.Cog):
         try:
             await TierRoleService(ctx).sync_member(member)
         except Exception:
-            log.exception("update-member-role failed | user=%s", user_id)
+            log.exception("sync-member-role failed | user=%s", user_id)
             await safe_respond(
                 interaction,
                 content="❌ Tier resync failed. Check logs.",

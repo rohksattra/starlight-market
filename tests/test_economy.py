@@ -21,6 +21,7 @@ def _service(*, fee_rate: float = 0.01) -> EconomyService:
         patch("services.economy.OrderRepo"),
         patch("services.economy.StatisticRepo"),
         patch("services.economy.TransactionRepo"),
+        patch("services.economy.DonationRepo"),
     ):
         service = EconomyService(ctx)
     service.users = AsyncMock()
@@ -28,6 +29,7 @@ def _service(*, fee_rate: float = 0.01) -> EconomyService:
     service.orders = AsyncMock()
     service.statistics = AsyncMock()
     service.transactions = AsyncMock()
+    service.donations = AsyncMock()
     return service
 
 
@@ -57,6 +59,7 @@ def test_paid_worker_applies_fee_and_records_income() -> None:
     assert result["item_name"] == "Iron Ore"
     service.users.inc_worker_income.assert_awaited_once()
     service.statistics.inc_worker_income.assert_awaited_once_with(amount=990)
+    service.transactions.create_transaction.assert_awaited_once()
 
 
 def test_paid_worker_unknown_item() -> None:
@@ -79,6 +82,7 @@ def test_spent_customer_records_full_price() -> None:
     service.users.inc_customer_spent.assert_awaited_once_with(user_id="c1", amount=200)
     service.items.inc_item_sold.assert_awaited_once_with(item_id="i1", qty=4)
     service.statistics.inc_customer_spent.assert_awaited_once_with(amount=200)
+    service.transactions.create_transaction.assert_awaited_once()
 
 
 def test_donation_rejects_non_positive_gold() -> None:
@@ -88,6 +92,14 @@ def test_donation_rejects_non_positive_gold() -> None:
         raise AssertionError("expected ValueError")
     except ValueError as exc:
         assert "Gold must be > 0" in str(exc)
+
+
+def test_donation_writes_dated_event() -> None:
+    service = _service()
+    service.users.get_user.return_value = {"donation_given": 50}
+    _run(service.record_donation(user_id="u1", gold=50))
+    service.users.inc_donation_given.assert_awaited_once_with(user_id="u1", amount=50)
+    service.donations.create.assert_awaited_once_with(user_id="u1", gold=50)
 
 
 def test_coupon_discount_constant() -> None:

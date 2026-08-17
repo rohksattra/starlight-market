@@ -49,10 +49,49 @@ class WorkerRatingRepo:
                     "rating": rating,
                     "rated": True,
                     "rated_at": rated_at,
-                }
+                },
+                "$unset": {"expired_at": ""},
             },
         )
         return res.modified_count == 1
+
+    async def top_since(
+        self,
+        *,
+        since: datetime | None,
+        limit: int = 100,
+        min_count: int = 1,
+    ) -> list[dict[str, Any]]:
+        match: dict[str, Any] = {"rated": True, "rating": {"$ne": None}}
+        if since is not None:
+            match["rated_at"] = {"$gte": since}
+        pipeline = [
+            {"$match": match},
+            {
+                "$group": {
+                    "_id": "$worker_id",
+                    "total": {"$sum": "$rating"},
+                    "count": {"$sum": 1},
+                }
+            },
+            {"$match": {"count": {"$gte": min_count}}},
+            {
+                "$project": {
+                    "avg": {"$divide": ["$total", "$count"]},
+                    "count": 1,
+                }
+            },
+            {"$sort": {"avg": -1, "count": -1}},
+            {"$limit": limit},
+        ]
+        return [
+            {
+                "id": d["_id"],
+                "avg": float(d.get("avg", 0)),
+                "count": int(d.get("count", 0)),
+            }
+            async for d in self.worker_ratings.aggregate(pipeline)
+        ]
 
     async def delete_older_than(self, cutoff: datetime) -> int:
         result = await self.worker_ratings.delete_many(

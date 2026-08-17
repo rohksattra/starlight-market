@@ -1,7 +1,6 @@
 """Slash & prefix commands for market features (profile, donation, paid/spent, panels)."""
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Final, List, Literal, cast
 
@@ -12,6 +11,7 @@ from discord.ext import commands
 from bot.activity_log import log_activity, person_name
 from bot.handlers.games import get_game_handler
 from bot.handlers.market import get_market_handler
+from bot.handlers.orders import post_transaction_embed
 from bot.tier_sync import TierRoleService, schedule_member_tier_sync
 from bot.ui.market import (
     PAGE_SIZE,
@@ -339,6 +339,7 @@ class MarketCommands(commands.Cog):
                     entries=entries,
                     page=0,
                     page_size=PAGE_SIZE,
+                    period="all",
                     ctx=get_context(channel.guild.id),
                 ),
                 view=view,
@@ -356,6 +357,7 @@ class MarketCommands(commands.Cog):
                 lb_type=cast(Literal["worker", "customer", "item", "donor"], lb_type),
                 page=0,
                 page_size=PAGE_SIZE,
+                period="all",
                 ctx=get_context(channel.guild.id),
             ),
             view=view,
@@ -425,80 +427,6 @@ class MarketCommands(commands.Cog):
         await safe_respond(
             interaction,
             content=f"✅ **{leaderboard.name}** panel posted in {channel.mention}.",
-            ephemeral=True,
-        )
-
-    @app_commands.command(
-        name="leaderboard-panel-all",
-        description="Post all persistent leaderboard panels (market + game).",
-    )
-    async def leaderboard_panel_all(self, interaction: discord.Interaction) -> None:
-        if interaction.guild is None or not isinstance(interaction.user, discord.Member):
-            await safe_respond(interaction, content="❌ Use this command in a server.", ephemeral=True)
-            return
-
-        tenant = get_context(interaction.guild.id)
-        if tenant is None:
-            await safe_respond(interaction, content="❌ Unknown game server.", ephemeral=True)
-            return
-
-        if not has_any_role(interaction.user, tenant, STAFF_ROLES):
-            await safe_respond(
-                interaction,
-                content="❌ You don't have permission to use this command.",
-                ephemeral=True,
-            )
-            return
-
-        missing: list[str] = []
-        market_channels: dict[MarketLeaderboardPanelType, discord.TextChannel] = {}
-        for lb_type in MARKET_LEADERBOARD_PANEL_TYPES:
-            channel = self._resolve_market_channel(interaction.guild, tenant, lb_type)
-            if channel is None:
-                missing.append(MARKET_LEADERBOARD_TITLES[lb_type])
-            else:
-                market_channels[lb_type] = channel
-
-        game_channel = self._resolve_game_leaderboard_channel(interaction.guild, tenant)
-        if game_channel is None:
-            missing.append("Game Leaderboards")
-
-        if missing:
-            await safe_respond(
-                interaction,
-                content="❌ Some leaderboard channels are not configured:\n"
-                + "\n".join(f"• {t}" for t in missing),
-                ephemeral=True,
-            )
-            return
-
-        await safe_defer(interaction, ephemeral=True)
-
-        tasks = [
-            asyncio.create_task(
-                self._send_market_leaderboard_panel(
-                    channel=market_channels[lb_type],
-                    lb_type=lb_type,
-                )
-            )
-            for lb_type in MARKET_LEADERBOARD_PANEL_TYPES
-        ]
-        tasks.extend(
-            asyncio.create_task(
-                get_game_handler(self.bot).send_leaderboard_panel(
-                    channel=game_channel,
-                    ctx=tenant,
-                    game_type=game_type,
-                )
-            )
-            for game_type in LEADERBOARD_TYPES
-        )
-        await asyncio.gather(*tasks)
-
-        total = len(MARKET_LEADERBOARD_PANEL_TYPES) + len(LEADERBOARD_TYPES)
-        await safe_respond(
-            interaction,
-            content=f"✅ Posted **{total}** leaderboard panel(s).",
             ephemeral=True,
         )
 
@@ -675,6 +603,16 @@ class MarketCommands(commands.Cog):
             return
 
         schedule_member_tier_sync(interaction.guild, user, ctx)
+        await post_transaction_embed(
+            guild=interaction.guild,
+            ctx=ctx,
+            target="worker",
+            member=member,
+            item_name=str(result["item_name"]),
+            item_price=int(result["item_price"]),
+            quantity=int(result["quantity"]),
+            item_emoji=str(item_doc.get("item_emoji") or "🌟"),
+        )
         await safe_respond(
             interaction,
             content=(
@@ -767,6 +705,16 @@ class MarketCommands(commands.Cog):
             return
 
         schedule_member_tier_sync(interaction.guild, user, ctx)
+        await post_transaction_embed(
+            guild=interaction.guild,
+            ctx=ctx,
+            target="customer",
+            member=member,
+            item_name=str(result["item_name"]),
+            item_price=int(result["item_price"]),
+            quantity=int(result["quantity"]),
+            item_emoji=str(item_doc.get("item_emoji") or "🌟"),
+        )
         await safe_respond(
             interaction,
             content=(

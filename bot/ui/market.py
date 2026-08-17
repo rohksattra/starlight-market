@@ -1,6 +1,7 @@
 """Market embeds, buttons, and modals (UI only)."""
 from __future__ import annotations
 
+import re
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Sequence, cast
@@ -9,6 +10,14 @@ import discord
 
 from bot.ui.orders import worker_rating_summary
 from bot.ui.shared import ctx_from_interaction, set_starlight_footer
+from core.period import (
+    PERIODS,
+    PERIOD_BUTTON_LABELS,
+    StatPeriod,
+    parse_period_from_custom_id,
+    parse_period_from_text,
+    period_label,
+)
 from core.tenant import GameContext, get_context
 from core.time import utc_now
 from services.tier_limits import ProfileLimitInfo
@@ -25,6 +34,71 @@ COOLDOWN_SECONDS = 60
 MAX_ITEMS = 100
 
 LBType = Literal["worker", "customer", "item", "donor"]
+
+
+def _period_style(period: StatPeriod, selected: StatPeriod) -> discord.ButtonStyle:
+    if period == selected:
+        return discord.ButtonStyle.primary
+    return discord.ButtonStyle.secondary
+
+
+def _sync_period_from_interaction(view: Any, interaction: discord.Interaction) -> None:
+    data = interaction.data or {}
+    custom_id = data.get("custom_id")
+    if isinstance(custom_id, str):
+        parsed = parse_period_from_custom_id(custom_id)
+        if parsed is not None:
+            view.period = parsed
+            return
+    message = interaction.message
+    if message is None or not message.embeds:
+        view.period = "all"
+        return
+    embed = message.embeds[0]
+    view.period = parse_period_from_text(f"{embed.title or ''}\n{embed.description or ''}")
+
+
+def _page_from_message(interaction: discord.Interaction) -> int | None:
+    message = interaction.message
+    if message is None or not message.embeds:
+        return None
+    footer = message.embeds[0].footer.text or ""
+    match = re.search(r"Page\s+(\d+)/(\d+)", footer)
+    if not match:
+        return None
+    return max(0, int(match.group(1)) - 1)
+
+
+def _period_callback(view: Any, period: StatPeriod):
+    async def callback(interaction: discord.Interaction) -> None:
+        view.period = period
+        await view.on_period_selected(interaction)
+
+    return callback
+
+
+def _attach_period_buttons(view: Any, *, prefix: str, row: int = 0) -> None:
+    view.period = getattr(view, "period", "all")
+    view._period_btns = {}
+    for key in PERIODS:
+        btn = discord.ui.Button(
+            label=PERIOD_BUTTON_LABELS[key],
+            style=_period_style(key, view.period),
+            custom_id=f"{prefix}:p:{key}",
+            row=row,
+        )
+        btn.callback = _period_callback(view, key)
+        view._period_btns[key] = btn
+        view.add_item(btn)
+
+
+def _apply_period_styles(view: Any) -> None:
+    for key, btn in getattr(view, "_period_btns", {}).items():
+        btn.style = _period_style(key, view.period)
+
+
+def _titled_with_period(title: str, period: StatPeriod) -> str:
+    return f"{title} · {period_label(period)}"
 
 
 def _display_worker_role_id(total_income: int, ctx: GameContext) -> int:
@@ -308,39 +382,47 @@ def _fmt_items(rows: Sequence[Dict[str, Any]]) -> str:
 def market_statistic_embed(
     *,
     guild: discord.Guild,
-    order: Dict[str, int],
-    gold: Dict[str, int],
+    order: Dict[str, Any],
+    gold: Dict[str, Any],
     leaderboard: Dict[str, Sequence[Dict[str, Any]]],
     total_workers: int,
     total_customers: int,
+    period: StatPeriod = "all",
     refreshed_at: datetime | None = None,
 ) -> discord.Embed:
     ctx = get_context(guild.id)
     title = f"📊 {ctx.brand.name} Statistics" if ctx else "📊 Market Statistics"
+    period_line = f"**Period:** {period_label(period)}"
     if not order or not gold:
         embed = discord.Embed(
             title=title,
-            description="⚠️ **No data available.**",
+            description=f"{period_line}\n\n⚠️ **No data available.**",
             color=0xFFD700,
         )
         set_starlight_footer(embed, ctx=ctx)
         return embed
 
-    completed = order.get("completed", 0)
+    created = int(order.get("created", order.get("total", 0)) or 0)
+    rate = float(gold.get("commission_rate", 0.01) or 0)
+    avg_size = float(gold.get("avg_order_size", 0) or 0)
     embed = discord.Embed(title=title, color=0xFFD700)
     embed.description = (
-        "### 🛒 Order Overview\n"
-        f"- Total Orders: 🛒 ***{order.get('total', 0):,}***\n"
-        f"- Active Orders: 🔄 ***{order.get('active', 0):,}***\n"
-        f"- Completed Orders: ✅ ***{completed:,}***\n"
-        f"- Finished Orders: 📦 ***{order.get('finished', 0):,}***\n"
-        f"- Canceled Orders: ❌ ***{order.get('canceled', 0):,}***\n\n"
-        "### 👥 Market Overview\n"
-        f"- Total Workers: 👷 ***{total_workers:,}***\n"
-        f"- Total Customers: 🛍️ ***{total_customers:,}***\n\n"
-        "### 🪙 Gold Overview\n"
-        f"- Workers Income: 🪙 ***{gold.get('worker_income', 0):,}***\n"
-        f"- Customers Spent: 🪙 ***{gold.get('customer_spent', 0):,}***\n\n"
+        f"{period_line}\n\n"
+        "### 🛒 Orders\n"
+        f"- Created: 🛒 ***{created:,}***\n"
+        f"- Finished: 📦 ***{int(order.get('finished', 0) or 0):,}***\n"
+        f"- Canceled: ❌ ***{int(order.get('canceled', 0) or 0):,}***\n"
+        f"- Active now: 🔄 ***{int(order.get('active', 0) or 0):,}***\n"
+        f"- Ready for pickup: ✅ ***{int(order.get('completed', 0) or 0):,}***\n\n"
+        "### 👥 Market\n"
+        f"- Workers: 👷 ***{total_workers:,}***\n"
+        f"- Customers: 🛍️ ***{total_customers:,}***\n\n"
+        "### 🪙 Gold\n"
+        f"- Worker income: 🪙 ***{int(gold.get('worker_income', 0) or 0):,}***\n"
+        f"- Customer spent: 🪙 ***{int(gold.get('customer_spent', 0) or 0):,}***\n"
+        f"- Market commission ({rate * 100:g}%): 🪙 ***{int(gold.get('commission', 0) or 0):,}***\n"
+        f"- Items sold: 🏷 ***{int(gold.get('items_sold', 0) or 0):,}***\n"
+        f"- Avg. order size: 📊 ***{avg_size:,.1f}***\n\n"
         "### 🥇 Leaderboard\n"
         "**Top 5 Workers**\n"
         f"{_fmt_users(guild, leaderboard.get('workers', []))}\n\n"
@@ -372,6 +454,7 @@ def leaderboard_embed(
     page: int,
     page_size: int,
     ctx: GameContext | None = None,
+    period: StatPeriod = "all",
     refreshed_at: datetime | None = None,
 ) -> discord.Embed:
     start = page * page_size
@@ -390,7 +473,7 @@ def leaderboard_embed(
             lines.append(f"***{idx}. {name}*** — 🪙 ***{value:,}***")
 
     embed = discord.Embed(
-        title=title,
+        title=_titled_with_period(title, period),
         description="\n".join(lines) if lines else "⚠️ No data available.",
         color=0xFFD700,
     )
@@ -418,6 +501,7 @@ def rated_leaderboard_embed(
     page: int,
     page_size: int,
     ctx: GameContext | None = None,
+    period: StatPeriod = "all",
     refreshed_at: datetime | None = None,
 ) -> discord.Embed:
     start = page * page_size
@@ -432,7 +516,7 @@ def rated_leaderboard_embed(
         lines.append(f"***{idx}. {name}*** — ⭐ ***{avg:.2f}*** (*{count:,} rating(s)*)")
 
     embed = discord.Embed(
-        title=title,
+        title=_titled_with_period(title, period),
         description="\n".join(lines) if lines else "⚠️ No data available.",
         color=0xFFD700,
     )
@@ -686,14 +770,18 @@ class ClaimablePaginationView(discord.ui.View):
 class MarketStatisticRefreshView(discord.ui.View):
     def __init__(self) -> None:
         super().__init__(timeout=None)
+        self.period: StatPeriod = "all"
         self._cooldowns: Dict[int, float] = {}
+        _attach_period_buttons(self, prefix="market_stat", row=0)
         self.refresh_btn = discord.ui.Button(
             label="🔄",
             style=discord.ButtonStyle.success,
             custom_id="market_stat:refresh",
+            row=0,
         )
         self.refresh_btn.callback = self.refresh
         self.add_item(self.refresh_btn)
+        _apply_period_styles(self)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         return interaction.guild is not None
@@ -703,8 +791,22 @@ class MarketStatisticRefreshView(discord.ui.View):
 
         if interaction.guild is None:
             raise RuntimeError("Guild required for market statistics")
-        data = await get_market_handler().fetch_stat_data(interaction.guild)
+        data = await get_market_handler().fetch_stat_data(
+            interaction.guild, period=self.period
+        )
         return market_statistic_embed(**data)
+
+    async def on_period_selected(self, interaction: discord.Interaction) -> None:
+        _apply_period_styles(self)
+        try:
+            embed = await self._fetch_embed(interaction)
+            await interaction.response.edit_message(embed=embed, view=self)
+        except Exception:
+            await safe_respond(
+                interaction,
+                content="❌ Failed to update market statistics.",
+                ephemeral=True,
+            )
 
     async def refresh(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
@@ -723,6 +825,8 @@ class MarketStatisticRefreshView(discord.ui.View):
 
         self._cooldowns[user_id] = now
         try:
+            _sync_period_from_interaction(self, interaction)
+            _apply_period_styles(self)
             embed = await self._fetch_embed(interaction)
             await safe_edit_message(interaction, embed=embed, view=self)
         except Exception:
@@ -740,34 +844,32 @@ class LeaderboardPaginationView(discord.ui.View):
         self.lb_type: LBType = lb_type
         self.title = title
         self.page = page
-        self._cooldowns: Dict[int, float] = {}
+        self.period: StatPeriod = "all"
 
         prefix = f"leaderboard:{self.lb_type}"
+        _attach_period_buttons(self, prefix=prefix, row=0)
         self.prev_btn = discord.ui.Button(
             label="◀",
             style=discord.ButtonStyle.secondary,
             custom_id=f"{prefix}:prev",
-        )
-        self.refresh_btn = discord.ui.Button(
-            label="🔄",
-            style=discord.ButtonStyle.success,
-            custom_id=f"{prefix}:refresh",
+            row=0,
         )
         self.next_btn = discord.ui.Button(
             label="▶",
             style=discord.ButtonStyle.secondary,
             custom_id=f"{prefix}:next",
+            row=0,
         )
         self.prev_btn.callback = self.prev
-        self.refresh_btn.callback = self.refresh
         self.next_btn.callback = self.next
         self.add_item(self.prev_btn)
-        self.add_item(self.refresh_btn)
         self.add_item(self.next_btn)
+        _apply_period_styles(self)
 
     def set_initial_state(self, *, total_items: int) -> None:
         self.prev_btn.disabled = True
         self.next_btn.disabled = total_items <= PAGE_SIZE
+        _apply_period_styles(self)
 
     def _max_page(self, *, total_items: int) -> int:
         return max(0, (total_items - 1) // PAGE_SIZE)
@@ -776,6 +878,7 @@ class LeaderboardPaginationView(discord.ui.View):
         max_page = self._max_page(total_items=total_items)
         self.prev_btn.disabled = self.page <= 0
         self.next_btn.disabled = self.page >= max_page
+        _apply_period_styles(self)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         return interaction.guild is not None
@@ -795,9 +898,21 @@ class LeaderboardPaginationView(discord.ui.View):
         from bot.handlers.market import get_market_handler
 
         self._sync_lb_type_from_interaction(interaction)
-        return await get_market_handler().fetch_entries(self.lb_type, interaction.guild)
+        _sync_period_from_interaction(self, interaction)
+        return await get_market_handler().fetch_entries(
+            self.lb_type, interaction.guild, period=self.period
+        )
+
+    async def on_period_selected(self, interaction: discord.Interaction) -> None:
+        self.page = 0
+        entries = await self._fetch_entries(interaction)
+        self._sync_buttons(total_items=len(entries))
+        await self._update(interaction, entries=entries)
 
     async def prev(self, interaction: discord.Interaction) -> None:
+        current = _page_from_message(interaction)
+        if current is not None:
+            self.page = current
         if self.page > 0:
             self.page -= 1
         entries = await self._fetch_entries(interaction)
@@ -805,52 +920,15 @@ class LeaderboardPaginationView(discord.ui.View):
         await self._update(interaction, entries=entries)
 
     async def next(self, interaction: discord.Interaction) -> None:
+        current = _page_from_message(interaction)
+        if current is not None:
+            self.page = current
         entries = await self._fetch_entries(interaction)
         max_page = self._max_page(total_items=len(entries))
         if self.page < max_page:
             self.page += 1
         self._sync_buttons(total_items=len(entries))
         await self._update(interaction, entries=entries)
-
-    async def refresh(self, interaction: discord.Interaction) -> None:
-        await safe_defer(interaction, ephemeral=True)
-        user_id = interaction.user.id
-        now = time.time()
-        last_used = self._cooldowns.get(user_id)
-        if last_used is not None:
-            remaining = COOLDOWN_SECONDS - (now - last_used)
-            if remaining > 0:
-                await safe_respond(
-                    interaction,
-                    content=f"⏳ Please wait **{int(remaining)} seconds** before refreshing again.",
-                    ephemeral=True,
-                )
-                return
-
-        self._cooldowns[user_id] = now
-        try:
-            entries = await self._fetch_entries(interaction)
-            self.page = 0
-            self._sync_buttons(total_items=len(entries))
-            await safe_edit_message(
-                interaction,
-                embed=leaderboard_embed(
-                    title=self.title,
-                    entries=entries,
-                    lb_type=cast(LBType, self.lb_type),
-                    page=self.page,
-                    page_size=PAGE_SIZE,
-                    ctx=ctx_from_interaction(interaction),
-                ),
-                view=self,
-            )
-        except Exception:
-            self._cooldowns.pop(user_id, None)
-            await safe_respond(
-                interaction,
-                content="❌ Failed to refresh leaderboard.",
-                ephemeral=True,
-            )
 
     async def _update(self, interaction: discord.Interaction, *, entries: list[dict]) -> None:
         await interaction.response.edit_message(
@@ -860,6 +938,7 @@ class LeaderboardPaginationView(discord.ui.View):
                 lb_type=cast(LBType, self.lb_type),
                 page=self.page,
                 page_size=PAGE_SIZE,
+                period=self.period,
                 ctx=ctx_from_interaction(interaction),
             ),
             view=self,
@@ -870,34 +949,32 @@ class RatedLeaderboardPaginationView(discord.ui.View):
     def __init__(self, *, page: int = 0) -> None:
         super().__init__(timeout=None)
         self.page = page
-        self._cooldowns: Dict[int, float] = {}
+        self.period: StatPeriod = "all"
 
         prefix = "leaderboard:rated"
+        _attach_period_buttons(self, prefix=prefix, row=0)
         self.prev_btn = discord.ui.Button(
             label="◀",
             style=discord.ButtonStyle.secondary,
             custom_id=f"{prefix}:prev",
-        )
-        self.refresh_btn = discord.ui.Button(
-            label="🔄",
-            style=discord.ButtonStyle.success,
-            custom_id=f"{prefix}:refresh",
+            row=0,
         )
         self.next_btn = discord.ui.Button(
             label="▶",
             style=discord.ButtonStyle.secondary,
             custom_id=f"{prefix}:next",
+            row=0,
         )
         self.prev_btn.callback = self.prev
-        self.refresh_btn.callback = self.refresh
         self.next_btn.callback = self.next
         self.add_item(self.prev_btn)
-        self.add_item(self.refresh_btn)
         self.add_item(self.next_btn)
+        _apply_period_styles(self)
 
     def set_initial_state(self, *, total_items: int) -> None:
         self.prev_btn.disabled = True
         self.next_btn.disabled = total_items <= PAGE_SIZE
+        _apply_period_styles(self)
 
     def _max_page(self, *, total_items: int) -> int:
         return max(0, (total_items - 1) // PAGE_SIZE)
@@ -906,6 +983,7 @@ class RatedLeaderboardPaginationView(discord.ui.View):
         max_page = self._max_page(total_items=total_items)
         self.prev_btn.disabled = self.page <= 0
         self.next_btn.disabled = self.page >= max_page
+        _apply_period_styles(self)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         return interaction.guild is not None
@@ -913,9 +991,23 @@ class RatedLeaderboardPaginationView(discord.ui.View):
     async def _fetch_entries(self, interaction: discord.Interaction) -> list[dict]:
         from bot.handlers.market import get_market_handler
 
-        return (await get_market_handler().fetch_rated_workers(interaction.guild))[:MAX_ITEMS]
+        _sync_period_from_interaction(self, interaction)
+        return (
+            await get_market_handler().fetch_rated_workers(
+                interaction.guild, period=self.period
+            )
+        )[:MAX_ITEMS]
+
+    async def on_period_selected(self, interaction: discord.Interaction) -> None:
+        self.page = 0
+        entries = await self._fetch_entries(interaction)
+        self._sync_buttons(total_items=len(entries))
+        await self._update(interaction, entries=entries)
 
     async def prev(self, interaction: discord.Interaction) -> None:
+        current = _page_from_message(interaction)
+        if current is not None:
+            self.page = current
         if self.page > 0:
             self.page -= 1
         entries = await self._fetch_entries(interaction)
@@ -923,51 +1015,15 @@ class RatedLeaderboardPaginationView(discord.ui.View):
         await self._update(interaction, entries=entries)
 
     async def next(self, interaction: discord.Interaction) -> None:
+        current = _page_from_message(interaction)
+        if current is not None:
+            self.page = current
         entries = await self._fetch_entries(interaction)
         max_page = self._max_page(total_items=len(entries))
         if self.page < max_page:
             self.page += 1
         self._sync_buttons(total_items=len(entries))
         await self._update(interaction, entries=entries)
-
-    async def refresh(self, interaction: discord.Interaction) -> None:
-        await safe_defer(interaction, ephemeral=True)
-        user_id = interaction.user.id
-        now = time.time()
-        last_used = self._cooldowns.get(user_id)
-        if last_used is not None:
-            remaining = COOLDOWN_SECONDS - (now - last_used)
-            if remaining > 0:
-                await safe_respond(
-                    interaction,
-                    content=f"⏳ Please wait **{int(remaining)} seconds** before refreshing again.",
-                    ephemeral=True,
-                )
-                return
-
-        self._cooldowns[user_id] = now
-        try:
-            entries = await self._fetch_entries(interaction)
-            self.page = 0
-            self._sync_buttons(total_items=len(entries))
-            await safe_edit_message(
-                interaction,
-                embed=rated_leaderboard_embed(
-                    title="⭐ Top Rated Workers",
-                    entries=entries,
-                    page=self.page,
-                    page_size=PAGE_SIZE,
-                    ctx=ctx_from_interaction(interaction),
-                ),
-                view=self,
-            )
-        except Exception:
-            self._cooldowns.pop(user_id, None)
-            await safe_respond(
-                interaction,
-                content="❌ Failed to refresh rated leaderboard.",
-                ephemeral=True,
-            )
 
     async def _update(self, interaction: discord.Interaction, *, entries: list[dict]) -> None:
         await safe_edit_message(
@@ -977,6 +1033,7 @@ class RatedLeaderboardPaginationView(discord.ui.View):
                 entries=entries,
                 page=self.page,
                 page_size=PAGE_SIZE,
+                period=self.period,
                 ctx=ctx_from_interaction(interaction),
             ),
             view=self,

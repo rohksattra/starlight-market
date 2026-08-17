@@ -5,6 +5,7 @@ from typing import Any, Literal
 
 import discord
 
+from core.period import StatPeriod
 from core.tenant import GameContext, get_context
 from services.market import MarketService
 
@@ -33,7 +34,12 @@ class MarketHandler:
             return []
         return await MarketService(ctx).list_claimable()
 
-    async def fetch_stat_data(self, guild: discord.Guild) -> dict[str, Any]:
+    async def fetch_stat_data(
+        self,
+        guild: discord.Guild,
+        *,
+        period: StatPeriod = "all",
+    ) -> dict[str, Any]:
         ctx = get_context(guild.id)
         if ctx is None:
             return {
@@ -43,10 +49,11 @@ class MarketHandler:
                 "leaderboard": {},
                 "total_workers": 0,
                 "total_customers": 0,
+                "period": period,
             }
 
         try:
-            data = await MarketService(ctx).market_statistic()
+            data = await MarketService(ctx).market_statistic(period=period)
         except ValueError:
             data = {"order": {}, "gold": {}, "leaderboard": {}}
 
@@ -63,40 +70,66 @@ class MarketHandler:
             "leaderboard": data.get("leaderboard", {}),
             "total_workers": total_workers,
             "total_customers": total_customers,
+            "period": period,
         }
 
-    async def fetch_worker(self, guild: discord.Guild | None) -> list[dict[str, Any]]:
+    async def fetch_worker(
+        self,
+        guild: discord.Guild | None,
+        *,
+        period: StatPeriod = "all",
+    ) -> list[dict[str, Any]]:
         ctx = self._resolve_ctx(guild)
         if ctx is None:
             return []
-        rows = await MarketService(ctx).top_workers()
+        rows = await MarketService(ctx).top_workers(period=period)
         return [{"name": self._member_name(guild, r["id"]), "value": r["value"]} for r in rows]
 
-    async def fetch_customer(self, guild: discord.Guild | None) -> list[dict[str, Any]]:
+    async def fetch_customer(
+        self,
+        guild: discord.Guild | None,
+        *,
+        period: StatPeriod = "all",
+    ) -> list[dict[str, Any]]:
         ctx = self._resolve_ctx(guild)
         if ctx is None:
             return []
-        rows = await MarketService(ctx).top_customers()
+        rows = await MarketService(ctx).top_customers(period=period)
         return [{"name": self._member_name(guild, r["id"]), "value": r["value"]} for r in rows]
 
-    async def fetch_donor(self, guild: discord.Guild | None) -> list[dict[str, Any]]:
+    async def fetch_donor(
+        self,
+        guild: discord.Guild | None,
+        *,
+        period: StatPeriod = "all",
+    ) -> list[dict[str, Any]]:
         ctx = self._resolve_ctx(guild)
         if ctx is None:
             return []
-        rows = await MarketService(ctx).top_donors()
+        rows = await MarketService(ctx).top_donors(period=period)
         return [{"name": self._member_name(guild, r["id"]), "value": r["value"]} for r in rows]
 
-    async def fetch_item(self, guild: discord.Guild | None) -> list[dict[str, Any]]:
+    async def fetch_item(
+        self,
+        guild: discord.Guild | None,
+        *,
+        period: StatPeriod = "all",
+    ) -> list[dict[str, Any]]:
         ctx = self._resolve_ctx(guild)
         if ctx is None:
             return []
-        return await MarketService(ctx).top_items()
+        return await MarketService(ctx).top_items(period=period)
 
-    async def fetch_rated_workers(self, guild: discord.Guild | None) -> list[dict[str, Any]]:
+    async def fetch_rated_workers(
+        self,
+        guild: discord.Guild | None,
+        *,
+        period: StatPeriod = "all",
+    ) -> list[dict[str, Any]]:
         ctx = self._resolve_ctx(guild)
         if ctx is None:
             return []
-        rows = await MarketService(ctx).top_rated_workers()
+        rows = await MarketService(ctx).top_rated_workers(period=period)
         return [
             {
                 "name": self._member_name(guild, r["id"]),
@@ -110,16 +143,18 @@ class MarketHandler:
         self,
         lb_type: MarketLBType,
         guild: discord.Guild | None,
+        *,
+        period: StatPeriod = "all",
     ) -> list[dict[str, Any]]:
         if lb_type == "worker":
-            return (await self.fetch_worker(guild))[:MAX_ITEMS]
+            return (await self.fetch_worker(guild, period=period))[:MAX_ITEMS]
         if lb_type == "customer":
-            return (await self.fetch_customer(guild))[:MAX_ITEMS]
+            return (await self.fetch_customer(guild, period=period))[:MAX_ITEMS]
         if lb_type == "donor":
-            return (await self.fetch_donor(guild))[:MAX_ITEMS]
+            return (await self.fetch_donor(guild, period=period))[:MAX_ITEMS]
         if lb_type == "item":
-            return (await self.fetch_item(guild))[:MAX_ITEMS]
-        return (await self.fetch_rated_workers(guild))[:MAX_ITEMS]
+            return (await self.fetch_item(guild, period=period))[:MAX_ITEMS]
+        return (await self.fetch_rated_workers(guild, period=period))[:MAX_ITEMS]
 
 
 _handler: MarketHandler | None = None

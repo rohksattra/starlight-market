@@ -89,24 +89,6 @@ class OrderCommands(commands.Cog):
         )
         await success(ctx)
 
-    @app_commands.command(name="claim", description="(Worker) Claim items from this order")
-    async def claim(self, interaction: discord.Interaction, quantity: int) -> None:
-        try:
-            check_cooldown(user_id=interaction.user.id, key="claim", seconds=5)
-        except ValueError as exc:
-            await safe_respond(interaction, content=f"⏳ {exc}", ephemeral=True)
-            return
-        await self.handler.handle_claim_action(interaction, action="claim", quantity=quantity)
-
-    @app_commands.command(name="unclaim", description="(Worker) Cancel your claim")
-    async def unclaim(self, interaction: discord.Interaction, quantity: int) -> None:
-        try:
-            check_cooldown(user_id=interaction.user.id, key="unclaim", seconds=5)
-        except ValueError as exc:
-            await safe_respond(interaction, content=f"⏳ {exc}", ephemeral=True)
-            return
-        await self.handler.handle_claim_action(interaction, action="unclaim", quantity=quantity)
-
     async def income_user_autocomplete(
         self,
         interaction: discord.Interaction,
@@ -227,12 +209,28 @@ class OrderCommands(commands.Cog):
             return
         await self.handler.handle_update_price(interaction, new_price=new_price)
 
-    @app_commands.command(name="order-item-quantity-update", description="(Staff) Update order item quantity")
-    async def update_quantity(self, interaction: discord.Interaction, new_quantity: int) -> None:
+    @app_commands.command(name="order-item-quantity-update", description="(Staff) Set, add, or reduce order quantity")
+    @app_commands.describe(
+        mode="Set a new total, or add/reduce by an amount",
+        quantity="Amount to set, add, or reduce",
+    )
+    @app_commands.choices(
+        mode=[
+            app_commands.Choice(name="Set", value="set"),
+            app_commands.Choice(name="Add", value="add"),
+            app_commands.Choice(name="Reduce", value="reduce"),
+        ]
+    )
+    async def update_quantity(
+        self,
+        interaction: discord.Interaction,
+        mode: Literal["set", "add", "reduce"],
+        quantity: int,
+    ) -> None:
         await safe_defer(interaction, ephemeral=True)
         if not await self._require_staff_interaction(interaction, key="order_update_quantity"):
             return
-        await self.handler.handle_update_quantity(interaction, new_quantity=new_quantity)
+        await self.handler.handle_update_quantity(interaction, mode=mode, quantity=quantity)
 
     @app_commands.command(name="order-customer-update", description="(Staff) Change order customer")
     @app_commands.describe(customer="New customer (server member)")

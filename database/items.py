@@ -86,3 +86,11 @@ class ItemRepo:
             upsert=True,
             **self._session_kw(session),
         )
+
+    async def sum_item_sold(self) -> int:
+        docs = await self.items.aggregate(
+            [{"$group": {"_id": None, "total": {"$sum": "$item_sold"}}}]
+        ).to_list(length=1)
+        if not docs:
+            return 0
+        return int(docs[0].get("total") or 0)

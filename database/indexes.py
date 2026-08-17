@@ -89,6 +89,12 @@ async def ensure_indexes(db_name: str) -> None:
     if not await _has_index(db.orders, keys=["item_id"]):
         await db.orders.create_index("item_id")
 
+    if not await _has_index(db.orders, keys=["created_at"]):
+        await db.orders.create_index([("created_at", -1)])
+
+    if not await _has_index(db.orders, keys=["order_status", "updated_at"]):
+        await db.orders.create_index([("order_status", 1), ("updated_at", -1)])
+
     if not await _has_index(db.transactions, keys=["transaction_id"]):
         await db.transactions.create_index("transaction_id", unique=True)
 
@@ -97,6 +103,21 @@ async def ensure_indexes(db_name: str) -> None:
 
     if not await _has_index(db.transactions, keys=["user_id", "user_role"]):
         await db.transactions.create_index([("user_id", 1), ("user_role", 1)])
+
+    if not await _has_index(db.transactions, keys=["created_at"]):
+        await db.transactions.create_index([("created_at", -1)])
+
+    if not await _has_index(db.transactions, keys=["user_role", "created_at"]):
+        await db.transactions.create_index([("user_role", 1), ("created_at", -1)])
+
+    if not await _has_index(db.donations, keys=["donation_id"]):
+        await db.donations.create_index("donation_id", unique=True)
+
+    if not await _has_index(db.donations, keys=["user_id"]):
+        await db.donations.create_index("user_id")
+
+    if not await _has_index(db.donations, keys=["created_at"]):
+        await db.donations.create_index([("created_at", -1)])
 
     if not await _has_index(db.worker_ratings, keys=["transaction_id"]):
         await db.worker_ratings.create_index("transaction_id", unique=True)
@@ -109,6 +130,9 @@ async def ensure_indexes(db_name: str) -> None:
 
     if not await _has_index(db.worker_ratings, keys=["expired_at"]):
         await db.worker_ratings.create_index("expired_at", expireAfterSeconds=0)
+
+    if not await _has_index(db.worker_ratings, keys=["rated", "rated_at"]):
+        await db.worker_ratings.create_index([("rated", 1), ("rated_at", -1)])
 
     if not await _has_index(db.giveaways, keys=["giveaway_id"]):
         await db.giveaways.create_index("giveaway_id", unique=True)

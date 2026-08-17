@@ -88,8 +88,8 @@ class ItemService:
 
     @staticmethod
     def _validate_price(price: int) -> None:
-        if price <= 0:
-            raise ValueError("Price must be > 0")
+        if price < 0:
+            raise ValueError("Price cannot be negative")
 
     async def update_category_name(self, *, old_name: str, new_name: str) -> None:
         self._validate_non_empty(old_name, new_name)

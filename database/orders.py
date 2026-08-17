@@ -220,6 +220,22 @@ class OrderRepo:
     async def count_by_statuses(self, statuses: list[OrderStatus]) -> int:
         return await self.orders.count_documents({"order_status": {"$in": statuses}})
 
+    async def count_created_since(self, since: datetime | None) -> int:
+        query: dict[str, Any] = {}
+        if since is not None:
+            query["created_at"] = {"$gte": since}
+        return await self.orders.count_documents(query)
+
+    async def count_by_status_updated_since(
+        self,
+        status: OrderStatus,
+        since: datetime | None,
+    ) -> int:
+        query: dict[str, Any] = {"order_status": status}
+        if since is not None:
+            query["updated_at"] = {"$gte": since}
+        return await self.orders.count_documents(query)
+
     async def get_claimable_orders(self) -> list[Order]:
         cursor = self.orders.find(
             {

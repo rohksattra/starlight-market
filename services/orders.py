@@ -199,8 +199,18 @@ class OrderService:
         log.info("Order price updated | order_id=%s new_price=%s", order["order_id"], new_price)
         return updated
 
-    async def update_quantity(self, *, order: Order, new_quantity: int) -> Order:
-        from services.order_claim_math import min_quantity_for_update, quantity_delta_claimable
+    async def update_quantity(
+        self,
+        *,
+        order: Order,
+        quantity: int,
+        mode: str = "set",
+    ) -> Order:
+        from services.order_claim_math import (
+            min_quantity_for_update,
+            quantity_delta_claimable,
+            resolve_updated_quantity,
+        )
 
         if order["order_status"] in {
             OrderStatus.COMPLETED,
@@ -209,15 +219,23 @@ class OrderService:
         }:
             raise ValueError("Cannot update quantity for finalized orders.")
 
+        new_quantity = resolve_updated_quantity(
+            current=int(order["item_quantity"]),
+            mode=mode,  # type: ignore[arg-type]
+            amount=quantity,
+        )
+
         if new_quantity <= 0:
-            raise ValueError("Quantity must be > 0")
+            raise ValueError("Quantity must stay above 0. Cancel the order instead.")
 
         claims = order["order_claims"]
         min_required = min_quantity_for_update(claims)
         if new_quantity < min_required:
-            raise ValueError(f"Quantity must be ≥ {min_required}")
+            raise ValueError(f"Quantity must be ≥ {min_required:,} (already in progress)")
 
         qty_delta = new_quantity - order["item_quantity"]
+        if qty_delta == 0:
+            raise ValueError("Quantity is already that amount")
         if qty_delta > 0:
             await self.tier_limits.validate_customer_order(
                 customer_id=order["customer_id"],
@@ -250,7 +268,13 @@ class OrderService:
             if not updated:
                 raise ValueError("Order not found")
 
-        log.info("Order quantity updated | order_id=%s new_qty=%s", order["order_id"], new_quantity)
+        log.info(
+            "Order quantity updated | order_id=%s mode=%s amount=%s new_qty=%s",
+            order["order_id"],
+            mode,
+            quantity,
+            new_quantity,
+        )
         return updated
 
     async def update_customer(self, *, order: Order, new_customer_id: str) -> Order:

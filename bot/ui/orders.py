@@ -37,7 +37,7 @@ def customer_total_price(order: dict) -> int:
     )
 
 
-def order_description(order: dict) -> str:
+def order_description(order: dict, ctx: GameContext | None = None) -> str:
     customer_id = order.get("customer_id")
     item_name = order.get("item_name", "Item")
     item_price = int(order.get("item_price", 0))
@@ -60,6 +60,7 @@ def order_description(order: dict) -> str:
         if worker_claims
         else "***🏷 0***"
     )
+    bank = f"<@&{ctx.roles.bank_manager}>" if ctx and ctx.roles.bank_manager else "@Bank Manager"
     return (
         f"**Customer**\n"
         f"- ***<@{customer_id}>***\n"
@@ -85,8 +86,8 @@ def order_description(order: dict) -> str:
         f"**__Claimable__**\n"
         f"-# Items available for workers to claim\n"
         f"🏷 ***{fmt(claimable)}***\n\n"
-        f"Workers can accept the order using **/claim**\n"
-        f"or cancel with **/unclaim**"
+        f"Workers can **Claim** or **Unclaim** using the buttons below.\n\n"
+        f"If you need to change the item, quantity, or increase the price, please contact {bank}."
     )
 
 
@@ -106,7 +107,7 @@ def order_embed(
     worker_mention = worker_role.mention if worker_role else "@Worker"
     embed = discord.Embed(
         title=f"📦 New Order — ***{fmt(quantity)}x {item_name}***",
-        description=order_description(order),
+        description=order_description(order, ctx),
         color=0xFFD700,
     )
     image_url = _item_image_url(ctx, order.get("item_image", ""), order.get("item_category", ""))
@@ -136,14 +137,18 @@ async def update_order_embed(
     item_name = order.get("item_name", "Item")
     embed = discord.Embed(
         title=f"📦 New Order — ***{fmt(quantity)}x {item_name}***",
-        description=order_description(order),
+        description=order_description(order, ctx),
         color=0xFFD700,
     )
     image_url = _item_image_url(ctx, order.get("item_image", ""), order.get("item_category", ""))
     if image_url:
         embed.set_thumbnail(url=image_url)
     set_starlight_footer(embed, ctx=ctx, detail="Good Luck 💪 & Have Fun 🙃")
-    await msg.edit(content=f"🔊 {worker_mention}", embed=embed)
+    await msg.edit(
+        content=f"🔊 {worker_mention}",
+        embed=embed,
+        allowed_mentions=discord.AllowedMentions.none(),
+    )
 
 
 def order_entry_embed(role_mention: str, ctx: GameContext) -> discord.Embed:

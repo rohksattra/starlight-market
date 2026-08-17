@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from core.constants import DONOR_COUPON_DISCOUNT_RATE
 from core.tenant import GameContext
+from database.donations import DonationRepo
 from database.items import ItemRepo
 from database.orders import OrderRepo
 from database.statistics import StatisticRepo
@@ -28,6 +29,7 @@ class EconomyService:
         self.orders = OrderRepo(ctx.db_name)
         self.statistics = StatisticRepo(ctx.db_name)
         self.transactions = TransactionRepo(ctx.db_name)
+        self.donations = DonationRepo(ctx.db_name)
 
     def _worker_keep_rate(self) -> float:
         return 1.0 - float(self.ctx.economy.worker_fee_rate)
@@ -235,6 +237,7 @@ class EconomyService:
             raise ValueError("Gold must be > 0")
         await self.users.ensure_user(user_id)
         await self.users.inc_donation_given(user_id=user_id, amount=gold)
+        await self.donations.create(user_id=user_id, gold=gold)
         log.info("Donation recorded | user=%s gold=%s", user_id, gold)
         return await self.users.get_user(user_id) or {}
 
@@ -262,6 +265,17 @@ class EconomyService:
             income_inc=worker_income,
         )
         await self.statistics.inc_worker_income(amount=worker_income)
+        await self.transactions.create_transaction(
+            {
+                "transaction_id": str(uuid4()),
+                "order_id": "",
+                "user_id": user_id,
+                "user_role": ServerRole.WORKER,
+                "item_id": item_id,
+                "item_quantity": quantity,
+                "total_price": worker_income,
+            }
+        )
 
         log.info(
             "Manual paid | user=%s item=%s qty=%s income=%s",
@@ -298,6 +312,17 @@ class EconomyService:
         await self.users.inc_customer_spent(user_id=user_id, amount=total_price)
         await self.items.inc_item_sold(item_id=item_id, qty=quantity)
         await self.statistics.inc_customer_spent(amount=total_price)
+        await self.transactions.create_transaction(
+            {
+                "transaction_id": str(uuid4()),
+                "order_id": "",
+                "user_id": user_id,
+                "user_role": ServerRole.CUSTOMER,
+                "item_id": item_id,
+                "item_quantity": quantity,
+                "total_price": total_price,
+            }
+        )
 
         log.info(
             "Manual spent | user=%s item=%s qty=%s spent=%s",
