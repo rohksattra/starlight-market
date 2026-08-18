@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import re
-import time
 from datetime import datetime
 from typing import Any, Dict, cast
 
@@ -20,6 +19,7 @@ from models.games import (
     GameType,
     PlayableGameType,
 )
+from utils.cooldown import begin_cooldown
 from utils.discord_safe import safe_defer, safe_edit_message, safe_respond
 from utils.ui_cooldown import begin_refresh_cooldown, clear_refresh_cooldown
 
@@ -206,18 +206,6 @@ class _BaseGameView(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         return interaction.guild is not None
 
-    def _cooldown_remaining(self, user_id: int, seconds: int) -> int:
-        now = time.time()
-        last_used = self._cooldowns.get(user_id)
-        if last_used is None:
-            self._cooldowns[user_id] = now
-            return 0
-        remaining = seconds - (now - last_used)
-        if remaining <= 0:
-            self._cooldowns[user_id] = now
-            return 0
-        return int(remaining)
-
     def _handler(self, interaction: discord.Interaction):
         from bot.handlers.games import get_game_handler
 
@@ -398,8 +386,12 @@ class BattleGameView(_BaseGameView):
             await safe_respond(interaction, content="❌ Unknown game server.", ephemeral=True)
             return
 
-        remaining = self._cooldown_remaining(interaction.user.id, ATTACK_COOLDOWN_SECONDS)
-        if remaining > 0:
+        remaining = begin_cooldown(
+            user_id=interaction.user.id,
+            key=f"game:{self.game_type}:attack",
+            seconds=ATTACK_COOLDOWN_SECONDS,
+        )
+        if remaining is not None:
             await safe_respond(
                 interaction,
                 content=f"⏳ Please wait **{remaining} seconds**.",

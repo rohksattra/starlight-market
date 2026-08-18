@@ -113,8 +113,10 @@ BATTLE_AUTO_NEW_ENEMY_SECONDS: Final[dict[PlayableGameType, int]] = {
 # Hunt is below this HP; bosses are at/above it.
 # EoP: Feitan 15k and up. CoA: Nature Elder 15k and the named raid bosses.
 BATTLE_BOSS_MIN_HEALTH: Final[int] = 15_000
-BATTLE_HUNT_TARGET_HITS: Final[int] = 18
-BATTLE_BOSS_TARGET_HITS: Final[int] = 45
+BATTLE_HUNT_TARGET_HITS: Final[int] = 10
+BATTLE_BOSS_TARGET_HITS: Final[int] = 25
+BATTLE_CRIT_CHANCE: Final[float] = 0.05
+BATTLE_CRIT_MULTIPLIER: Final[int] = 2
 BATTLE_HUNT_KILL_SP: Final[int] = 40
 BATTLE_BOSS_KILL_SP: Final[int] = 400
 BATTLE_HUNT_LAST_HIT_SP: Final[int] = 25

@@ -295,7 +295,7 @@ class GameRuntimeService:
 
         serv = self.game_serv(ctx)
         max_hp = int(state.get("max_hp", hp) or hp)
-        damage = serv.roll_attack(max_hp=max_hp, game_type=game_type)
+        damage, is_crit = serv.roll_attack(max_hp=max_hp, game_type=game_type)
         dealt = min(damage, hp)
         sp, kill_bonus = serv.attack_rewards(
             dealt=dealt,
@@ -352,8 +352,9 @@ class GameRuntimeService:
                 "message": "❌ Attack failed due to conflict. Please try again.",
             }
 
+        hit = "💥 Critical! You dealt" if is_crit else "⚔️ You dealt"
         message = (
-            f"⚔️ You dealt **{dealt:,} damage** "
+            f"{hit} **{dealt:,} damage** "
             f"and gained **{sp} {ctx.brand.points_short}**."
         )
 

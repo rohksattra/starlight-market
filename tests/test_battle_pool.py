@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from games.coa.seed.monsters import DEFAULT_MONSTERS as COA_MONSTERS
 from games.eop.seed.monsters import DEFAULT_MONSTERS as EOP_MONSTERS
 from services.games import GameService
@@ -93,7 +95,7 @@ def test_hunt_damage_scales_with_health() -> None:
         max_hp=8500,
         game_type="monster",
     )
-    assert 1 <= bat_min < bat_max <= 20
+    assert 1 <= bat_min < bat_max <= 40
     assert goblin_min > bat_max
     assert goblin_max < 8500
 
@@ -127,3 +129,15 @@ def test_attack_rewards_stay_bounded() -> None:
     assert hunt_bonus == 25
     assert boss_sp == 400
     assert boss_bonus == 100
+
+
+def test_crit_doubles_damage() -> None:
+    with patch("services.games.random.random", return_value=0.049):
+        damage, is_crit = GameService.apply_crit(100)
+    assert is_crit is True
+    assert damage == 200
+
+    with patch("services.games.random.random", return_value=0.05):
+        damage, is_crit = GameService.apply_crit(100)
+    assert is_crit is False
+    assert damage == 100

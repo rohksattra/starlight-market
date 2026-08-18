@@ -15,6 +15,8 @@ from models.games import (
     BATTLE_BOSS_LAST_HIT_SP,
     BATTLE_BOSS_MIN_HEALTH,
     BATTLE_BOSS_TARGET_HITS,
+    BATTLE_CRIT_CHANCE,
+    BATTLE_CRIT_MULTIPLIER,
     BATTLE_HUNT_KILL_SP,
     BATTLE_HUNT_LAST_HIT_SP,
     BATTLE_HUNT_TARGET_HITS,
@@ -250,12 +252,19 @@ class GameService:
         return damage_min, damage_max
 
     @staticmethod
-    def roll_attack(*, max_hp: int, game_type: PlayableGameType) -> int:
+    def apply_crit(damage: int) -> tuple[int, bool]:
+        if random.random() < BATTLE_CRIT_CHANCE:
+            return damage * BATTLE_CRIT_MULTIPLIER, True
+        return damage, False
+
+    @staticmethod
+    def roll_attack(*, max_hp: int, game_type: PlayableGameType) -> tuple[int, bool]:
         damage_min, damage_max = GameService.attack_damage_range(
             max_hp=max_hp,
             game_type=game_type,
         )
-        return random.randint(damage_min, damage_max)
+        damage = random.randint(damage_min, damage_max)
+        return GameService.apply_crit(damage)
 
     @staticmethod
     def attack_rewards(
