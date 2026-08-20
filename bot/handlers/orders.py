@@ -414,7 +414,7 @@ class OrderHandler:
             guild=interaction.guild,
             ctx=ctx,
             member=interaction.user,
-            action=f"Rated worker {rating} star{'s' if rating != 1 else ''}",
+            action=f"Submitted a {rating} star worker rating",
         )
 
     async def _disable_rating_buttons(self, interaction: discord.Interaction) -> None:

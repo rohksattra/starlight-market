@@ -51,10 +51,10 @@ class MarketService:
         return int(customer_spent * float(self.ctx.economy.worker_fee_rate))
 
     @staticmethod
-    def _avg_order_size(*, items_sold: int, created: int) -> float:
+    def _avg_order_size(*, items_sold: int, created: int) -> int:
         if created <= 0:
-            return 0.0
-        return items_sold / created
+            return 0
+        return int((items_sold / created) + 0.5)
 
     async def market_statistic(self, *, period: StatPeriod = "all") -> dict[str, Any]:
         active = await self.orders.count_by_statuses([OrderStatus.NEW, OrderStatus.CLAIMED])

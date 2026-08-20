@@ -404,7 +404,7 @@ def market_statistic_embed(
 
     created = int(order.get("created", order.get("total", 0)) or 0)
     rate = float(gold.get("commission_rate", 0.01) or 0)
-    avg_size = float(gold.get("avg_order_size", 0) or 0)
+    avg_size = int(gold.get("avg_order_size", 0) or 0)
     embed = discord.Embed(title=title, color=0xFFD700)
     embed.description = (
         f"{period_line}\n\n"
@@ -422,7 +422,7 @@ def market_statistic_embed(
         f"- Customer spent: 🪙 ***{int(gold.get('customer_spent', 0) or 0):,}***\n"
         f"- Market commission ({rate * 100:g}%): 🪙 ***{int(gold.get('commission', 0) or 0):,}***\n"
         f"- Items sold: 🏷 ***{int(gold.get('items_sold', 0) or 0):,}***\n"
-        f"- Avg. order size: 📊 ***{avg_size:,.1f}***\n\n"
+        f"- Avg. order size: 📊 ***{avg_size:,}***\n\n"
         "### 🥇 Leaderboard\n"
         "**Top 5 Workers**\n"
         f"{_fmt_users(guild, leaderboard.get('workers', []))}\n\n"

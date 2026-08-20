@@ -371,7 +371,7 @@ def _humanize_custom_id(custom_id: str) -> str | None:
 
     if cid.startswith("rating:worker:"):
         stars = cid.rsplit(":", 1)[-1]
-        return f"Rated worker {stars} star{'s' if stars != '1' else ''}"
+        return f"Clicked worker rating button ({stars} star{'s' if stars != '1' else ''})"
 
     if cid.startswith("sl_rc:"):
         key = cid.split(":", 1)[1]

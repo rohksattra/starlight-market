@@ -22,8 +22,9 @@ def _service(*, fee_rate: float = 0.01) -> MarketService:
 
 
 def test_avg_order_size() -> None:
-    assert MarketService._avg_order_size(items_sold=10, created=4) == 2.5
-    assert MarketService._avg_order_size(items_sold=10, created=0) == 0.0
+    assert MarketService._avg_order_size(items_sold=10, created=4) == 3
+    assert MarketService._avg_order_size(items_sold=10, created=3) == 3
+    assert MarketService._avg_order_size(items_sold=10, created=0) == 0
 
 
 def test_commission_uses_tenant_fee() -> None:
