@@ -1,0 +1,374 @@
+"""Order business logic (no Discord imports)."""
+from __future__ import annotations
+
+import logging
+from uuid import uuid4
+
+from core.tenant import GameContext
+from database.orders import OrderRepo
+from database.statistics import StatisticRepo
+from database.transactions import run_transaction
+from database.users import UserRepo
+from models.enums import OrderStatus
+from models.order import Order, OrderCreate
+from services.tier_limits import TierLimitsService
+from services.tiers import donor_has_coupons, donor_limits_for_total
+from utils.keyed_lock import user_action_locks
+
+log = logging.getLogger("services.orders")
+
+
+class OrderService:
+    def __init__(self, ctx: GameContext) -> None:
+        self.ctx = ctx
+        self.users = UserRepo(ctx.db_name)
+        self.orders = OrderRepo(ctx.db_name)
+        self.statistics = StatisticRepo(ctx.db_name)
+        self.tier_limits = TierLimitsService(ctx)
+
+    async def get_by_channel_id(self, channel_id: str) -> Order | None:
+        return await self.orders.get_by_channel_id(channel_id)
+
+    async def create_order(
+        self,
+        *,
+        customer_id: str,
+        item_id: str,
+        quantity: int,
+    ) -> Order:
+        if quantity <= 0:
+            raise ValueError("Quantity must be > 0")
+
+        async with user_action_locks.lock((self.ctx.db_name, "customer", customer_id)):
+            await self.tier_limits.validate_customer_order(
+                customer_id=customer_id,
+                quantity=quantity,
+            )
+
+            from database.items import ItemRepo
+
+            item = await ItemRepo(self.ctx.db_name).get_by_id(item_id)
+            if not item:
+                raise ValueError("Item not found")
+            if int(item.get("item_price", 0) or 0) <= 0:
+                raise ValueError("This item is not available for order yet.")
+
+            order_number = await self.orders.next_order_number()
+            order_id = str(uuid4())
+
+            order: OrderCreate = {
+                "order_id": order_id,
+                "order_number": order_number,
+                "channel_id": "",
+                "embed_message_id": "",
+                "customer_id": customer_id,
+                "item_id": item["item_id"],
+                "item_name": item["item_name"],
+                "item_price": item["item_price"],
+                "item_image": item.get("item_image", ""),
+                "item_category": item.get("item_category", ""),
+                "item_quantity": quantity,
+                "is_custom": False,
+                "worker_claims": {},
+                "order_claims": {
+                    "order_delivered": 0,
+                    "order_completed": 0,
+                    "order_claimed": 0,
+                    "order_claimable": quantity,
+                },
+                "order_status": OrderStatus.NEW,
+                "coupon_applied": False,
+            }
+
+            user = await self.users.get_user(customer_id)
+            donation = int(user.get("donation_given", 0) or 0) if user else 0
+            donor_limits = donor_limits_for_total(donation, game=self.ctx.game)
+
+            await self._persist_new_order(
+                order,
+                customer_id,
+                try_coupon=donor_has_coupons(donor_limits),
+                max_coupons=donor_limits.max_coupons,
+            )
+            try:
+                await self.tier_limits.validate_customer_totals(customer_id=customer_id)
+            except ValueError:
+                await self.cancel_order(order=order)
+                raise
+
+        log.info(
+            "Order created | db=%s order_id=%s order_number=%s customer=%s",
+            self.ctx.db_name,
+            order_id,
+            order_number,
+            customer_id,
+        )
+        return order
+
+    async def create_custom_order(
+        self,
+        *,
+        customer_id: str,
+        item_name: str,
+        item_price: int,
+        item_quantity: int,
+    ) -> Order:
+        if item_quantity <= 0:
+            raise ValueError("Quantity must be > 0")
+        if item_price <= 0:
+            raise ValueError("Price must be > 0")
+
+        async with user_action_locks.lock((self.ctx.db_name, "customer", customer_id)):
+            await self.tier_limits.validate_customer_order(
+                customer_id=customer_id,
+                quantity=item_quantity,
+            )
+
+            order_number = await self.orders.next_order_number()
+            order_id = str(uuid4())
+
+            order: OrderCreate = {
+                "order_id": order_id,
+                "order_number": order_number,
+                "channel_id": "",
+                "embed_message_id": "",
+                "customer_id": customer_id,
+                "item_id": str(uuid4()),
+                "item_name": item_name,
+                "item_price": item_price,
+                "item_image": "",
+                "item_category": "",
+                "item_quantity": item_quantity,
+                "is_custom": True,
+                "worker_claims": {},
+                "order_claims": {
+                    "order_delivered": 0,
+                    "order_completed": 0,
+                    "order_claimed": 0,
+                    "order_claimable": item_quantity,
+                },
+                "order_status": OrderStatus.NEW,
+                "coupon_applied": False,
+            }
+
+            user = await self.users.get_user(customer_id)
+            donation = int(user.get("donation_given", 0) or 0) if user else 0
+            donor_limits = donor_limits_for_total(donation, game=self.ctx.game)
+
+            await self._persist_new_order(
+                order,
+                customer_id,
+                try_coupon=donor_has_coupons(donor_limits),
+                max_coupons=donor_limits.max_coupons,
+            )
+            try:
+                await self.tier_limits.validate_customer_totals(customer_id=customer_id)
+            except ValueError:
+                await self.cancel_order(order=order)
+                raise
+
+        log.info(
+            "Custom order created | db=%s order_id=%s order_number=%s customer=%s",
+            self.ctx.db_name,
+            order_id,
+            order_number,
+            customer_id,
+        )
+        return order
+
+    async def _persist_new_order(
+        self,
+        order: OrderCreate,
+        customer_id: str,
+        *,
+        try_coupon: bool = False,
+        max_coupons: int | None = 0,
+    ) -> None:
+        async def work(session: object) -> None:
+            if try_coupon:
+                order["coupon_applied"] = await self.users.try_consume_coupon(
+                    user_id=customer_id,
+                    max_coupons=max_coupons,
+                    session=session,
+                )
+            await self.orders.create_order(order, session=session)
+            await self.users.ensure_user(customer_id, session=session)
+            await self.users.inc_customer_order(user_id=customer_id, session=session)
+            await self.statistics.inc_customer_order(session=session)
+
+        await run_transaction(work)
+
+    async def update_price(self, *, order: Order, new_price: int) -> Order:
+        if new_price <= 0:
+            raise ValueError("Price must be > 0")
+
+        updated = await self.orders.update_fields(
+            order_id=order["order_id"],
+            fields={"item_price": new_price},
+        )
+        if not updated:
+            raise ValueError("Order not found")
+
+        log.info("Order price updated | order_id=%s new_price=%s", order["order_id"], new_price)
+        return updated
+
+    async def update_quantity(
+        self,
+        *,
+        order: Order,
+        quantity: int,
+        mode: str = "set",
+    ) -> Order:
+        from services.order_claim_math import (
+            min_quantity_for_update,
+            quantity_delta_claimable,
+            resolve_updated_quantity,
+        )
+
+        if order["order_status"] in {
+            OrderStatus.COMPLETED,
+            OrderStatus.DELIVERED,
+            OrderStatus.CLOSED,
+        }:
+            raise ValueError("Cannot update quantity for finalized orders.")
+
+        new_quantity = resolve_updated_quantity(
+            current=int(order["item_quantity"]),
+            mode=mode,  # type: ignore[arg-type]
+            amount=quantity,
+        )
+
+        if new_quantity <= 0:
+            raise ValueError("Quantity must stay above 0. Cancel the order instead.")
+
+        claims = order["order_claims"]
+        min_required = min_quantity_for_update(claims)
+        if new_quantity < min_required:
+            raise ValueError(f"Quantity must be ≥ {min_required:,} (already in progress)")
+
+        qty_delta = new_quantity - order["item_quantity"]
+        if qty_delta == 0:
+            raise ValueError("Quantity is already that amount")
+        if qty_delta > 0:
+            await self.tier_limits.validate_customer_order(
+                customer_id=order["customer_id"],
+                quantity=qty_delta,
+            )
+
+        updated = await self.orders.update_fields(
+            order_id=order["order_id"],
+            fields={
+                "item_quantity": new_quantity,
+                "order_claims.order_claimable": quantity_delta_claimable(
+                    old_qty=order["item_quantity"],
+                    new_qty=new_quantity,
+                    claims=claims,
+                ),
+            },
+        )
+        if not updated:
+            raise ValueError("Order not found")
+
+        claims_updated = updated["order_claims"]
+        if (
+            updated["order_status"] == OrderStatus.CLAIMED
+            and claims_updated["order_completed"] >= updated["item_quantity"]
+        ):
+            updated = await self.orders.update_fields(
+                order["order_id"],
+                {"order_status": OrderStatus.COMPLETED},
+            )
+            if not updated:
+                raise ValueError("Order not found")
+
+        log.info(
+            "Order quantity updated | order_id=%s mode=%s amount=%s new_qty=%s",
+            order["order_id"],
+            mode,
+            quantity,
+            new_quantity,
+        )
+        return updated
+
+    async def update_customer(self, *, order: Order, new_customer_id: str) -> Order:
+        old_customer_id = order["customer_id"]
+        if old_customer_id == new_customer_id:
+            raise ValueError("New customer is the same as the current customer.")
+
+        if order["order_status"] in {OrderStatus.CLOSED, OrderStatus.CANCELED}:
+            raise ValueError("Cannot change customer for closed or canceled orders.")
+
+        claimed_qty = int(order["worker_claims"].get(new_customer_id, 0))
+        if claimed_qty > 0:
+            raise ValueError("The new customer already has claims on this order.")
+
+        if order["order_status"] in {
+            OrderStatus.NEW,
+            OrderStatus.CLAIMED,
+            OrderStatus.COMPLETED,
+            OrderStatus.DELIVERED,
+        }:
+            await self.tier_limits.validate_customer_order(
+                customer_id=new_customer_id,
+                quantity=order["item_quantity"],
+            )
+
+        async def work(session: object) -> Order:
+            updated = await self.orders.update_fields(
+                order_id=order["order_id"],
+                fields={"customer_id": new_customer_id},
+                session=session,
+            )
+            if not updated:
+                raise ValueError("Order not found")
+            await self.users.transfer_customer_order_count(
+                from_user_id=old_customer_id,
+                to_user_id=new_customer_id,
+                session=session,
+            )
+            return updated
+
+        updated = await run_transaction(work)
+        log.info(
+            "Order customer updated | order_id=%s old=%s new=%s",
+            order["order_id"],
+            old_customer_id,
+            new_customer_id,
+        )
+        return updated
+
+    async def close_order(self, *, order: Order) -> None:
+        if order["order_status"] != OrderStatus.DELIVERED:
+            raise ValueError("Only delivered orders can be closed")
+
+        if not await self.orders.update_fields(
+            order_id=order["order_id"],
+            fields={"order_status": OrderStatus.CLOSED},
+        ):
+            raise ValueError("Order not found")
+
+        await self.statistics.inc_finished_order()
+        log.info("Order closed | order_id=%s", order["order_id"])
+
+    async def cancel_order(self, *, order: Order) -> None:
+        if not await self.orders.update_fields(
+            order_id=order["order_id"],
+            fields={"order_status": OrderStatus.CANCELED},
+        ):
+            raise ValueError("Order not found")
+
+        if order.get("coupon_applied"):
+            await self.users.refund_coupon(user_id=order["customer_id"])
+
+        await self.statistics.inc_canceled_order()
+        log.warning("Order canceled | order_id=%s", order["order_id"])
+
+    async def set_channel_and_message(
+        self,
+        *,
+        order_id: str,
+        channel_id: str,
+        message_id: int,
+    ) -> None:
+        await self.orders.set_channel(order_id, channel_id)
+        await self.orders.set_embed_message(order_id, str(message_id))

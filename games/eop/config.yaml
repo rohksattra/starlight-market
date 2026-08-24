@@ -1,0 +1,97 @@
+# games/eop/config.yaml
+# Full configuration for game: Empire of Praxia
+
+guild_id: 1536776417399017512
+database: empireofpraxia
+
+brand:
+  name: Praxia Market
+  emoji: "⚔️"
+  audience: Praxia players
+  points_name: Praxia Points
+  points_short: PP
+  bank_ign: PraxiaBank
+
+channels:
+  place_order: 1536776418049138775
+  new_orders_category: 1536776418627682359
+  claimed_orders_category: 1536776418627682361
+  completed_orders_category: 1536776418896126040
+  price: 1536776418049138776
+  market_statistic: 1536776418279690331
+  user_profile: 1536776418279690332
+  claim_log: 1536776418627682355
+  activity_log: 1536776418405388379
+  worker_transaction: 1536789762101350461
+  customer_transaction: 1536789426896900137
+  top_earning_worker: 1536776418627682356
+  top_spending_customer: 1536776418405388384
+  top_item: 1536776418279690330
+  top_donor: 1536776418279690334
+  top_rated_worker: 1536776418627682357
+  rating_message: 1536776418405388383
+  donation: 1536776418279690333
+  giveaway: 1536776418279690335
+  welcome: 1536776417436762146
+  farewell: 1536776417436762147
+  role_claim: 1536776417876901903
+  rules: 1536776417876901902
+  pickup: 1536776418627682358
+  game_leaderboard: 1536776420318253158
+  # Community mini-game channels
+  counting: 1536776419776925854
+  word_chain: 1536776419776925855
+  scramble_word: 1536776419776925856
+  boss_battle: 1536776420318253157
+  monster_hunt: 1536776420318253156
+
+roles:
+  bot_developer: 1536776417424056428
+  bank_manager: 1536776417424056426
+  moderator: 1536776417424056424
+  worker: 1536776417399017517
+  customer: 1536776417399017516
+  announcement: 1536776417399017515
+  giveaway: 1536776417399017514
+  content_notification: 1536776417399017513
+
+  # Donor tiers (gold threshold → monthly coupons)
+  donor_tiers:
+    relic: 1536776417399017520         # 500K · 1 coupon
+    oracle: 1536776417407148044        # 2M · 3 coupons
+    sanctum: 1536776417407148047       # 5M · 5 coupons
+    aether: 1536776417407148050        # 10M · 7 coupons
+    zenith: 1536776417415663767        # 25M · 9 coupons
+    elysium: 1536776417415663770       # 50M · 12 coupons
+    astralis: 1536776417415663773      # 100M · unlimited
+
+  # Worker tiers (income threshold → role ID)
+  worker_tiers:
+    explorer: 1536776417399017519      # 1M
+    ranger: 1536776417407148043        # 5M
+    astral: 1536776417407148046        # 25M
+    nova: 1536776417407148049          # 100M
+    eclipse: 1536776417407148052       # 500M
+    infinity: 1536776417415663769      # 2.5B
+    genesis: 1536776417415663772       # 10B
+
+  # Customer tiers (spent threshold → role ID)
+  customer_tiers:
+    wanderer: 1536776417399017518      # 1M
+    voyager: 1536776417399017521       # 5M
+    stellar: 1536776417407148045       # 25M
+    nebula: 1536776417407148048        # 100M
+    galactic: 1536776417407148051      # 500M
+    cosmic: 1536776417415663768        # 2.5B
+    celestial: 1536776417415663771     # 10B
+
+economy:
+  worker_fee_rate: 0.01
+  max_active_orders: 3
+  max_active_claims: 3
+
+assets:
+  github_user: rohksattra
+  github_repo: starlight-market
+  github_branch: main
+  base_path: assets/empireofpraxia
