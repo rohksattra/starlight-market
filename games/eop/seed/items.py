@@ -50,6 +50,7 @@ DEFAULT_ITEMS = {
         {"item_name": "Gold Braids", "item_price": 0, "item_image": "Gold_Braids.png", "item_emoji": "<:Gold_Braids:1537163946220322866>"},
         {"item_name": "Gold Gem", "item_price": 0, "item_image": "Gold_Gem.png", "item_emoji": "<:Gold_Gem:1537163948175138916>"},
         {"item_name": "Null Crystal", "item_price": 0, "item_image": "Null_Crystal.png", "item_emoji": "<:Null_Crystal:1539084494550737057>"},
+        {"item_name": "Peridot", "item_price": 0, "item_image": "Peridot.png", "item_emoji": "<:Peridot:1541346528705384508>"},
         {"item_name": "Silver Braids", "item_price": 0, "item_image": "Silver_Braids.png", "item_emoji": "<:Silver_Braids:1537163950322487447>"},
         {"item_name": "Silver Gem", "item_price": 0, "item_image": "Silver_Gem.png", "item_emoji": "<:Silver_Gem:1537163952105201767>"},
     ],
