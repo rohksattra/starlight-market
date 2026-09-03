@@ -13,6 +13,7 @@ DEFAULT_MONSTERS = [
     {"monster_level": "8", "monster_name": 'Pawn', "monster_health": 450, "monster_image": 'Pawn.gif'},
     {"monster_level": "42", "monster_name": 'Ser Camelot', "monster_health": 5500, "monster_image": 'Ser_Camelot.gif'},
     {"monster_level": "33", "monster_name": 'Ser Kael', "monster_health": 2500, "monster_image": 'Ser_Kael.gif'},
+    {"monster_level": "88", "monster_name": 'Skeleton', "monster_health": 0, "monster_image": 'Skeleton.gif'},
     {"monster_level": "52", "monster_name": 'Spear Goblin', "monster_health": 8500, "monster_image": 'Spear_Goblin.gif'},
     {"monster_level": "61", "monster_name": 'Spear Goblin Rider', "monster_health": 8250, "monster_image": 'Spear_Goblin_Rider.gif'},
     {"monster_level": "38", "monster_name": 'Torch Goblin', "monster_health": 4000, "monster_image": 'Torch_Goblin.gif'},
