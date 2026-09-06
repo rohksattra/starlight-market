@@ -66,9 +66,8 @@ def _bottom_notes(estimate: GrindEstimate) -> list[str]:
     notes: list[str] = []
     if estimate.drop_rolls > 1:
         note = estimate.monster_drop_note or f"Drops {estimate.drop_rolls} items upon death"
-        notes.append(
-            f"*{note.rstrip('.')}. Estimates are multiplied by {estimate.drop_rolls}.*"
-        )
+        notes.append(f"*{note.rstrip('.')}.*")
+        notes.append(f"*Estimates are multiplied by {estimate.drop_rolls}.*")
     elif estimate.monster_drop_note:
         notes.append(f"*{estimate.monster_drop_note}*")
     return notes
@@ -79,9 +78,11 @@ def _join_description(
     drop_lines: list[str],
     extra_notes: list[str] | None = None,
 ) -> str:
-    notes = list(extra_notes or [])
-    notes.append(DISCLAIMER)
-    suffix = "\n\n" + "\n".join(notes)
+    extra = list(extra_notes or [])
+    if extra:
+        suffix = "\n\n" + "\n".join(extra) + "\n\n" + DISCLAIMER
+    else:
+        suffix = "\n\n" + DISCLAIMER
     lines = list(drop_lines)
     hidden = 0
     while True:

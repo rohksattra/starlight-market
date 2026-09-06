@@ -66,6 +66,10 @@ def test_parse_skips_none_and_defaults_missing_qty() -> None:
     assert parse_drop_rolls("Drops 4 items upon death") == 4
     assert parse_drop_rolls("Drops 2 items upon death") == 2
     assert parse_drop_rolls("") == 1
+    _items, monsters = load_game_catalog("coa")
+    notes = {row["monster_name"]: str(row.get("monster_drop_note") or "") for row in monsters}
+    assert parse_drop_rolls(notes["Mummy"]) == 6
+    assert parse_drop_rolls(notes["Shadow Demon"]) == 2
 
     war_bat = parse_monster_drops("Potion (1/1) (5-10), Bat Amulet (1/45) (1)")
     rows = {drop.name: (lo, hi) for drop, lo, hi in estimate_drops(war_bat, 1000, drop_rolls=4)}
@@ -116,7 +120,12 @@ def test_grind_estimate_embed_empty_drops_and_note() -> None:
     desc = grind_estimate_embed(estimate).description or ""
     assert "⚠️ No drop data." in desc
     assert desc.index("⚠️ No drop data.") < desc.index("Estimates are multiplied by 4")
-    assert "*Drops 4 items upon death. Estimates are multiplied by 4.*" in desc
+    assert "*Drops 4 items upon death.*" in desc
+    assert "*Estimates are multiplied by 4.*" in desc
+    assert desc.index("*Drops 4 items upon death.*") < desc.index(
+        "*Estimates are multiplied by 4.*"
+    )
+    assert "*Estimates are multiplied by 4.*\n\n" + DISCLAIMER in desc
     assert "🟡 EXP" in desc.split("⚠️ No drop data.")[0]
 
 
