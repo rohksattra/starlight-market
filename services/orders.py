@@ -365,6 +365,10 @@ class OrderService:
         log.info("Order closed | order_id=%s", order["order_id"])
 
     async def cancel_order(self, *, order: Order) -> None:
+        from services.order_claim import OrderClaimService
+
+        await OrderClaimService(self.ctx).unclaim_all(order_id=order["order_id"])
+
         if not await self.orders.update_fields(
             order_id=order["order_id"],
             fields={"order_status": OrderStatus.CANCELED},

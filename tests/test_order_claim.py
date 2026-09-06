@@ -93,6 +93,41 @@ def test_force_claim_uses_same_tier_check() -> None:
     tier.validate_worker_totals.assert_awaited_once()
 
 
+def test_unclaim_all_releases_every_worker() -> None:
+    service, repo, _tier = _service()
+    repo.get_by_id.return_value = {
+        "order_id": "o1",
+        "item_quantity": 10,
+        "order_status": "claimed",
+        "worker_claims": {"w1": 2, "w2": 3, "w3": 0},
+        "order_claims": {"order_claimable": 5},
+    }
+    repo.inc_unclaim.side_effect = [
+        {
+            "order_id": "o1",
+            "item_quantity": 10,
+            "order_status": "claimed",
+            "worker_claims": {"w1": 0, "w2": 3},
+            "order_claims": {"order_claimable": 7},
+        },
+        {
+            "order_id": "o1",
+            "item_quantity": 10,
+            "order_status": "claimed",
+            "worker_claims": {"w1": 0, "w2": 0},
+            "order_claims": {"order_claimable": 10},
+        },
+    ]
+    repo.update_fields.return_value = None
+
+    _run(service.unclaim_all(order_id="o1"))
+
+    assert repo.inc_unclaim.await_count == 2
+    repo.inc_unclaim.assert_any_await(order_id="o1", worker_id="w1", qty=2)
+    repo.inc_unclaim.assert_any_await(order_id="o1", worker_id="w2", qty=3)
+    repo.unset_worker_claim.assert_any_await(order_id="o1", worker_id="w3")
+
+
 def test_claim_rolls_back_when_post_check_fails() -> None:
     service, repo, tier = _service()
     repo.inc_claim.return_value = {
@@ -117,3 +152,33 @@ def test_claim_rolls_back_when_post_check_fails() -> None:
     except ValueError as exc:
         assert "Claim capacity" in str(exc)
     repo.inc_unclaim.assert_awaited_once()
+
+
+def test_cancel_order_unclaims_workers_first() -> None:
+    from models.enums import OrderStatus
+    from services.orders import OrderService
+
+    ctx = MagicMock()
+    ctx.db_name = "test"
+    with (
+        patch("services.orders.UserRepo"),
+        patch("services.orders.OrderRepo"),
+        patch("services.orders.StatisticRepo"),
+        patch("services.orders.TierLimitsService"),
+        patch("services.order_claim.OrderClaimService") as claim_cls,
+    ):
+        service = OrderService(ctx)
+        claim = AsyncMock()
+        claim_cls.return_value = claim
+        service.orders = AsyncMock()
+        service.users = AsyncMock()
+        service.statistics = AsyncMock()
+        service.orders.update_fields.return_value = True
+
+        _run(service.cancel_order(order={"order_id": "o1", "customer_id": "c1"}))
+
+    claim.unclaim_all.assert_awaited_once_with(order_id="o1")
+    service.orders.update_fields.assert_awaited_once_with(
+        order_id="o1",
+        fields={"order_status": OrderStatus.CANCELED},
+    )

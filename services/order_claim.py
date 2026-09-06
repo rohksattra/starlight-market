@@ -118,3 +118,29 @@ class OrderClaimService:
             qty=qty,
             action="Force unclaim",
         )
+
+    async def unclaim_all(self, *, order_id: str) -> dict[str, Any] | None:
+        order = await self.orders.get_by_id(order_id)
+        if not order:
+            return None
+
+        claims = dict(order.get("worker_claims") or {})
+        for worker_id, raw_qty in claims.items():
+            worker_id = str(worker_id)
+            qty = int(raw_qty or 0)
+            if qty > 0:
+                updated = await self.orders.inc_unclaim(
+                    order_id=order_id,
+                    worker_id=worker_id,
+                    qty=qty,
+                )
+                if updated:
+                    order = await self._post_unclaim(order=updated, worker_id=worker_id)
+                    continue
+            cleared = await self.orders.unset_worker_claim(
+                order_id=order_id,
+                worker_id=worker_id,
+            )
+            if cleared:
+                order = cleared
+        return order

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from core.tenant import all_contexts, load_all_tenants
 from bot.ui.monster_grind import DISCLAIMER, grind_estimate_embed
 from database.seed import load_game_catalog
 from services.monster_grind import (
@@ -175,3 +176,10 @@ def test_monster_grind_service_estimate() -> None:
     ):
         labels = _run(service.autocomplete("anu"))
     assert [value for _label, value in labels] == ["Anubis", "Anubis Elite"]
+
+
+def test_coa_grind_posts_to_command_bot_channel() -> None:
+    load_all_tenants()
+    games = {ctx.game: ctx for ctx in all_contexts()}
+    assert games["coa"].channels.bot_command == 1367879603221430404
+    assert games["eop"].channels.bot_command == 0

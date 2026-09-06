@@ -82,11 +82,15 @@ def test_role_claim_custom_ids_are_stable() -> None:
             CID_WORKER: 0,
             CID_CUSTOMER: 0,
             CID_ANNOUNCE: 0,
-            CID_GIVEAWAY: 0,
-            CID_CONTENT: 0,
+            CID_GIVEAWAY: 1,
+            CID_CONTENT: 1,
             CID_BOOST: 1,
-            CID_METEOR: 1,
+            CID_METEOR: 2,
         }
+        counts: dict[int, int] = {}
+        for child in RoleClaimView().children:
+            counts[child.row] = counts.get(child.row, 0) + 1
+        assert max(counts.values()) <= 3
 
     _run(body())
 
@@ -109,6 +113,14 @@ def test_role_claim_adds_boost_and_meteor_after_content_for_coa() -> None:
         eop_ids = _child_ids(RoleClaimView.for_context(games["eop"]))
         assert CID_BOOST in coa_ids and CID_METEOR in coa_ids
         assert CID_BOOST not in eop_ids and CID_METEOR not in eop_ids
+        eop_rows = {child.custom_id: child.row for child in RoleClaimView.for_context(games["eop"]).children}
+        assert eop_rows == {
+            CID_WORKER: 0,
+            CID_CUSTOMER: 0,
+            CID_ANNOUNCE: 0,
+            CID_GIVEAWAY: 1,
+            CID_CONTENT: 1,
+        }
 
     _run(body())
 

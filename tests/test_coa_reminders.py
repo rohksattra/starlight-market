@@ -126,10 +126,12 @@ def test_coa_config_has_reminder_ids_eop_does_not() -> None:
     games = {ctx.game: ctx for ctx in all_contexts()}
     assert games["coa"].channels.meteor_reminder == 1545962525668147260
     assert games["coa"].channels.world_boost == 1545962461377593354
+    assert games["coa"].channels.bot_command == 1367879603221430404
     assert games["coa"].roles.meteor == 1545964957617750066
     assert games["coa"].roles.world_boost == 1545963839001198684
     assert games["eop"].channels.meteor_reminder == 0
     assert games["eop"].channels.world_boost == 0
+    assert games["eop"].channels.bot_command == 0
     assert games["eop"].roles.meteor == 0
     assert games["eop"].roles.world_boost == 0
 
