@@ -12,3 +12,4 @@ def test_ensure_indexes_covers_leaderboard_and_claimable() -> None:
     assert "item_sold" in source
     assert "order_claims.order_claimable" in source
     assert "status" in source and "ends_at" in source
+    assert "world_id" in source

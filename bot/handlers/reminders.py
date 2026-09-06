@@ -12,7 +12,7 @@ from core.tenant import GameContext, all_contexts
 from core.time import utc_now
 from services.coa_reminders import (
     BOOST_POLL_SECONDS,
-    BoostTracker,
+    WorldBoostService,
     boost_end_at,
     fetch_worlds,
     meteor_event_window,
@@ -94,12 +94,13 @@ async def _meteor_loop(bot: commands.Bot, ctx: GameContext) -> None:
 
 async def _boost_loop(bot: commands.Bot, ctx: GameContext) -> None:
     await bot.wait_until_ready()
-    tracker = BoostTracker()
+    service = WorldBoostService(ctx.db_name)
+    await service.start()
     while not bot.is_closed():
         try:
             worlds = await fetch_worlds()
             now = utc_now()
-            for world in tracker.consume(worlds):
+            for world in await service.consume(worlds, now=now):
                 await _send_reminder(
                     bot=bot,
                     ctx=ctx,

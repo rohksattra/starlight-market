@@ -153,4 +153,7 @@ async def ensure_indexes(db_name: str) -> None:
     if not await _has_index(db.giveaways, keys=["status", "ends_at"]):
         await db.giveaways.create_index([("status", 1), ("ends_at", 1)])
 
+    if not await _has_index(db.worlds, keys=["world_id"]):
+        await db.worlds.create_index("world_id", unique=True)
+
     log.info("Indexes ensured | db=%s", db_name)

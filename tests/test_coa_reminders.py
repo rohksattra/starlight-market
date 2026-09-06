@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 from bot.handlers.reminders import start_coa_reminders
@@ -72,7 +72,7 @@ def test_parse_worlds_and_boost_tracker() -> None:
                 "region": "ASIA",
                 "players": 72,
                 "is_boosted": True,
-                "boost_remaining": 1200,
+                "boost_remaining": 3_600_000,
                 "members_only": False,
             },
             {
@@ -88,16 +88,19 @@ def test_parse_worlds_and_boost_tracker() -> None:
         ]
     )
     tracker = BoostTracker()
-    assert tracker.consume(worlds) == []
+    start = datetime(2026, 9, 5, 19, 2, 0)
+    assert tracker.consume(worlds, now=start) == []
+    ids = {doc["world_id"] for doc in tracker.drain_upserts()}
+    assert ids == {5, 11}
 
     boosted = parse_worlds(
         [
-            {"id": 5, "name": "World 5 (Asia)", "is_boosted": True, "boost_remaining": 1100},
-            {"id": 11, "name": "World 11 (US)", "is_boosted": True, "boost_remaining": 1800},
+            {"id": 5, "name": "World 5 (Asia)", "is_boosted": True, "boost_remaining": 3_570_000},
+            {"id": 11, "name": "World 11 (US)", "is_boosted": True, "boost_remaining": 1_800_000},
             {"id": 200, "name": "War Bear QA", "is_boosted": True, "boost_remaining": 99},
         ]
     )
-    new_boosts = tracker.consume(boosted)
+    new_boosts = tracker.consume(boosted, now=start + timedelta(seconds=30))
     assert [world.world_id for world in new_boosts] == [11]
 
     ended = parse_worlds(
@@ -106,11 +109,112 @@ def test_parse_worlds_and_boost_tracker() -> None:
             {"id": 11, "name": "World 11 (US)", "is_boosted": False},
         ]
     )
-    assert tracker.consume(ended) == []
+    assert tracker.consume(ended, now=start + timedelta(seconds=60)) == []
     again = parse_worlds(
-        [{"id": 5, "name": "World 5 (Asia)", "is_boosted": True, "boost_remaining": 600}]
+        [{"id": 5, "name": "World 5 (Asia)", "is_boosted": True, "boost_remaining": 1_200_000}]
     )
-    assert [world.world_id for world in tracker.consume(again)] == [5]
+    assert [world.world_id for world in tracker.consume(again, now=start + timedelta(hours=1))] == [5]
+
+
+def _asia(remaining_ms: int) -> list:
+    return parse_worlds(
+        [{"id": 5, "name": "World 5 (Asia)", "is_boosted": True, "boost_remaining": remaining_ms}]
+    )
+
+
+def test_boost_tracker_notifies_back_to_back_same_world() -> None:
+    tracker = BoostTracker()
+    start = datetime(2026, 9, 5, 19, 2, 0)
+    assert tracker.consume(_asia(3_600_000), now=start) == []
+    assert tracker.consume(_asia(30_000), now=start + timedelta(seconds=3_570)) == []
+    next_boost = tracker.consume(_asia(3_600_000), now=start + timedelta(hours=1))
+    assert [world.world_id for world in next_boost] == [5]
+
+
+def test_boost_tracker_notifies_shorter_followup_boost() -> None:
+    tracker = BoostTracker()
+    start = datetime(2026, 9, 5, 19, 2, 0)
+    assert tracker.consume(_asia(3_600_000), now=start) == []
+    assert tracker.consume(_asia(3_570_000), now=start + timedelta(seconds=30)) == []
+    shorter = tracker.consume(_asia(1_200_000), now=start + timedelta(seconds=60))
+    assert [world.world_id for world in shorter] == [5]
+
+
+def test_boost_tracker_notifies_when_remaining_jumps_from_50s_to_20m() -> None:
+    tracker = BoostTracker()
+    start = datetime(2026, 9, 5, 19, 2, 0)
+    assert tracker.consume(_asia(50_000), now=start) == []
+    jumped = tracker.consume(_asia(1_200_000), now=start + timedelta(seconds=30))
+    assert [world.world_id for world in jumped] == [5]
+
+
+def test_boost_tracker_notifies_similar_duration_after_failed_polls() -> None:
+    tracker = BoostTracker()
+    start = datetime(2026, 9, 5, 19, 43, 0)
+    assert tracker.consume(_asia(1_140_000), now=start) == []
+    assert tracker.consume([]) == []
+    assert tracker.consume([]) == []
+    followup = tracker.consume(_asia(1_200_000), now=start + timedelta(seconds=90))
+    assert [world.world_id for world in followup] == [5]
+
+
+def test_boost_tracker_notifies_after_stored_end_timestamp() -> None:
+    tracker = BoostTracker()
+    start = datetime(2026, 9, 5, 19, 2, 0)
+    assert tracker.consume(_asia(3_600_000), now=start) == []
+    assert tracker.consume([]) == []
+    later = tracker.consume(_asia(1_200_000), now=start + timedelta(hours=1, minutes=1))
+    assert [world.world_id for world in later] == [5]
+
+
+def test_boost_tracker_keeps_world_missing_from_poll() -> None:
+    tracker = BoostTracker()
+    start = datetime(2026, 9, 5, 19, 2, 0)
+    both = parse_worlds(
+        [
+            {"id": 5, "name": "World 5 (Asia)", "is_boosted": True, "boost_remaining": 3_600_000},
+            {"id": 11, "name": "World 11 (US)", "is_boosted": True, "boost_remaining": 3_600_000},
+        ]
+    )
+    assert tracker.consume(both, now=start) == []
+    only_five = parse_worlds(
+        [{"id": 5, "name": "World 5 (Asia)", "is_boosted": True, "boost_remaining": 3_570_000}]
+    )
+    assert tracker.consume(only_five, now=start + timedelta(seconds=30)) == []
+    eleven_back = parse_worlds(
+        [
+            {"id": 5, "name": "World 5 (Asia)", "is_boosted": True, "boost_remaining": 3_540_000},
+            {"id": 11, "name": "World 11 (US)", "is_boosted": True, "boost_remaining": 3_540_000},
+        ]
+    )
+    assert tracker.consume(eleven_back, now=start + timedelta(seconds=60)) == []
+
+
+def test_boost_tracker_hydrate_survives_restart() -> None:
+    start = datetime(2026, 9, 5, 19, 2, 0)
+    primed = BoostTracker()
+    assert primed.consume(_asia(3_600_000), now=start) == []
+    docs = primed.drain_upserts()
+    assert docs and docs[0]["world_id"] == 5
+
+    restarted = BoostTracker()
+    restarted.hydrate(docs)
+    later = start + timedelta(hours=1, minutes=1)
+    assert [world.world_id for world in restarted.consume(_asia(1_200_000), now=later)] == [5]
+
+    same_session = BoostTracker()
+    same_session.hydrate(docs)
+    assert same_session.consume(_asia(3_000_000), now=start + timedelta(minutes=10)) == []
+
+
+def test_boost_tracker_ignores_empty_fetch() -> None:
+    tracker = BoostTracker()
+    live = parse_worlds(
+        [{"id": 5, "name": "World 5 (Asia)", "is_boosted": True, "boost_remaining": 3_600_000}]
+    )
+    assert tracker.consume(live) == []
+    assert tracker.consume([]) == []
+    assert tracker.consume(live) == []
 
 
 def test_reminder_embeds_use_approved_copy() -> None:
