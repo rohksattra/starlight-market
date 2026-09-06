@@ -87,10 +87,14 @@ def test_role_claim_custom_ids_are_stable() -> None:
             CID_BOOST: 1,
             CID_METEOR: 2,
         }
-        counts: dict[int, int] = {}
-        for child in RoleClaimView().children:
-            counts[child.row] = counts.get(child.row, 0) + 1
-        assert max(counts.values()) <= 3
+        payload_rows = RoleClaimView().to_components()
+        assert [len(row["components"]) for row in payload_rows] == [3, 3, 1]
+        ids = [[btn["custom_id"] for btn in row["components"]] for row in payload_rows]
+        assert ids == [
+            [CID_WORKER, CID_CUSTOMER, CID_ANNOUNCE],
+            [CID_GIVEAWAY, CID_CONTENT, CID_BOOST],
+            [CID_METEOR],
+        ]
 
     _run(body())
 
@@ -113,7 +117,8 @@ def test_role_claim_adds_boost_and_meteor_after_content_for_coa() -> None:
         eop_ids = _child_ids(RoleClaimView.for_context(games["eop"]))
         assert CID_BOOST in coa_ids and CID_METEOR in coa_ids
         assert CID_BOOST not in eop_ids and CID_METEOR not in eop_ids
-        eop_rows = {child.custom_id: child.row for child in RoleClaimView.for_context(games["eop"]).children}
+        eop_view = RoleClaimView.for_context(games["eop"])
+        eop_rows = {child.custom_id: child.row for child in eop_view.children}
         assert eop_rows == {
             CID_WORKER: 0,
             CID_CUSTOMER: 0,
@@ -121,6 +126,7 @@ def test_role_claim_adds_boost_and_meteor_after_content_for_coa() -> None:
             CID_GIVEAWAY: 1,
             CID_CONTENT: 1,
         }
+        assert [len(row["components"]) for row in eop_view.to_components()] == [3, 2]
 
     _run(body())
 

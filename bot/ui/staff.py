@@ -301,8 +301,12 @@ class RoleClaimView(ui.View):
                 self.remove_item(child)
 
     def _layout_rows(self, *, per_row: int) -> None:
-        for index, child in enumerate(self.children):
+        children = list(self.children)
+        for child in children:
+            self.remove_item(child)
+        for index, child in enumerate(children):
             child.row = index // per_row
+            self.add_item(child)
 
     @classmethod
     def for_context(cls, ctx: GameContext) -> RoleClaimView:
