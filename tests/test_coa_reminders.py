@@ -11,6 +11,7 @@ from services.coa_reminders import (
     BoostTracker,
     CoAWorld,
     boost_end_at,
+    format_boost_remaining,
     is_trackable_world,
     meteor_event_window,
     meteor_slot_key,
@@ -44,13 +45,22 @@ def test_next_meteor_reminder_after_grace() -> None:
 
 def test_boost_end_at_and_trackable_worlds() -> None:
     now = datetime(2026, 9, 6, 12, 0, 0)
-    assert boost_end_at(now, 1200) == datetime(2026, 9, 6, 12, 20, 0)
+    assert boost_end_at(now, 1_200_000) == datetime(2026, 9, 6, 12, 20, 0)
     assert boost_end_at(now, 0) is None
 
-    playable = CoAWorld(5, "World 5 (Asia)", "ASIA", 72, True, 1200, False)
-    qa = CoAWorld(200, "War Bear QA", "US", 0, True, 1200, True)
+    playable = CoAWorld(5, "World 5 (Asia)", "ASIA", 72, True, 1_200_000, False)
+    qa = CoAWorld(200, "War Bear QA", "US", 0, True, 1_200_000, True)
     assert is_trackable_world(playable)
     assert not is_trackable_world(qa)
+
+
+def test_format_boost_remaining_hours_and_minutes() -> None:
+    assert format_boost_remaining(3_600_000) == "1 hour"
+    assert format_boost_remaining(5_400_000) == "1 hour 30 minutes"
+    assert format_boost_remaining(120_000) == "2 minutes"
+    assert format_boost_remaining(60_000) == "1 minute"
+    assert format_boost_remaining(30_000) == "less than 1 minute"
+    assert format_boost_remaining(0) == ""
 
 
 def test_parse_worlds_and_boost_tracker() -> None:
@@ -112,11 +122,12 @@ def test_reminder_embeds_use_approved_copy() -> None:
     assert "Get ready and head to the crash site." in (meteor.description or "")
     assert meteor.footer.text and "Meteor Reminder" in meteor.footer.text
 
-    world = CoAWorld(5, "World 5 (Asia)", "ASIA", 72, True, 1200, False)
-    boost = world_boost_embed(world=world, ends_at=datetime(2026, 9, 6, 12, 20, 0))
+    world = CoAWorld(5, "World 5 (Asia)", "ASIA", 72, True, 5_400_000, False)
+    boost = world_boost_embed(world=world, ends_at=datetime(2026, 9, 6, 13, 30, 0))
     assert boost.title == "🚀 World Boost Active"
     assert "A player just boosted **World 5 (Asia)**." in (boost.description or "")
     assert "+50% EXP" in (boost.description or "")
+    assert "**Time left:** **1 hour 30 minutes**." in (boost.description or "")
     assert "Log in and start grinding." in (boost.description or "")
     assert boost.footer.text and "World Boost Reminder" in boost.footer.text
 

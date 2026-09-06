@@ -7,7 +7,7 @@ import discord
 
 from bot.ui.shared import set_starlight_footer
 from core.tenant import GameContext
-from services.coa_reminders import CoAWorld, METEOR_DURATION_MINUTES
+from services.coa_reminders import CoAWorld, METEOR_DURATION_MINUTES, format_boost_remaining
 
 EMBED_COLOR = 0xFFD700
 
@@ -49,8 +49,13 @@ def world_boost_embed(
     ends_at: datetime | None,
     ctx: GameContext | None = None,
 ) -> discord.Embed:
+    remaining = format_boost_remaining(world.boost_remaining)
     ending = ""
-    if ends_at is not None:
+    if remaining:
+        ending = f" **Time left:** **{remaining}**."
+        if ends_at is not None:
+            ending += f" It ends **{_dt(ends_at, 'R')}**."
+    elif ends_at is not None:
         ending = f" It ends **{_dt(ends_at, 'R')}**."
     embed = discord.Embed(
         title="🚀 World Boost Active",

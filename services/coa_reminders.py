@@ -63,11 +63,27 @@ def meteor_event_window(reminder_at: datetime) -> tuple[datetime, datetime]:
     return start, end
 
 
-def boost_end_at(now: datetime, boost_remaining: int) -> datetime | None:
-    remaining = _as_int(boost_remaining, 0)
-    if remaining <= 0:
+def format_boost_remaining(boost_remaining_ms: int) -> str:
+    remaining_ms = max(0, _as_int(boost_remaining_ms, 0))
+    if remaining_ms <= 0:
+        return ""
+    total_minutes = remaining_ms // 60_000
+    if total_minutes == 0:
+        return "less than 1 minute"
+    hours, minutes = divmod(total_minutes, 60)
+    parts: list[str] = []
+    if hours:
+        parts.append("1 hour" if hours == 1 else f"{hours} hours")
+    if minutes:
+        parts.append("1 minute" if minutes == 1 else f"{minutes} minutes")
+    return " ".join(parts)
+
+
+def boost_end_at(now: datetime, boost_remaining_ms: int) -> datetime | None:
+    remaining_ms = _as_int(boost_remaining_ms, 0)
+    if remaining_ms <= 0:
         return None
-    return now + timedelta(seconds=remaining)
+    return now + timedelta(milliseconds=remaining_ms)
 
 
 def is_trackable_world(world: CoAWorld) -> bool:
