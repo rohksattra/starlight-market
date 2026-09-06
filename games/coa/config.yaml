@@ -46,6 +46,7 @@ channels:
   monster_hunt: 1510574035958763600
   meteor_reminder: 1545962525668147260
   world_boost: 1545962461377593354
+  bot_command: 1367879603221430404
 
 roles:
   bot_developer: 1369814746013896795

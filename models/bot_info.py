@@ -54,7 +54,7 @@ COMMAND_GROUPS: Final[list[CommandGroup]] = [
     {
         "title": "🏦 Bank Manager (+ 👤 Member)",
         "commands": [
-            {"name": "!mcancel", "description": "Cancel the current order channel"},
+            {"name": "!mcancel", "description": "Cancel the current order and release all claims"},
             {"name": "/custom-order", "description": "Create a custom/manual order"},
             {"name": "/order-item-price-update", "description": "Update order item price"},
             {"name": "/order-item-quantity-update", "description": "Set, add, or reduce order quantity"},
