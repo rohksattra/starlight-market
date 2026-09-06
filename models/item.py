@@ -1,0 +1,16 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import TypedDict
+
+
+class Item(TypedDict):
+    item_id: str
+    item_category: str
+    item_name: str
+    item_price: int
+    item_sold: int
+    item_image: str
+    item_emoji: str
+    is_sell: bool
+    updated_at: datetime | None
