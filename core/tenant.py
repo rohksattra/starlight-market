@@ -46,6 +46,7 @@ class ChannelConfig:
     pickup: int = 0
     meteor_reminder: int = 0
     world_boost: int = 0
+    bot_command: int = 0
 
 
 @dataclass(frozen=True)
@@ -164,6 +165,7 @@ def _parse_context(game: str, data: dict) -> GameContext:
         pickup=int(channels_raw.get("pickup", 0)),
         meteor_reminder=int(channels_raw.get("meteor_reminder", 0)),
         world_boost=int(channels_raw.get("world_boost", 0)),
+        bot_command=int(channels_raw.get("bot_command", 0)),
     )
 
     roles = RoleConfig(

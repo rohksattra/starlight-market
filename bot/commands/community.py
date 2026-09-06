@@ -199,7 +199,7 @@ class CommunityCommands(commands.Cog):
             await safe_respond(interaction, content=f"⏳ {exc}", ephemeral=True)
             return
 
-        await safe_defer(interaction)
+        await safe_defer(interaction, ephemeral=True)
         try:
             estimate = await MonsterGrindService(tenant).estimate(
                 monster_name=monster,
@@ -209,7 +209,18 @@ class CommunityCommands(commands.Cog):
             await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
             return
 
-        await safe_respond(interaction, embed=grind_estimate_embed(estimate, ctx=tenant))
+        embed = grind_estimate_embed(estimate, ctx=tenant)
+        channel = interaction.guild.get_channel(tenant.channels.bot_command)
+        if isinstance(channel, discord.TextChannel):
+            await channel.send(embed=embed)
+            await safe_respond(
+                interaction,
+                content=f"✅ Grind estimate sent to {channel.mention}.",
+                ephemeral=True,
+            )
+            return
+
+        await safe_respond(interaction, embed=embed, ephemeral=True)
 
     @app_commands.command(
         name="game-panel",

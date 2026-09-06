@@ -194,7 +194,7 @@ class OrderStaffForceMixin:
             ),
             status="cancelled",
         )
-        await ctx.send("❌ Order canceled. Channel will be deleted.")
+        await ctx.send("❌ Order canceled. All worker claims were released. Channel will be deleted.")
         await asyncio.sleep(5)
         await ctx.channel.delete(reason="Order canceled")
 

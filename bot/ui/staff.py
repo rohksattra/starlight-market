@@ -283,6 +283,9 @@ def _role_id_for_custom_id(guild_id: int, custom_id: str) -> int | None:
     return role_id
 
 
+_ROLE_BUTTONS_PER_ROW = 3
+
+
 class RoleClaimView(ui.View):
     def __init__(self, *, include_boost: bool = True, include_meteor: bool = True) -> None:
         super().__init__(timeout=None)
@@ -290,11 +293,16 @@ class RoleClaimView(ui.View):
             self._drop_custom_id(CID_BOOST)
         if not include_meteor:
             self._drop_custom_id(CID_METEOR)
+        self._layout_rows(per_row=_ROLE_BUTTONS_PER_ROW)
 
     def _drop_custom_id(self, custom_id: str) -> None:
         for child in list(self.children):
             if getattr(child, "custom_id", None) == custom_id:
                 self.remove_item(child)
+
+    def _layout_rows(self, *, per_row: int) -> None:
+        for index, child in enumerate(self.children):
+            child.row = index // per_row
 
     @classmethod
     def for_context(cls, ctx: GameContext) -> RoleClaimView:
