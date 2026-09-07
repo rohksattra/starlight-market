@@ -20,11 +20,12 @@ METEOR_REMINDER_MINUTE = 55
 METEOR_GRACE_SECONDS = 30
 METEOR_DURATION_MINUTES = 5
 BOOST_POLL_SECONDS = 30
-# Implied end vs stored end (countdown mismatch / shorter replacement).
-SESSION_SLACK_MS = 120_000
 # Remaining went up — a live boost never gets longer by itself.
 REMAINING_INCREASE_MS = 30_000
-END_GRACE_MS = 5_000
+# Remaining dropped this far vs last sample (not original ends_at) = shorter pack.
+SHARP_DROP_MS = 600_000
+# API often keeps is_boosted=true with a tiny leftover after ends_at.
+DYING_REMAINING_MS = 120_000
 
 
 @dataclass(frozen=True)
@@ -194,7 +195,9 @@ class BoostTracker:
     """Tracks CoA worlds in memory and emits Mongo upserts.
 
     Empty tracker: first API snapshot is a silent baseline (no pings).
-    Hydrated from DB: first poll compares against stored ends_at.
+    Hydrated from DB: first poll compares against stored remaining/ends_at.
+    Before ends_at, a new session is remaining up or a sharp drop vs the
+    last sample — not drift from the original end timestamp.
     Worlds missing from a poll are kept; failed/empty fetches write nothing.
     """
 
@@ -301,15 +304,18 @@ class BoostTracker:
     def _is_new_session(self, previous: WorldRecord, remaining_ms: int, now: datetime) -> bool:
         if previous.boost_ends_at is None:
             return True
-        if now >= previous.boost_ends_at + timedelta(milliseconds=END_GRACE_MS):
-            return True
+        if (
+            remaining_ms <= DYING_REMAINING_MS
+            and remaining_ms <= previous.boost_remaining + REMAINING_INCREASE_MS
+        ):
+            return False
         if remaining_ms > previous.boost_remaining + REMAINING_INCREASE_MS:
             return True
-        implied_end = boost_end_at(now, remaining_ms)
-        if implied_end is None:
-            return False
-        delta_ms = abs(int((implied_end - previous.boost_ends_at).total_seconds() * 1000))
-        return delta_ms > SESSION_SLACK_MS
+        if now >= previous.boost_ends_at:
+            return True
+        elapsed_ms = max(0, int((now - previous.seen_at).total_seconds() * 1000))
+        expected = previous.boost_remaining - elapsed_ms
+        return remaining_ms < expected - SHARP_DROP_MS
 
 
 class WorldBoostService:

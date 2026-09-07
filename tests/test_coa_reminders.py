@@ -158,6 +158,32 @@ def test_boost_tracker_notifies_similar_duration_after_failed_polls() -> None:
     assert [world.world_id for world in followup] == [5]
 
 
+def test_boost_tracker_ignores_dying_leftover_after_long_boost() -> None:
+    tracker = BoostTracker()
+    start = datetime(2026, 9, 5, 15, 0, 0)
+    four_hours = 14_400_000
+    assert tracker.consume(_asia(four_hours), now=start) == []
+    almost_done = start + timedelta(hours=4, seconds=10)
+    assert tracker.consume(_asia(40_000), now=almost_done) == []
+    leftover = start + timedelta(hours=4, seconds=40)
+    assert tracker.consume(_asia(5_000), now=leftover) == []
+    followup = tracker.consume(_asia(1_200_000), now=start + timedelta(hours=4, minutes=1))
+    assert [world.world_id for world in followup] == [5]
+
+
+def test_boost_tracker_ignores_ends_at_drift_during_long_boost() -> None:
+    tracker = BoostTracker()
+    start = datetime(2026, 9, 5, 12, 0, 0)
+    six_hours = 21_600_000
+    assert tracker.consume(_asia(six_hours), now=start) == []
+    mid = start + timedelta(hours=3)
+    drifted = 10_680_000
+    assert tracker.consume(_asia(drifted), now=mid) == []
+    assert tracker.consume(_asia(drifted - 30_000), now=mid + timedelta(seconds=30)) == []
+    shorter = tracker.consume(_asia(1_200_000), now=mid + timedelta(seconds=60))
+    assert [world.world_id for world in shorter] == [5]
+
+
 def test_boost_tracker_notifies_after_stored_end_timestamp() -> None:
     tracker = BoostTracker()
     start = datetime(2026, 9, 5, 19, 2, 0)
