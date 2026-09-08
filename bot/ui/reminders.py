@@ -1,4 +1,4 @@
-"""CoA meteor and world-boost reminder embeds."""
+﻿"""CoA meteor and world-boost reminder embeds."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -33,9 +33,9 @@ def meteor_reminder_embed(
     embed = discord.Embed(
         title="☄️ Meteor Incoming",
         description=(
-            f"A meteor is dropping in **{_dt(event_start, 'R')}**.\n\n"
-            f"**Event Time:** **{start}**\n"
-            f"**Duration:** **{METEOR_DURATION_MINUTES} minutes ({start} – {end})**\n\n"
+            f"A meteor is dropping (***{_dt(event_start, 'R')}***).\n\n"
+            f"Event Time: ***{start}***\n"
+            f"Duration: ***{METEOR_DURATION_MINUTES}*** minutes (***{start} – {end}***)\n\n"
             "Get ready and head to the crash site."
         ),
         color=EMBED_COLOR,
@@ -52,18 +52,18 @@ def world_boost_embed(
     remaining = format_boost_remaining(world.boost_remaining)
     time_left_line = ""
     if remaining:
-        time_left_line = f"**Time left:** ***{remaining}***"
+        time_left_line = f"Time left: ***{remaining}***"
         if ends_at is not None:
-            time_left_line += f" (ends {_dt(ends_at, 'R')})"
+            time_left_line += f" (ends ***{_dt(ends_at, 'R')}***)"
     elif ends_at is not None:
-        time_left_line = f"**Time left:** ends {_dt(ends_at, 'R')}"
-    details = [f"**Location:** ***{world.name}***"]
+        time_left_line = f"Time left: ends ***{_dt(ends_at, 'R')}***"
+    details = [f"Location: ***{world.name}***"]
     if time_left_line:
         details.append(time_left_line)
     embed = discord.Embed(
         title="🚀 World Boost Active",
         description=(
-            "A player just boosted a world. Everyone there gets **+50% EXP** "
+            "A player just boosted a world. Everyone there gets ***+50% EXP*** "
             "for the rest of the boost.\n\n"
             + "\n".join(details)
             + "\n\nLog in and start grinding."
