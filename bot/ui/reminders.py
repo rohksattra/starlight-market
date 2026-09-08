@@ -50,19 +50,23 @@ def world_boost_embed(
     ctx: GameContext | None = None,
 ) -> discord.Embed:
     remaining = format_boost_remaining(world.boost_remaining)
-    ending = ""
+    time_left_line = ""
     if remaining:
-        ending = f" **Time left:** **{remaining}**."
+        time_left_line = f"**Time left:** ***{remaining}***"
         if ends_at is not None:
-            ending += f" It ends **{_dt(ends_at, 'R')}**."
+            time_left_line += f" (ends {_dt(ends_at, 'R')})"
     elif ends_at is not None:
-        ending = f" It ends **{_dt(ends_at, 'R')}**."
+        time_left_line = f"**Time left:** ends {_dt(ends_at, 'R')}"
+    details = [f"**Location:** ***{world.name}***"]
+    if time_left_line:
+        details.append(time_left_line)
     embed = discord.Embed(
         title="🚀 World Boost Active",
         description=(
-            f"A player just boosted **{world.name}**. Everyone there gets "
-            f"**+50% EXP** for the rest of the boost.{ending}\n\n"
-            "Log in and start grinding."
+            "A player just boosted a world. Everyone there gets **+50% EXP** "
+            "for the rest of the boost.\n\n"
+            + "\n".join(details)
+            + "\n\nLog in and start grinding."
         ),
         color=EMBED_COLOR,
     )

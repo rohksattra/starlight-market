@@ -20,8 +20,7 @@ METEOR_REMINDER_MINUTE = 55
 METEOR_GRACE_SECONDS = 30
 METEOR_DURATION_MINUTES = 5
 BOOST_POLL_SECONDS = 30
-# Remaining went up — a live boost never gets longer by itself.
-REMAINING_INCREASE_MS = 30_000
+REMAINING_INCREASE_MS = 30_000  # Remaining went up — a live boost never gets longer by itself.
 # Remaining dropped this far vs last sample (not original ends_at) = shorter pack.
 SHARP_DROP_MS = 600_000
 # API often keeps is_boosted=true with a tiny leftover after ends_at.
