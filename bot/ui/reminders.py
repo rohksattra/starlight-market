@@ -43,6 +43,12 @@ def meteor_reminder_embed(
     return set_starlight_footer(embed, ctx=ctx, detail="Meteor Reminder", include_button_notice=False)
 
 
+def world_boost_ping(*, location: str, role_mention: str | None = None) -> str:
+    at = f"at ***{location}***"
+    mention = (role_mention or "").strip()
+    return f"{mention} {at}".strip() if mention else at
+
+
 def world_boost_embed(
     *,
     world: CoAWorld,

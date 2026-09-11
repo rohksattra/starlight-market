@@ -7,7 +7,7 @@ import logging
 import discord
 from discord.ext import commands
 
-from bot.ui.reminders import meteor_reminder_embed, world_boost_embed
+from bot.ui.reminders import meteor_reminder_embed, world_boost_embed, world_boost_ping
 from core.tenant import GameContext, all_contexts
 from core.time import utc_now
 from services.coa_reminders import (
@@ -40,6 +40,7 @@ async def _send_reminder(
     role_id: int,
     embed: discord.Embed,
     kind: str,
+    location: str | None = None,
 ) -> None:
     channel = _text_channel(bot, ctx.guild_id, channel_id)
     if channel is None:
@@ -48,9 +49,11 @@ async def _send_reminder(
 
     guild = channel.guild
     role = guild.get_role(role_id) if role_id else None
+    mention = role.mention if role else None
+    content = world_boost_ping(location=location, role_mention=mention) if location else mention
     try:
         await channel.send(
-            content=role.mention if role else None,
+            content=content,
             embed=embed,
             allowed_mentions=_ROLE_MENTIONS,
         )
@@ -112,6 +115,7 @@ async def _boost_loop(bot: commands.Bot, ctx: GameContext) -> None:
                         ctx=ctx,
                     ),
                     kind="world_boost",
+                    location=world.name,
                 )
         except asyncio.CancelledError:
             raise
