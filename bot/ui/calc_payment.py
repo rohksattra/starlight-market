@@ -6,6 +6,7 @@ from typing import Optional
 import discord
 
 from core.tenant import GameContext
+from services import market_settings
 from services.items import ItemService
 from services.orders import OrderService
 from utils.discord_safe import safe_defer, safe_edit_message, safe_respond
@@ -270,7 +271,7 @@ class CalcWorkerPaymentView(discord.ui.View):
             )
             return
 
-        keep_rate = 1.0 - float(self.ctx.economy.worker_fee_rate)
+        keep_rate = await market_settings.keep_rate(self.ctx)
         item_price = int(self.order["item_price"])
         payment = int(item_price * self.quantity * keep_rate)
         item_id = self.order.get("item_id")

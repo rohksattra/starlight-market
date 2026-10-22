@@ -9,7 +9,9 @@ from core.tenant import all_contexts
 from database.connection import get_db, ping
 from database.indexes import ensure_indexes
 from database.seed import seed_game
+from database.settings import SettingRepo
 from database.statistics import StatisticRepo
+from services import market_settings
 from services.catalog_cache import invalidate, items as cached_items, monsters as cached_monsters
 
 log = logging.getLogger("core.startup")
@@ -54,6 +56,10 @@ async def bootstrap() -> None:
         await ensure_indexes(ctx.db_name)
         await ensure_order_number_counter(ctx.db_name)
         await StatisticRepo(ctx.db_name).ensure_global()
+        await SettingRepo(ctx.db_name).seed_market_fee_rate(
+            fee_rate=ctx.economy.worker_fee_rate
+        )
+        market_settings.invalidate(ctx.db_name)
         result = await seed_game(ctx.game, ctx.db_name)
         invalidate(ctx.db_name)
         await cached_items(ctx.db_name)

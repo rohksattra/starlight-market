@@ -14,6 +14,7 @@ from bot.tier_sync import TierRoleService
 from bot.ui.staff import RoleClaimView, market_rules_embeds, pickup_guide_embed, role_claim_embed
 from core.tenant import get_context
 from models.enums import ORDER_MANAGEMENT_ROLES, STAFF_ROLES
+from services import market_settings
 from services.items import ItemService
 from services.staff import CleanupdataService, DISCORD_BULK_DELETE_LIMIT, validate_delete_quantity
 from utils.autocomplete import user_autocomplete
@@ -166,7 +167,7 @@ class StaffCommands(commands.Cog):
 
         try:
             await channel.send(
-                embed=pickup_guide_embed(tenant),
+                embed=await pickup_guide_embed(tenant),
                 allowed_mentions=discord.AllowedMentions.none(),
             )
         except discord.Forbidden:
@@ -578,6 +579,90 @@ class StaffCommands(commands.Cog):
             interaction,
             content=f"✅ Tier role synced for {member.mention}.",
             ephemeral=True,
+        )
+
+    @app_commands.command(
+        name="update-market-commission",
+        description="(Staff) Update the market commission taken from every completed order",
+    )
+    @app_commands.describe(
+        fee_rate="Commission in percent (e.g. 1 or 1.5). Use 0 to remove the commission",
+    )
+    async def update_market_commission(
+        self,
+        interaction: discord.Interaction,
+        fee_rate: float,
+    ) -> None:
+        await safe_defer(interaction, ephemeral=True)
+
+        if interaction.guild is None or not isinstance(interaction.user, discord.Member):
+            await safe_respond(interaction, content="❌ Guild only command.", ephemeral=True)
+            return
+
+        try:
+            check_cooldown(user_id=interaction.user.id, key="update_market_commission", seconds=5)
+        except ValueError as exc:
+            await safe_respond(interaction, content=f"⏳ {exc}", ephemeral=True)
+            return
+
+        ctx = get_context(interaction.guild.id)
+        if ctx is None:
+            await safe_respond(interaction, content="❌ Unknown game server.", ephemeral=True)
+            return
+
+        if not has_any_role(interaction.user, ctx, ORDER_MANAGEMENT_ROLES):
+            await safe_respond(
+                interaction,
+                content="❌ Only Bot Developer / Bank Manager.",
+                ephemeral=True,
+            )
+            return
+
+        try:
+            new_rate = market_settings.parse_fee_rate(str(fee_rate))
+        except ValueError as exc:
+            await safe_respond(interaction, content=f"❌ {exc}", ephemeral=True)
+            return
+
+        old_rate = await market_settings.get_fee_rate(ctx)
+        if new_rate == old_rate:
+            await safe_respond(
+                interaction,
+                content=(
+                    f"ℹ️ Market commission is already "
+                    f"**{market_settings.format_fee_rate(new_rate)}**."
+                ),
+                ephemeral=True,
+            )
+            return
+
+        await market_settings.set_fee_rate(
+            ctx,
+            fee_rate=new_rate,
+            updated_by=str(interaction.user.id),
+        )
+
+        keep_pct = int(round((1.0 - new_rate) * 100))
+        await safe_respond(
+            interaction,
+            content=(
+                f"✅ Market commission updated: "
+                f"**{market_settings.format_fee_rate(old_rate)}** ➡️ "
+                f"**{market_settings.format_fee_rate(new_rate)}**\n"
+                f"-# Workers now keep **{keep_pct}%** of the total price."
+            ),
+            ephemeral=True,
+        )
+        await log_activity(
+            guild=interaction.guild,
+            ctx=ctx,
+            member=interaction.user,
+            action=(
+                f"Updated market commission "
+                f"{market_settings.format_fee_rate(old_rate)} ➡️ "
+                f"{market_settings.format_fee_rate(new_rate)}"
+            ),
+            status="warning",
         )
 
 

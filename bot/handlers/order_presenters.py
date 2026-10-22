@@ -93,7 +93,7 @@ async def post_transaction_embed(
     if not isinstance(tx_channel, discord.TextChannel):
         return
     msg = await tx_channel.send(
-        embed=transaction_embed(
+        embed=await transaction_embed(
             role=target,
             member=member,
             order={

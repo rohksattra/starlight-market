@@ -11,6 +11,7 @@ from discord.errors import NotFound
 from bot.ui.shared import button_notice_content_suffix, set_starlight_footer
 from core.constants import DONOR_COUPON_DISCOUNT_RATE
 from core.tenant import GameContext
+from services import market_settings
 from utils.assets import item_image_url
 
 log = logging.getLogger("bot.ui.orders")
@@ -236,7 +237,7 @@ def order_update_embed(
     return f"🔔 {role_mention}", embed
 
 
-def transaction_embed(
+async def transaction_embed(
     *,
     role: str,
     member: discord.Member,
@@ -253,9 +254,9 @@ def transaction_embed(
 
     item_fmt = f"{emoji} {item_name}"
     qty_fmt = f"🏷 ***{fmt(quantity)}x***"
-    keep_rate = 1.0 - float(ctx.economy.worker_fee_rate)
 
     if role == "worker":
+        keep_rate = 1.0 - await market_settings.get_fee_rate(ctx)
         amount = int(price * quantity * keep_rate)
         description = (
             f"***{ctx.brand.name}*** paid 🪙 ***{fmt(amount)}*** to "

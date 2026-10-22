@@ -16,6 +16,7 @@ from database.transactions import run_transaction
 from database.users import UserRepo
 from models.enums import OrderStatus, ServerRole
 from models.order import Order
+from services import market_settings
 
 IncomeTarget = Literal["worker", "customer"]
 log = logging.getLogger("services.economy")
@@ -31,8 +32,8 @@ class EconomyService:
         self.transactions = TransactionRepo(ctx.db_name)
         self.donations = DonationRepo(ctx.db_name)
 
-    def _worker_keep_rate(self) -> float:
-        return 1.0 - float(self.ctx.economy.worker_fee_rate)
+    async def _worker_keep_rate(self) -> float:
+        return await market_settings.keep_rate(self.ctx)
 
     def _validate_quantity(self, quantity: int) -> None:
         if quantity <= 0:
@@ -102,7 +103,7 @@ class EconomyService:
 
         price = updated["item_price"]
         raw_income = price * quantity
-        worker_income = int(raw_income * self._worker_keep_rate())
+        worker_income = int(raw_income * await self._worker_keep_rate())
 
         ok = await self.transactions.create_transaction(
             {
@@ -256,7 +257,7 @@ class EconomyService:
 
         price = int(item["item_price"])
         raw_income = price * quantity
-        worker_income = int(raw_income * self._worker_keep_rate())
+        worker_income = int(raw_income * await self._worker_keep_rate())
 
         await self.users.ensure_user(user_id)
         await self.users.inc_worker_income(

@@ -42,10 +42,29 @@ class OrderCommands(commands.Cog):
             )
         self.bot.tree.add_command(self.calc_worker_ctx)
 
+        self.calc_worker_multi_ctx = app_commands.ContextMenu(
+            name="Calculate Worker Payment (Multi)",
+            callback=self.calculate_worker_payment_multi,
+        )
+        old_multi = self.bot.tree.get_command(
+            "Calculate Worker Payment (Multi)",
+            type=discord.AppCommandType.message,
+        )
+        if old_multi is not None:
+            self.bot.tree.remove_command(
+                "Calculate Worker Payment (Multi)",
+                type=discord.AppCommandType.message,
+            )
+        self.bot.tree.add_command(self.calc_worker_multi_ctx)
+
     async def cog_unload(self) -> None:
         self.bot.tree.remove_command(
             self.calc_worker_ctx.name,
             type=self.calc_worker_ctx.type,
+        )
+        self.bot.tree.remove_command(
+            self.calc_worker_multi_ctx.name,
+            type=self.calc_worker_multi_ctx.type,
         )
 
     async def start_order(self, interaction: discord.Interaction) -> None:
@@ -403,6 +422,16 @@ class OrderCommands(commands.Cog):
         if not await self._require_staff_interaction(interaction, key="calc_worker_payment"):
             return
         await self.handler.handle_calculate_worker_payment(interaction, message)
+
+    async def calculate_worker_payment_multi(
+        self,
+        interaction: discord.Interaction,
+        message: discord.Message,
+    ) -> None:
+        await safe_defer(interaction, ephemeral=True)
+        if not await self._require_staff_interaction(interaction, key="calc_worker_payment_multi"):
+            return
+        await self.handler.handle_calculate_worker_payment_multi(interaction, message)
 
     async def _require_staff_interaction(self, interaction: discord.Interaction, *, key: str) -> bool:
         if not isinstance(interaction.user, discord.Member) or interaction.guild is None:

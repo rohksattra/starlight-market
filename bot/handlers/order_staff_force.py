@@ -228,3 +228,34 @@ class OrderStaffForceMixin:
             view=view,
             ephemeral=True,
         )
+
+    async def handle_calculate_worker_payment_multi(
+        self,
+        interaction: discord.Interaction,
+        message: discord.Message,
+    ) -> None:
+        from bot.ui.calc_payment_multi import CalcMultiWorkerPaymentView
+        from services.items import ItemService
+
+        if interaction.guild is None:
+            return
+        ctx = require_context(interaction)
+        if ctx is None:
+            await safe_respond(interaction, content="❌ Unknown game server.", ephemeral=True)
+            return
+
+        view = CalcMultiWorkerPaymentView(
+            ctx=ctx,
+            order_serv=OrderService(ctx),
+            item_serv=ItemService(ctx),
+            source_message=message,
+            guild=interaction.guild,
+            claimed_category_id=ctx.channels.claimed_orders_category,
+        )
+        await view.order_select.load()
+        await safe_respond(
+            interaction,
+            content="🧮 **Calculate Worker Payment (Multi)**",
+            view=view,
+            ephemeral=True,
+        )

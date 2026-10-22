@@ -8,6 +8,7 @@ from discord import ui
 
 from bot.ui.shared import set_starlight_footer
 from core.tenant import GameContext, get_context
+from services import market_settings
 
 log = logging.getLogger("bot.ui.staff")
 
@@ -205,12 +206,12 @@ def market_rules_embeds(ctx: GameContext) -> list[discord.Embed]:
 _CHEST_BANK_EMOJI = "<:ChestBank:1375467191675392131>"
 
 
-def pickup_guide_embed(ctx: GameContext) -> discord.Embed:
+async def pickup_guide_embed(ctx: GameContext) -> discord.Embed:
     bank = _role_mention(ctx.roles.bank_manager, "Bank Manager")
     worker = _role_mention(ctx.roles.worker, "Worker")
-    fee_rate = float(ctx.economy.worker_fee_rate)
-    keep_pct = int(round((1.0 - fee_rate) * 100))
-    fee_pct = int(round(fee_rate * 100))
+    fee_rate = await market_settings.get_fee_rate(ctx)
+    keep_pct = int(round((1.0 - float(fee_rate)) * 100))
+    fee_pct = int(round(float(fee_rate) * 100))
 
     embed = discord.Embed(
         description=(

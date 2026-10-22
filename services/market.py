@@ -13,7 +13,7 @@ from database.statistics import StatisticRepo
 from database.transaction_docs import TransactionRepo
 from database.worker_ratings import WorkerRatingRepo
 from models.enums import OrderStatus, ServerRole
-from services import catalog_cache
+from services import catalog_cache, market_settings
 
 
 class MarketService:
@@ -42,8 +42,9 @@ class MarketService:
                 row["item_emoji"] = row.get("item_emoji") or "🌟"
         return rows
 
-    def _commission(self, customer_spent: int) -> int:
-        return int(customer_spent * float(self.ctx.economy.worker_fee_rate))
+    @staticmethod
+    def _commission(customer_spent: int, *, fee_rate: float) -> int:
+        return int(customer_spent * float(fee_rate))
 
     @staticmethod
     def _avg_order_size(*, items_sold: int, created: int) -> int:
@@ -101,6 +102,7 @@ class MarketService:
             top_items = await self.transactions.top_items(since=cutoff, limit=5)
 
         top_items = await self._inject_item_emoji(top_items)
+        fee_rate = await market_settings.get_fee_rate(self.ctx)
 
         return {
             "order": {
@@ -113,8 +115,8 @@ class MarketService:
             "gold": {
                 "worker_income": worker_income,
                 "customer_spent": customer_spent,
-                "commission": self._commission(customer_spent),
-                "commission_rate": float(self.ctx.economy.worker_fee_rate),
+                "commission": self._commission(customer_spent, fee_rate=fee_rate),
+                "commission_rate": fee_rate,
                 "items_sold": items_sold,
                 "avg_order_size": self._avg_order_size(
                     items_sold=items_sold, created=created
