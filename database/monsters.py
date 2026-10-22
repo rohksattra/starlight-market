@@ -14,7 +14,7 @@ class MonsterRepo:
         self.monsters = get_db(db_name).monsters
 
     async def get_all(self, *, limit: int = 5000) -> list[MonsterDoc]:
-        return await self.monsters.find({}, {"_id": 0}).limit(limit).to_list(length=limit)
+        return await self.monsters.find({}, {"_id": 0}).sort("monster_name", 1).limit(limit).to_list(length=limit)
 
     async def get_by_name(self, name: str) -> MonsterDoc | None:
         exact = await self.monsters.find_one({"monster_name": name}, {"_id": 0})

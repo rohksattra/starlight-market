@@ -74,7 +74,7 @@ async def user_autocomplete(
         if len(results) >= AUTOCOMPLETE_LIMIT:
             return results[:AUTOCOMPLETE_LIMIT]
 
-    for member in guild.members:
+    for member in sorted(guild.members, key=lambda m: (m.display_name or "").casefold()):
         if len(results) >= AUTOCOMPLETE_LIMIT:
             break
         if member.bot or not _member_matches(member, query):

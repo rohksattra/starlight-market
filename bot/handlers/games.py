@@ -84,6 +84,7 @@ class GameHandler:
             if member:
                 name = member.display_name
             row["name"] = name
+        rows.sort(key=lambda r: (-int(r.get("value", 0)), str(r.get("name") or "").casefold()))
         return rows
 
     async def send_leaderboard_panel(

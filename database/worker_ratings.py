@@ -81,7 +81,7 @@ class WorkerRatingRepo:
                     "count": 1,
                 }
             },
-            {"$sort": {"avg": -1, "count": -1}},
+            {"$sort": {"avg": -1, "count": -1, "_id": 1}},
             {"$limit": limit},
         ]
         return [

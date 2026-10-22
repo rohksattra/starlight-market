@@ -13,7 +13,7 @@ class WorldRepo:
         self.worlds = get_db(db_name).worlds
 
     async def get_all(self, *, limit: int = 500) -> list[WorldDoc]:
-        return await self.worlds.find({}, {"_id": 0}).limit(limit).to_list(length=limit)
+        return await self.worlds.find({}, {"_id": 0}).sort("name", 1).limit(limit).to_list(length=limit)
 
     async def upsert_many(self, docs: list[WorldDoc]) -> None:
         for doc in docs:

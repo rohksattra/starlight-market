@@ -221,10 +221,10 @@ class OrderStaffForceMixin:
             guild=interaction.guild,
             claimed_category_id=ctx.channels.claimed_orders_category,
         )
-        await view.order_select.load()
+        await view.refresh_orders()
         await safe_respond(
             interaction,
-            content="🧮 **Calculate Worker Payment**",
+            content=f"Calculate Worker Payment — <@{interaction.user.id}>",
             view=view,
             ephemeral=True,
         )
@@ -258,7 +258,7 @@ class OrderStaffForceMixin:
         await view.qty_order_select.load()
         await safe_respond(
             interaction,
-            content="🧮 **Calculate Worker Payment (Multi)**",
+            content="Calculate Worker Payment (Multi)",
             view=view,
             ephemeral=True,
         )

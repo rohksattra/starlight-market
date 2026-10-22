@@ -136,13 +136,23 @@ class OrderCommands(commands.Cog):
         results: List[app_commands.Choice[str]] = []
 
         if target == "worker":
-            for wid, qty in sorted(
-                cast(Dict[str, int], order.get("worker_claims", {})).items(),
-                key=lambda item: item[0],
-            ):
-                if qty <= 0:
-                    continue
-                member = interaction.guild.get_member(int(wid))
+            worker_rows: list[tuple[str, int]] = [
+                (wid, qty)
+                for wid, qty in cast(Dict[str, int], order.get("worker_claims", {})).items()
+                if qty and qty > 0
+            ]
+
+            def _worker_label(item: tuple[str, int]) -> str:
+                wid = item[0]
+                member = interaction.guild.get_member(int(wid)) if interaction.guild else None
+                return (
+                    f"{member.display_name} ({member.name})"
+                    if member
+                    else fallback_user_label(wid)
+                )
+
+            for wid, qty in sorted(worker_rows, key=lambda item: _worker_label(item).casefold()):
+                member = interaction.guild.get_member(int(wid)) if interaction.guild else None
                 label = (
                     f"{member.display_name} ({member.name})"
                     if member
@@ -346,14 +356,27 @@ class OrderCommands(commands.Cog):
 
         current_lower = current.lower()
         choices: List[app_commands.Choice[str]] = []
-        for wid, qty in sorted(order.get("worker_claims", {}).items(), key=lambda item: item[0]):
-            if qty <= 0:
-                continue
-            member = interaction.guild.get_member(int(wid))
+        rows = [
+            (wid, qty)
+            for wid, qty in order.get("worker_claims", {}).items()
+            if qty and qty > 0
+        ]
+
+        def _label(item: tuple[str, int]) -> str:
+            wid, qty = item
+            member = interaction.guild.get_member(int(wid)) if interaction.guild else None
+            return (
+                f"{member.display_name} ({member.name}) — qty {qty}"
+                if member
+                else f"Unknown [{wid}] — qty {qty}"
+            )
+
+        for wid, qty in sorted(rows, key=lambda item: _label(item).casefold()):
+            member = interaction.guild.get_member(int(wid)) if interaction.guild else None
             label = (
                 f"{member.display_name} ({member.name}) — qty {qty}"
                 if member
-                else f"{fallback_user_label(wid)} — qty {qty}"
+                else f"Unknown [{wid}] — qty {qty}"
             )
             if current_lower and current_lower not in label.lower() and current_lower not in wid:
                 continue

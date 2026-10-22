@@ -52,6 +52,7 @@ class OrderSelect(discord.ui.Select):
             claims = order.get("worker_claims") or {}
             if int(claims.get(view.worker_id, 0) or 0) > 0:
                 worker_channels.append(ch)
+        worker_channels.sort(key=lambda ch: str(ch.name).casefold())
 
         # Use worker_channels (already filtered) for pagination.
         start = view.page * PAGE_SIZE
@@ -114,10 +115,13 @@ class WorkerSelect(discord.ui.Select):
                     worker_ids.add(str(wid))
 
         self.options.clear()
-        for wid in sorted(worker_ids):
+        members: list[tuple[str, discord.Member]] = []
+        for wid in worker_ids:
             member = self.view_ref.guild.get_member(int(wid))
-            if not member:
-                continue
+            if member:
+                members.append((wid, member))
+        members.sort(key=lambda item: str(item[1].display_name).casefold())
+        for wid, member in members:
             self.options.append(
                 discord.SelectOption(
                     label=member.display_name,
@@ -320,7 +324,7 @@ class CalcMultiWorkerPaymentView(discord.ui.View):
         self.all_orders = []
         if not isinstance(category, discord.CategoryChannel):
             return
-        for ch in category.text_channels:
+        for ch in sorted(category.text_channels, key=lambda c: str(c.name).casefold()):
             order = await self.order_serv.get_by_channel_id(str(ch.id))
             if order:
                 self.all_orders.append((ch, order))
@@ -407,7 +411,7 @@ class CalcMultiWorkerPaymentView(discord.ui.View):
         worker_label = worker.mention if worker else f"<@{self.worker_id}>"
 
         content = (
-            f"🧮 **Calculate Worker Payment (Multi)** — {worker_label}\n"
+            f"Calculate Worker Payment (Multi) — {worker_label}\n\n"
             + "\n".join(lines)
             + f"\n\nTotal: 🪙 ***{total:,}***"
         )

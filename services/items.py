@@ -21,16 +21,20 @@ class ItemService:
         return sorted(name for name in names if name)
 
     async def list_items(self) -> list[dict[str, Any]]:
-        return list(await cached_items(self.ctx.db_name))
+        rows = list(await cached_items(self.ctx.db_name))
+        rows.sort(key=lambda item: str(item.get("item_name") or "").casefold())
+        return rows
 
     async def list_items_by_category(self, category: str) -> list[dict[str, Any]]:
         if not category.strip():
             return []
-        return [
+        rows = [
             item
             for item in await cached_items(self.ctx.db_name)
             if str(item.get("item_category") or "") == category
         ]
+        rows.sort(key=lambda item: str(item.get("item_name") or "").casefold())
+        return rows
 
     async def list_item_price_by_category(
         self,

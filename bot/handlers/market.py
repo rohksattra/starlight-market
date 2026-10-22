@@ -82,7 +82,9 @@ class MarketHandler:
         if ctx is None:
             return []
         rows = await MarketService(ctx).top_workers(period=period)
-        return [{"name": self._member_name(guild, r["id"]), "value": r["value"]} for r in rows]
+        entries = [{"name": self._member_name(guild, r["id"]), "value": r["value"]} for r in rows]
+        entries.sort(key=lambda e: (-int(e.get("value", 0)), str(e.get("name") or "").casefold()))
+        return entries
 
     async def fetch_customer(
         self,
@@ -94,7 +96,9 @@ class MarketHandler:
         if ctx is None:
             return []
         rows = await MarketService(ctx).top_customers(period=period)
-        return [{"name": self._member_name(guild, r["id"]), "value": r["value"]} for r in rows]
+        entries = [{"name": self._member_name(guild, r["id"]), "value": r["value"]} for r in rows]
+        entries.sort(key=lambda e: (-int(e.get("value", 0)), str(e.get("name") or "").casefold()))
+        return entries
 
     async def fetch_donor(
         self,
@@ -106,7 +110,9 @@ class MarketHandler:
         if ctx is None:
             return []
         rows = await MarketService(ctx).top_donors(period=period)
-        return [{"name": self._member_name(guild, r["id"]), "value": r["value"]} for r in rows]
+        entries = [{"name": self._member_name(guild, r["id"]), "value": r["value"]} for r in rows]
+        entries.sort(key=lambda e: (-int(e.get("value", 0)), str(e.get("name") or "").casefold()))
+        return entries
 
     async def fetch_item(
         self,
@@ -129,7 +135,7 @@ class MarketHandler:
         if ctx is None:
             return []
         rows = await MarketService(ctx).top_rated_workers(period=period)
-        return [
+        entries = [
             {
                 "name": self._member_name(guild, r["id"]),
                 "avg": float(r.get("avg", 0)),
@@ -137,6 +143,10 @@ class MarketHandler:
             }
             for r in rows
         ]
+        entries.sort(
+            key=lambda e: (-float(e.get("avg", 0)), -int(e.get("count", 0)), str(e.get("name") or "").casefold())
+        )
+        return entries
 
     async def fetch_entries(
         self,

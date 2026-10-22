@@ -20,7 +20,7 @@ class LeaderboardRepo:
                 {"total_worker_income": {"$gt": 0}},
                 {"_id": 0, "user_id": 1, "total_worker_income": 1},
             )
-            .sort("total_worker_income", -1)
+            .sort([("total_worker_income", -1), ("user_id", 1)])
             .limit(limit)
         )
         return [
@@ -34,7 +34,7 @@ class LeaderboardRepo:
                 {"total_customer_spent": {"$gt": 0}},
                 {"_id": 0, "user_id": 1, "total_customer_spent": 1},
             )
-            .sort("total_customer_spent", -1)
+            .sort([("total_customer_spent", -1), ("user_id", 1)])
             .limit(limit)
         )
         return [
@@ -48,7 +48,7 @@ class LeaderboardRepo:
                 {"donation_given": {"$gt": 0}},
                 {"_id": 0, "user_id": 1, "donation_given": 1},
             )
-            .sort("donation_given", -1)
+            .sort([("donation_given", -1), ("user_id", 1)])
             .limit(limit)
         )
         return [
@@ -62,7 +62,7 @@ class LeaderboardRepo:
                 {"item_sold": {"$gt": 0}},
                 {"_id": 0, "item_id": 1, "item_name": 1, "item_sold": 1},
             )
-            .sort("item_sold", -1)
+            .sort([("item_sold", -1), ("item_name", 1)])
             .limit(limit)
         )
         return [
@@ -97,7 +97,7 @@ class LeaderboardRepo:
                     },
                 }
             },
-            {"$sort": {"avg_rating": -1, "count_worker_rating": -1}},
+            {"$sort": {"avg_rating": -1, "count_worker_rating": -1, "user_id": 1}},
             {"$limit": limit},
         ]
 
@@ -124,7 +124,7 @@ class LeaderboardRepo:
                 {field: {"$gt": 0}},
                 {"_id": 0, "user_id": 1, field: 1},
             )
-            .sort(field, -1)
+            .sort([(field, -1), ("user_id", 1)])
             .limit(limit)
         )
         return [

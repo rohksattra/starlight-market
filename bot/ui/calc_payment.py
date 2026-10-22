@@ -18,61 +18,83 @@ class OrderSelect(discord.ui.Select):
     def __init__(self, view: "CalcWorkerPaymentView") -> None:
         self.view_ref = view
         super().__init__(
-            placeholder="Select Order Channel",
+            placeholder="Select worker first",
             min_values=1,
             max_values=1,
-            options=[],
+            options=[discord.SelectOption(label="Select a worker first", value="__none__")],
             custom_id="calc:select:order",
+            disabled=True,
         )
 
     async def load(self) -> None:
-        guild = self.view_ref.guild
-        category = guild.get_channel(self.view_ref.claimed_category_id)
-        if not isinstance(category, discord.CategoryChannel):
+        view = self.view_ref
+        if view.worker_id is None:
+            self.options = [discord.SelectOption(label="Select a worker first", value="__none__")]
+            self.disabled = True
+            self.max_values = 1
+            self.placeholder = "Select worker first"
+            view.prev_button.disabled = True
+            view.next_button.disabled = True
+            view.page_channel_ids = []
             return
 
-        channels = category.text_channels
-        start = self.view_ref.page * PAGE_SIZE
+        category = view.guild.get_channel(view.claimed_category_id)
+        if not isinstance(category, discord.CategoryChannel):
+            self.options = [discord.SelectOption(label="No claimed orders", value="__none__")]
+            self.disabled = True
+            self.max_values = 1
+            view.page_channel_ids = []
+            return
+
+        worker_channels = []
+        for ch, order in view.all_orders:
+            claims = order.get("worker_claims") or {}
+            if int(claims.get(view.worker_id, 0) or 0) > 0:
+                worker_channels.append(ch)
+        worker_channels.sort(key=lambda ch: str(ch.name).casefold())
+
+        start = view.page * PAGE_SIZE
         end = start + PAGE_SIZE
-        page_channels = channels[start:end]
+        page_channels = worker_channels[start:end]
+        view.page_channel_ids = [str(ch.id) for ch in page_channels]
 
         self.options.clear()
         for ch in page_channels:
-            self.options.append(discord.SelectOption(label=f"#{ch.name}", value=str(ch.id)))
+            self.options.append(
+                discord.SelectOption(
+                    label=f"#{ch.name}",
+                    value=str(ch.id),
+                    default=str(ch.id) == str(view.selected_order_id),
+                )
+            )
 
         if not self.options:
             self.options.append(discord.SelectOption(label="No claimed orders", value="__none__"))
             self.disabled = True
+            self.max_values = 1
         else:
             self.disabled = False
 
-        total_pages = max(1, (len(channels) + PAGE_SIZE - 1) // PAGE_SIZE)
-        self.placeholder = f"Select Order (Page {self.view_ref.page + 1}/{total_pages})"
-        self.view_ref.prev_button.disabled = self.view_ref.page <= 0
-        self.view_ref.next_button.disabled = self.view_ref.page >= (total_pages - 1)
+        self.max_values = 1
+        total_pages = max(1, (len(worker_channels) + PAGE_SIZE - 1) // PAGE_SIZE)
+        self.placeholder = f"Select Order (Page {view.page + 1}/{total_pages})"
+        view.prev_button.disabled = view.page <= 0
+        view.next_button.disabled = view.page >= (total_pages - 1)
 
     async def callback(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
-
-        channel_id = self.values[0]
-        if channel_id == "__none__":
-            return
-
-        order = await self.view_ref.order_serv.get_by_channel_id(channel_id)
-        if not order:
-            await safe_respond(interaction, content="❌ Order not found.", ephemeral=True)
-            return
-
-        self.view_ref.order = order
-        self.view_ref.quantity = None
-        self.view_ref.submit_button.disabled = True
-        self.view_ref.worker_select.disabled = False
-
-        channel = self.view_ref.guild.get_channel(int(channel_id))
-        if isinstance(channel, discord.TextChannel):
-            self.placeholder = f"Order: #{channel.name}"
-
-        await self.view_ref.worker_select.load(order)
+        if self.values and self.values[0] not in {"__none__"}:
+            view = self.view_ref
+            view.selected_order_id = self.values[0]
+            view.order = None
+            for ch, order in view.all_orders:
+                if str(ch.id) == str(self.values[0]):
+                    view.order = order
+                    break
+            view.quantity = None
+            if view.order:
+                self.placeholder = f"Order: #{view.order.get('order_number')} {view.order.get('item_name', 'Item')}"
+        await self.view_ref.refresh_submit_state()
         await safe_edit_message(interaction, view=self.view_ref)
 
 
@@ -83,43 +105,60 @@ class WorkerSelect(discord.ui.Select):
             placeholder="Select Worker",
             min_values=1,
             max_values=1,
-            options=[discord.SelectOption(label="Select order first", value="__placeholder__")],
+            options=[discord.SelectOption(label="Loading workers...", value="__placeholder__")],
             disabled=True,
             custom_id="calc:select:worker",
         )
 
-    async def load(self, order: dict) -> None:
+    async def load(self, orders: list[dict] | None = None) -> None:
+        worker_ids: set[str] = set()
+        source = orders if orders is not None else [order for _ch, order in self.view_ref.all_orders]
+        for order in source:
+            for wid, qty in (order.get("worker_claims") or {}).items():
+                if int(qty or 0) > 0:
+                    worker_ids.add(str(wid))
+
         self.options.clear()
-        for worker_id, qty in order.get("worker_claims", {}).items():
-            if qty <= 0:
-                continue
-            member = self.view_ref.guild.get_member(int(worker_id))
-            if not member:
-                continue
+        members: list[tuple[str, discord.Member]] = []
+        for wid in worker_ids:
+            member = self.view_ref.guild.get_member(int(wid))
+            if member:
+                members.append((wid, member))
+        members.sort(key=lambda item: str(item[1].display_name).casefold())
+
+        for wid, member in members:
             self.options.append(
                 discord.SelectOption(
                     label=member.display_name,
-                    value=str(worker_id),
-                    description=f"Claimed {qty}",
+                    value=str(wid),
+                    default=str(wid) == str(self.view_ref.worker_id),
                 )
             )
 
         if not self.options:
-            self.options.append(discord.SelectOption(label="No workers found", value="__none__"))
+            self.options.append(discord.SelectOption(label="No workers with claims", value="__placeholder__"))
             self.disabled = True
-        else:
-            self.disabled = False
+            return
+
+        self.disabled = False
+        if self.view_ref.worker_id is not None and str(self.view_ref.worker_id) not in worker_ids:
+            self.view_ref.worker_id = None
+            self.view_ref.selected_order_id = None
+            self.view_ref.order = None
 
     async def callback(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
-        if self.values[0] == "__none__":
-            return
-
-        member = self.view_ref.guild.get_member(int(self.values[0]))
-        if member:
-            self.placeholder = f"Worker: {member.display_name}"
-
-        self.view_ref.submit_button.disabled = self.view_ref.quantity is None
+        if self.values and self.values[0] not in {"__placeholder__", "__none__"}:
+            self.view_ref.worker_id = self.values[0]
+            self.view_ref.selected_order_id = None
+            self.view_ref.order = None
+            self.view_ref.quantity = None
+            self.view_ref.page = 0
+            member = self.view_ref.guild.get_member(int(self.values[0]))
+            if member:
+                self.placeholder = f"Worker: {member.display_name}"
+        await self.view_ref.order_select.load()
+        await self.view_ref.refresh_submit_state()
         await safe_edit_message(interaction, view=self.view_ref)
 
 
@@ -131,18 +170,20 @@ class QuantityModal(discord.ui.Modal, title="Set Quantity"):
         self.view_ref = view
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
+        if self.view_ref.selected_order_id is None:
+            await safe_respond(interaction, content="❌ Select an order first.", ephemeral=True)
+            return
         try:
             qty = int(self.quantity.value)
         except ValueError:
             await safe_respond(interaction, content="❌ Quantity must be a number.", ephemeral=True)
             return
-
-        if qty <= 0:
-            await safe_respond(interaction, content="❌ Quantity must be greater than 0.", ephemeral=True)
+        if qty < 0:
+            await safe_respond(interaction, content="❌ Quantity cannot be negative.", ephemeral=True)
             return
 
         self.view_ref.quantity = qty
-        self.view_ref.submit_button.disabled = False
+        await self.view_ref.refresh_submit_state()
         await safe_edit_message(
             interaction,
             content=f"🧮 Quantity set: **{qty}**",
@@ -160,6 +201,9 @@ class QuantityButton(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction) -> None:
+        if self.view_ref.selected_order_id is None:
+            await safe_respond(interaction, content="❌ Select an order first.", ephemeral=True)
+            return
         await interaction.response.send_modal(QuantityModal(self.view_ref))
 
 
@@ -224,45 +268,65 @@ class CalcWorkerPaymentView(discord.ui.View):
         self.claimed_category_id = claimed_category_id
 
         self.order: Optional[dict] = None
+        self.selected_order_id: Optional[str] = None
+        self.worker_id: Optional[str] = None
         self.quantity: Optional[int] = None
         self.page: int = 0
+        self.page_channel_ids: list[str] = []
+        self.all_orders: list[tuple[discord.TextChannel, dict]] = []
 
-        self.order_select = OrderSelect(self)
         self.worker_select = WorkerSelect(self)
+        self.order_select = OrderSelect(self)
         self.prev_button = PrevPageButton(self)
         self.next_button = NextPageButton(self)
         self.qty_button = QuantityButton(self)
         self.submit_button = SubmitButton(self)
 
-        self.add_item(self.order_select)
         self.add_item(self.worker_select)
+        self.add_item(self.order_select)
         self.add_item(self.prev_button)
         self.add_item(self.next_button)
         self.add_item(self.qty_button)
         self.add_item(self.submit_button)
 
+    async def refresh_orders(self) -> None:
+        category = self.guild.get_channel(self.claimed_category_id)
+        self.all_orders = []
+        if not isinstance(category, discord.CategoryChannel):
+            await self.worker_select.load([])
+            await self.order_select.load()
+            return
+        for ch in sorted(category.text_channels, key=lambda c: str(c.name).casefold()):
+            order = await self.order_serv.get_by_channel_id(str(ch.id))
+            if order:
+                self.all_orders.append((ch, order))
+        await self.worker_select.load([order for _ch, order in self.all_orders])
+        await self.order_select.load()
+
+    async def refresh_submit_state(self) -> None:
+        self.submit_button.disabled = not (
+            self.worker_id is not None
+            and self.selected_order_id is not None
+            and self.quantity is not None
+        )
+
     async def handle_submit(self, interaction: discord.Interaction) -> None:
-        if not self.order:
+        if self.order is None or self.selected_order_id is None:
             await safe_respond(interaction, content="❌ Order not selected.", ephemeral=True)
             return
-
-        fresh = await self.order_serv.get_by_channel_id(self.order["channel_id"])
+        fresh = await self.order_serv.get_by_channel_id(self.selected_order_id)
         if not fresh:
             await safe_respond(interaction, content="❌ Order no longer exists.", ephemeral=True)
             return
-
         self.order = fresh
-
-        if not self.worker_select.values:
+        if self.worker_id is None:
             await safe_respond(interaction, content="❌ Worker not selected.", ephemeral=True)
             return
-
         if self.quantity is None:
             await safe_respond(interaction, content="❌ Quantity not set.", ephemeral=True)
             return
-
-        worker_id = self.worker_select.values[0]
-        claimed_qty = int(self.order["worker_claims"].get(worker_id, 0))
+        worker_id = self.worker_id
+        claimed_qty = int((fresh.get("worker_claims") or {}).get(worker_id, 0))
         if self.quantity > claimed_qty:
             await safe_respond(
                 interaction,
@@ -270,20 +334,15 @@ class CalcWorkerPaymentView(discord.ui.View):
                 ephemeral=True,
             )
             return
-
         keep_rate = await market_settings.keep_rate(self.ctx)
-        item_price = int(self.order["item_price"])
+        item_price = int(fresh.get("item_price", 0) or 0)
         payment = int(item_price * self.quantity * keep_rate)
-        item_id = self.order.get("item_id")
+        item_id = fresh.get("item_id")
         item_emoji = await self.item_serv.get_item_emoji(item_id) if item_id else "🌟"
         item_emoji = item_emoji or "🌟"
-
         await safe_respond(interaction, content="✅ Payment calculated.", ephemeral=True)
         await self.source_message.reply(
-            (
-                f"🏷 ***{self.quantity:,}x {item_emoji} {self.order['item_name']}*** "
-                f"for 🪙 ***{payment:,}***"
-            ),
+            f"🏷 ***{self.quantity:,}x {item_emoji} {fresh.get('item_name', 'Item')}*** (order # {fresh.get('order_number')}) for 🪙 ***{payment:,}***",
             allowed_mentions=discord.AllowedMentions.none(),
         )
         self.stop()

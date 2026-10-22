@@ -73,6 +73,7 @@ async def items(db_name: str) -> list[dict[str, Any]]:
         if cached is not None:
             return cached
         rows = [_item_view(item) for item in await ItemRepo(db_name).get_all()]
+        rows.sort(key=lambda item: str(item.get("item_name") or "").casefold())
         _items[db_name] = rows
         _item_maps[db_name] = {
             str(item["item_id"]): item for item in rows if item.get("item_id")
@@ -94,6 +95,7 @@ async def monsters(db_name: str) -> list[dict[str, Any]]:
         if cached is not None:
             return cached
         rows = [_monster_view(row) for row in await MonsterRepo(db_name).get_all()]
+        rows.sort(key=lambda monster: str(monster.get("monster_name") or "").casefold())
         _monsters[db_name] = rows
         return rows
 

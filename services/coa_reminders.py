@@ -122,6 +122,7 @@ def parse_worlds(payload: Any) -> list[CoAWorld]:
                 members_only=bool(row.get("members_only")),
             )
         )
+    worlds.sort(key=lambda w: (w.name or "").casefold())
     return worlds
 
 

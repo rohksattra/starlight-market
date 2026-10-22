@@ -45,7 +45,7 @@ class DonationRepo:
             {"$match": match},
             {"$group": {"_id": "$user_id", "value": {"$sum": "$gold"}}},
             {"$match": {"value": {"$gt": 0}}},
-            {"$sort": {"value": -1}},
+            {"$sort": {"value": -1, "_id": 1}},
             {"$limit": limit},
         ]
         return [

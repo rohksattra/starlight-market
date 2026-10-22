@@ -83,7 +83,7 @@ class TransactionRepo:
             {"$match": self._match(role=role, since=since)},
             {"$group": {"_id": "$user_id", "value": {"$sum": "$total_price"}}},
             {"$match": {"value": {"$gt": 0}}},
-            {"$sort": {"value": -1}},
+            {"$sort": {"value": -1, "_id": 1}},
             {"$limit": limit},
         ]
         return [
@@ -98,7 +98,7 @@ class TransactionRepo:
             {"$match": match},
             {"$group": {"_id": "$item_id", "value": {"$sum": "$item_quantity"}}},
             {"$match": {"value": {"$gt": 0}}},
-            {"$sort": {"value": -1}},
+            {"$sort": {"value": -1, "_id": 1}},
             {"$limit": limit},
         ]
         return [

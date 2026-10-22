@@ -181,7 +181,9 @@ class MarketService:
             rows = await self.leaderboards.top_items(limit=limit)
         else:
             rows = await self.transactions.top_items(since=cutoff, limit=limit)
-        return await self._inject_item_emoji(rows)
+        rows = await self._inject_item_emoji(rows)
+        rows.sort(key=lambda r: (-int(r.get("value", 0)), str(r.get("name") or "").casefold()))
+        return rows
 
     async def top_rated_workers(
         self,

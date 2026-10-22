@@ -21,16 +21,16 @@ class ItemRepo:
         return {} if session is None else {"session": session}
 
     async def get_categories(self) -> list[str]:
-        return await self.items.distinct("item_category")
+        return sorted(await self.items.distinct("item_category"))
 
     async def get_by_category(self, category: str) -> list[Item]:
-        return await self.items.find({"item_category": category}, {"_id": 0}).to_list(None)
+        return await self.items.find({"item_category": category}, {"_id": 0}).sort("item_name", 1).to_list(None)
 
     async def get_by_id(self, item_id: str) -> Item | None:
         return await self.items.find_one({"item_id": item_id}, {"_id": 0})
 
     async def get_all(self, *, limit: int = 5000) -> list[Item]:
-        return await self.items.find({}, {"_id": 0}).limit(limit).to_list(length=limit)
+        return await self.items.find({}, {"_id": 0}).sort("item_name", 1).limit(limit).to_list(length=limit)
 
     async def update_item_price(self, *, item_id: str, new_price: int) -> Item | None:
         return await self.items.find_one_and_update(
