@@ -177,7 +177,10 @@ class QtyOrderSelect(discord.ui.Select):
             return
         selected_items = sorted(
             view.selected.items(),
-            key=lambda item: str((item[1].get("order") or {}).get("item_name") or "").casefold(),
+            key=lambda item: (
+                f"#{(item[1].get('order') or {}).get('order_number', '')} "
+                f"{(item[1].get('order') or {}).get('item_name', 'Item') or 'Item'}"
+            ).casefold(),
         )
         for channel_id, info in selected_items:
             order = info.get("order") or {}
