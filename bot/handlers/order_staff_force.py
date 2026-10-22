@@ -254,6 +254,8 @@ class OrderStaffForceMixin:
         )
         await view.refresh_category_orders()
         await view.worker_select.load()
+        await view.order_select.load()
+        await view.qty_order_select.load()
         await safe_respond(
             interaction,
             content="🧮 **Calculate Worker Payment (Multi)**",

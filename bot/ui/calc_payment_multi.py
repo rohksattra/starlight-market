@@ -20,8 +20,8 @@ class OrderSelect(discord.ui.Select):
         super().__init__(
             placeholder="Select worker first",
             min_values=0,
-            max_values=PAGE_SIZE,
-            options=[],
+            max_values=1,
+            options=[discord.SelectOption(label="Select a worker first", value="__none__")],
             custom_id="calc:multi:select:order",
             disabled=True,
         )
