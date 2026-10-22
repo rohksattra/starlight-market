@@ -113,9 +113,12 @@ def estimate_drops(
     drop_rolls: int = 1,
 ) -> list[tuple[ParsedDrop, float, float]]:
     rolls = drop_rolls if drop_rolls > 1 else 1
+    # Each drop beyond the first adds 10% to the expected amount, so 6
+    # simultaneous drops become 1 + 5 * 10% = 1.5x instead of 6x.
+    multiplier = 1.0 + 0.1 * (rolls - 1) if rolls > 1 else 1.0
     rows: list[tuple[ParsedDrop, float, float]] = []
     for drop in drops:
-        hits = kill_count * rolls / drop.chance_denom
+        hits = kill_count * multiplier / drop.chance_denom
         rows.append((drop, hits * drop.qty_min, hits * drop.qty_max))
     rows.sort(key=lambda row: (row[0].chance_denom, row[0].name.casefold()))
     return rows

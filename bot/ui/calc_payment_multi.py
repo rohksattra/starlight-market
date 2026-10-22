@@ -18,27 +18,46 @@ class OrderSelect(discord.ui.Select):
     def __init__(self, view: "CalcMultiWorkerPaymentView") -> None:
         self.view_ref = view
         super().__init__(
-            placeholder="Select Order Channels",
+            placeholder="Select worker first",
             min_values=0,
             max_values=PAGE_SIZE,
             options=[],
             custom_id="calc:multi:select:order",
+            disabled=True,
         )
 
     async def load(self) -> None:
-        guild = self.view_ref.guild
-        category = guild.get_channel(self.view_ref.claimed_category_id)
+        view = self.view_ref
+        if view.worker_id is None:
+            self.options = [discord.SelectOption(label="Select a worker first", value="__none__")]
+            self.disabled = True
+            self.max_values = 1
+            self.placeholder = "Select worker first"
+            view.prev_button.disabled = True
+            view.next_button.disabled = True
+            view.page_channel_ids = []
+            return
+
+        guild = view.guild
+        category = guild.get_channel(view.claimed_category_id)
         if not isinstance(category, discord.CategoryChannel):
             self.options = [discord.SelectOption(label="No claimed orders", value="__none__")]
             self.disabled = True
             self.max_values = 1
+            view.page_channel_ids = []
             return
 
-        channels = category.text_channels
-        start = self.view_ref.page * PAGE_SIZE
+        worker_channels = []
+        for ch, order in view.all_orders:
+            claims = order.get("worker_claims") or {}
+            if int(claims.get(view.worker_id, 0) or 0) > 0:
+                worker_channels.append(ch)
+
+        # Use worker_channels (already filtered) for pagination.
+        start = view.page * PAGE_SIZE
         end = start + PAGE_SIZE
-        page_channels = channels[start:end]
-        self.view_ref.page_channel_ids = [str(ch.id) for ch in page_channels]
+        page_channels = worker_channels[start:end]
+        view.page_channel_ids = [str(ch.id) for ch in page_channels]
 
         self.options.clear()
         for ch in page_channels:
@@ -46,7 +65,7 @@ class OrderSelect(discord.ui.Select):
                 discord.SelectOption(
                     label=f"#{ch.name}",
                     value=str(ch.id),
-                    default=str(ch.id) in self.view_ref.selected,
+                    default=str(ch.id) in view.selected,
                 )
             )
 
@@ -59,17 +78,17 @@ class OrderSelect(discord.ui.Select):
 
         self.max_values = max(1, min(PAGE_SIZE, len(page_channels) or 1))
 
-        total_pages = max(1, (len(channels) + PAGE_SIZE - 1) // PAGE_SIZE)
-        self.placeholder = f"Select Orders (Page {self.view_ref.page + 1}/{total_pages})"
-        self.view_ref.prev_button.disabled = self.view_ref.page <= 0
-        self.view_ref.next_button.disabled = self.view_ref.page >= (total_pages - 1)
+        total_pages = max(1, (len(worker_channels) + PAGE_SIZE - 1) // PAGE_SIZE)
+        self.placeholder = f"Select Orders (Page {view.page + 1}/{total_pages})"
+        view.prev_button.disabled = view.page <= 0
+        view.next_button.disabled = view.page >= (total_pages - 1)
+
 
     async def callback(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
         if self.values and self.values[0] == "__none__":
             return
         await self.view_ref.sync_selection(self.view_ref.page_channel_ids, self.values)
-        await self.view_ref.worker_select.load()
         await self.view_ref.qty_order_select.load()
         await self.view_ref.refresh_submit_state()
         await safe_edit_message(interaction, view=self.view_ref)
@@ -82,15 +101,14 @@ class WorkerSelect(discord.ui.Select):
             placeholder="Select Worker",
             min_values=1,
             max_values=1,
-            options=[discord.SelectOption(label="Select orders first", value="__placeholder__")],
+            options=[discord.SelectOption(label="Loading workers...", value="__placeholder__")],
             disabled=True,
             custom_id="calc:multi:select:worker",
         )
 
     async def load(self) -> None:
         worker_ids: set[str] = set()
-        for info in self.view_ref.selected.values():
-            order = info.get("order") or {}
+        for _ch, order in self.view_ref.all_orders:
             for wid, qty in (order.get("worker_claims") or {}).items():
                 if int(qty or 0) > 0:
                     worker_ids.add(str(wid))
@@ -109,7 +127,7 @@ class WorkerSelect(discord.ui.Select):
             )
 
         if not self.options:
-            self.options.append(discord.SelectOption(label="Select orders first", value="__placeholder__"))
+            self.options.append(discord.SelectOption(label="No workers with claims", value="__placeholder__"))
             self.disabled = True
             return
 
@@ -121,9 +139,15 @@ class WorkerSelect(discord.ui.Select):
         await safe_defer(interaction, ephemeral=True)
         if self.values and self.values[0] not in {"__placeholder__", "__none__"}:
             self.view_ref.worker_id = self.values[0]
+            # Reset selected orders when worker changes.
+            self.view_ref.selected.clear()
+            self.view_ref.qty_target = None
+            self.view_ref.page = 0
             member = self.view_ref.guild.get_member(int(self.values[0]))
             if member:
                 self.placeholder = f"Worker: {member.display_name}"
+        await self.view_ref.order_select.load()
+        await self.view_ref.qty_order_select.load()
         await self.view_ref.refresh_submit_state()
         await safe_edit_message(interaction, view=self.view_ref)
 
@@ -132,38 +156,27 @@ class QtyOrderSelect(discord.ui.Select):
     def __init__(self, view: "CalcMultiWorkerPaymentView") -> None:
         self.view_ref = view
         super().__init__(
-            placeholder="Select order to set qty",
+            placeholder="Select order to set quantity",
             min_values=0,
             max_values=1,
-            options=[discord.SelectOption(label="No orders selected", value="__none__")],
+            options=[discord.SelectOption(label="No selected orders", value="__none__")],
             disabled=True,
-            custom_id="calc:multi:select:qtyorder",
+            custom_id="calc:multi:select:qty_order",
         )
 
     async def load(self) -> None:
+        view = self.view_ref
         self.options.clear()
-        for channel_id, info in self.view_ref.selected.items():
-            order = info.get("order") or {}
-            item_name = order.get("item_name", "Item")
-            order_no = order.get("order_number", "?")
-            label = f"#{order_no} {item_name}"[:100]
-            self.options.append(
-                discord.SelectOption(
-                    label=label,
-                    value=str(channel_id),
-                    description=f"Qty: {int(info.get('qty', 0)):,}",
-                    default=str(channel_id) == str(self.view_ref.qty_target),
-                )
-            )
-
-        if not self.options:
-            self.options.append(discord.SelectOption(label="No orders selected", value="__none__"))
+        if not view.selected:
+            self.options.append(discord.SelectOption(label="No selected orders", value="__none__"))
             self.disabled = True
             return
-
+        for channel_id, info in view.selected.items():
+            order = info.get("order") or {}
+            qty = int(info.get("qty", 0) or 0)
+            label = f"#{order.get('order_number')} {order.get('item_name', 'Item')} (qty {qty})"
+            self.options.append(discord.SelectOption(label=label[:100], value=str(channel_id)))
         self.disabled = False
-        if self.view_ref.qty_target is not None and str(self.view_ref.qty_target) not in self.view_ref.selected:
-            self.view_ref.qty_target = None
 
     async def callback(self, interaction: discord.Interaction) -> None:
         await safe_defer(interaction, ephemeral=True)
@@ -180,36 +193,24 @@ class QuantityModal(discord.ui.Modal, title="Set Quantity"):
         self.view_ref = view
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        if self.view_ref.qty_target is None or self.view_ref.qty_target not in self.view_ref.selected:
+        target = self.view_ref.qty_target
+        if target is None or target not in self.view_ref.selected:
             await safe_respond(interaction, content="❌ Select an order first.", ephemeral=True)
             return
-
         try:
             qty = int(self.quantity.value)
         except ValueError:
             await safe_respond(interaction, content="❌ Quantity must be a number.", ephemeral=True)
             return
-
-        if qty <= 0:
-            await safe_respond(interaction, content="❌ Quantity must be greater than 0.", ephemeral=True)
+        if qty < 0:
+            await safe_respond(interaction, content="❌ Quantity cannot be negative.", ephemeral=True)
             return
 
-        order = self.view_ref.selected[self.view_ref.qty_target].get("order") or {}
-        if self.view_ref.worker_id is not None:
-            claimed_qty = int((order.get("worker_claims") or {}).get(self.view_ref.worker_id, 0))
-            if qty > claimed_qty:
-                await safe_respond(
-                    interaction,
-                    content=f"❌ Worker only claimed **{claimed_qty}** items for this order.",
-                    ephemeral=True,
-                )
-                return
-
-        self.view_ref.selected[self.view_ref.qty_target]["qty"] = qty
+        self.view_ref.selected[target]["qty"] = qty
         await self.view_ref.qty_order_select.load()
         await safe_edit_message(
             interaction,
-            content=f"🧮 Quantity set: **{qty:,}**",
+            content=f"🧮 Quantity set: **{qty}**",
             view=self.view_ref,
         )
 
@@ -218,17 +219,15 @@ class QuantityButton(discord.ui.Button):
     def __init__(self, view: "CalcMultiWorkerPaymentView") -> None:
         self.view_ref = view
         super().__init__(
-            label="Set Qty",
+            label="Set Quantity",
             style=discord.ButtonStyle.secondary,
             custom_id="calc:multi:qty:open",
         )
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        if not self.view_ref.selected:
-            await safe_respond(interaction, content="❌ Select at least one order first.", ephemeral=True)
-            return
         if self.view_ref.qty_target is None:
-            self.view_ref.qty_target = next(iter(self.view_ref.selected))
+            await safe_respond(interaction, content="❌ Select an order first.", ephemeral=True)
+            return
         await interaction.response.send_modal(QuantityModal(self.view_ref))
 
 
@@ -297,6 +296,7 @@ class CalcMultiWorkerPaymentView(discord.ui.View):
         self.qty_target: Optional[str] = None
         self.page: int = 0
         self.page_channel_ids: list[str] = []
+        self.all_orders: list[tuple[discord.TextChannel, dict]] = []
 
         self.order_select = OrderSelect(self)
         self.worker_select = WorkerSelect(self)
@@ -306,13 +306,24 @@ class CalcMultiWorkerPaymentView(discord.ui.View):
         self.qty_button = QuantityButton(self)
         self.submit_button = SubmitButton(self)
 
-        self.add_item(self.order_select)
         self.add_item(self.worker_select)
+        self.add_item(self.order_select)
         self.add_item(self.qty_order_select)
         self.add_item(self.prev_button)
         self.add_item(self.next_button)
         self.add_item(self.qty_button)
         self.add_item(self.submit_button)
+
+    async def refresh_category_orders(self) -> None:
+        guild = self.guild
+        category = guild.get_channel(self.claimed_category_id)
+        self.all_orders = []
+        if not isinstance(category, discord.CategoryChannel):
+            return
+        for ch in category.text_channels:
+            order = await self.order_serv.get_by_channel_id(str(ch.id))
+            if order:
+                self.all_orders.append((ch, order))
 
     async def sync_selection(self, page_ids: list[str], selected_values: list[str]) -> None:
         selected_set = set(selected_values or [])
@@ -327,7 +338,13 @@ class CalcMultiWorkerPaymentView(discord.ui.View):
                 continue
             if len(self.selected) >= 25:
                 continue
-            order = await self.order_serv.get_by_channel_id(cid)
+            order = None
+            for ch, o in self.all_orders:
+                if str(ch.id) == str(cid):
+                    order = o
+                    break
+            if order is None:
+                order = await self.order_serv.get_by_channel_id(cid)
             if not order:
                 continue
             self.selected[cid] = {"order": order, "qty": 0}
@@ -378,8 +395,8 @@ class CalcMultiWorkerPaymentView(discord.ui.View):
             item_emoji = await self.item_serv.get_item_emoji(item_id) if item_id else "🌟"
             item_emoji = item_emoji or "🌟"
             lines.append(
-                f"• {qty:,}x {item_emoji} {fresh.get('item_name', 'Item')} "
-                f"(order #{fresh.get('order_number')}) — 🪙 {payment:,}"
+                f"🏷 ***{qty:,}x {item_emoji} {fresh.get('item_name', 'Item')}*** "
+                f"(order #{fresh.get('order_number')}) for 🪙 ***{payment:,}***"
             )
 
         if not lines:
@@ -390,9 +407,9 @@ class CalcMultiWorkerPaymentView(discord.ui.View):
         worker_label = worker.mention if worker else f"<@{self.worker_id}>"
 
         content = (
-            f"🧮 **Worker Payment (Multi)** — {worker_label}\n"
+            f"🧮 **Calculate Worker Payment (Multi)** — {worker_label}\n"
             + "\n".join(lines)
-            + f"\n\n**Total: 🪙 {total:,}**"
+            + f"\n\nTotal: 🪙 ***{total:,}***"
         )
 
         await safe_respond(interaction, content="✅ Payment calculated.", ephemeral=True)

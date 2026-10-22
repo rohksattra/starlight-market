@@ -66,8 +66,12 @@ def _bottom_notes(estimate: GrindEstimate) -> list[str]:
     notes: list[str] = []
     if estimate.drop_rolls > 1:
         note = estimate.monster_drop_note or f"Drops {estimate.drop_rolls} items upon death"
+        extra = estimate.drop_rolls - 1
+        multiplier = 1.0 + 0.1 * extra
         notes.append(f"*{note.rstrip('.')}.*")
-        notes.append(f"*Estimates are multiplied by {estimate.drop_rolls}.*")
+        notes.append(
+            f"*Estimates use {multiplier:.1f}× ({estimate.drop_rolls} drops: 1 + {extra}×10%).*"
+        )
     elif estimate.monster_drop_note:
         notes.append(f"*{estimate.monster_drop_note}*")
     return notes

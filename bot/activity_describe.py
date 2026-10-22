@@ -67,6 +67,7 @@ _MODAL_ACTIONS = {
     "order:qty:claim": "Submitted claim quantity",
     "order:qty:unclaim": "Submitted unclaim quantity",
     "calc:qty": "Submitted payment quantity",
+    "calc:multi:qty": "Submitted payment quantity",
 }
 
 _SELECT_KINDS = {
@@ -74,6 +75,9 @@ _SELECT_KINDS = {
     "order:select:item": ("item", "items"),
     "calc:select:order": ("order", "orders"),
     "calc:select:worker": ("worker", "workers"),
+    "calc:multi:select:order": ("order", "orders"),
+    "calc:multi:select:worker": ("worker", "workers"),
+    "calc:multi:select:qty_order": ("order", "orders"),
     "giveaway:select:winners": ("giveaway winner(s)", "giveaway winners"),
 }
 
@@ -358,9 +362,13 @@ def _humanize_custom_id(custom_id: str) -> str | None:
         return _BUTTON_LABEL_ACTIONS["set quantity"]
     if cid == "calc:submit":
         return _BUTTON_LABEL_ACTIONS["calculate"]
-    if cid == "calc:page:prev":
+    if cid == "calc:multi:qty:open":
+        return _BUTTON_LABEL_ACTIONS["set quantity"]
+    if cid == "calc:multi:submit":
+        return _BUTTON_LABEL_ACTIONS["calculate"]
+    if cid == "calc:page:prev" or cid == "calc:multi:page:prev":
         return _BUTTON_LABEL_ACTIONS["◀"]
-    if cid == "calc:page:next":
+    if cid == "calc:page:next" or cid == "calc:multi:page:next":
         return _BUTTON_LABEL_ACTIONS["▶"]
     if cid == "prompt:confirm":
         return _BUTTON_LABEL_ACTIONS["✅ confirm"]
