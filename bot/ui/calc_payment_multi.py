@@ -175,7 +175,11 @@ class QtyOrderSelect(discord.ui.Select):
             self.options.append(discord.SelectOption(label="No selected orders", value="__none__"))
             self.disabled = True
             return
-        for channel_id, info in view.selected.items():
+        selected_items = sorted(
+            view.selected.items(),
+            key=lambda item: str((item[1].get("order") or {}).get("item_name") or "").casefold(),
+        )
+        for channel_id, info in selected_items:
             order = info.get("order") or {}
             qty = int(info.get("qty", 0) or 0)
             label = f"#{order.get('order_number')} {order.get('item_name', 'Item')} (qty {qty})"
