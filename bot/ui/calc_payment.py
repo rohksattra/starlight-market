@@ -340,9 +340,16 @@ class CalcWorkerPaymentView(discord.ui.View):
         item_id = fresh.get("item_id")
         item_emoji = await self.item_serv.get_item_emoji(item_id) if item_id else "🌟"
         item_emoji = item_emoji or "🌟"
+        worker = self.guild.get_member(int(worker_id))
+        worker_label = worker.mention if worker else f"<@{worker_id}>"
+        content = (
+            f"Calculate Worker Payment — {worker_label}\n\n"
+            f"🏷 ***{self.quantity:,}x {item_emoji} {fresh.get('item_name', 'Item')}*** "
+            f"(order # {fresh.get('order_number')}) for 🪙 ***{payment:,}***"
+        )
         await safe_respond(interaction, content="✅ Payment calculated.", ephemeral=True)
         await self.source_message.reply(
-            f"🏷 ***{self.quantity:,}x {item_emoji} {fresh.get('item_name', 'Item')}*** (order # {fresh.get('order_number')}) for 🪙 ***{payment:,}***",
+            content,
             allowed_mentions=discord.AllowedMentions.none(),
         )
         self.stop()
