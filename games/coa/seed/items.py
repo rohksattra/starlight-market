@@ -58,7 +58,7 @@ DEFAULT_ITEMS = {
         {"item_name": 'Spectral Fiend Eye', "item_price": 0, "item_image": 'spectral-fiend-eye.png', "item_emoji": '<:Spectral_Fiend_Eye_m:1492787056961654855>', "is_sell": True},
         {"item_name": 'Spectral Flintstone', "item_price": 0, "item_image": 'spectral-flintstone.png', "item_emoji": '<:Spectral_Flintstone_m:1492787059407192134>', "is_sell": True},
         {"item_name": 'Tormented Eye', "item_price": 0, "item_image": 'tormented-eye.png', "item_emoji": '<:Tormented_Eye_m:1492787061323989042>', "is_sell": True},
-        {"item_name": 'Defiled Scarab Leg', "item_price": 0, "item_image": 'defiled-scarab-leg', "item_emoji": '<:defiledscarableg:1512467989977366669>', "is_sell": True},
+        {"item_name": 'Defiled Scarab Leg', "item_price": 0, "item_image": 'defiled-scarab-leg.png', "item_emoji": '<:defiledscarableg:1512467989977366669>', "is_sell": True},
     ],
     'Cooking (Pet Food)': [
         {"item_name": 'Bear Roast', "item_price": 0, "item_image": 'Bear_Roast_m.png', "item_emoji": '<:Bear_Roast_m:1495022601247133887>', "is_sell": True},
@@ -313,7 +313,7 @@ DEFAULT_ITEMS = {
         {"item_name": 'Magic Rod', "item_price": 0, "item_image": 'magic-rod.png', "item_emoji": '<:Magic_Rod_m:1494861848678236170>', "is_sell": True},
         {"item_name": 'Mythan Axe', "item_price": 0, "item_image": 'mythan-axe.png', "item_emoji": '<:Mythan_Axe_m:1494861850783780944>', "is_sell": True},
         {"item_name": 'Mythan Pickaxe', "item_price": 0, "item_image": 'mythan-pickaxe.png', "item_emoji": '<:Mythan_Pickaxe_m:1494861853241639052>', "is_sell": True},
-        {"item_name": 'Cobalt Rod', "item_price": 0, "item_image": 'mythan-rod.png', "item_emoji": '<:Cobalt_Rod_m:1494861838842597387>', "is_sell": True},
+        {"item_name": 'Cobalt Rod', "item_price": 0, "item_image": 'cobalt-rod.png', "item_emoji": '<:Cobalt_Rod_m:1494861838842597387>', "is_sell": True},
         {"item_name": 'Mythan Secateurs', "item_price": 0, "item_image": 'mythan-secateurs.png', "item_emoji": '<:Mythan_Secateurs_m:1494861857985663067>', "is_sell": True},
         {"item_name": 'Mythan Spade', "item_price": 0, "item_image": 'mythan-spade.png', "item_emoji": '<:Mythan_Spade_m:1492793597848846396>', "is_sell": True},
         {"item_name": 'Varaxite Axe', "item_price": 0, "item_image": 'varaxite-axe.png', "item_emoji": '<:Varaxite_Axe_m:1494861860611035339>', "is_sell": True},
